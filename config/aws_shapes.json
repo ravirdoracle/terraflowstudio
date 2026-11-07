@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Oracle AI Database@AWS Exadata shape catalogue. Single source of truth for the",
+    "shape, database_server_type and storage_server_type dropdowns on the AWS page.",
+    "",
+    "Edit this file, or use /regions, to add a shape or a server type — no code",
+    "change needed. A bad edit is rejected on save, so the file on disk is never",
+    "left in a state that would empty the dropdowns.",
+    "",
+    "Fields per entry:",
+    "  shape                  aws_odb_cloud_exadata_infrastructure.shape. Unique.",
+    "  label                  Human name shown in the dropdown.",
+    "  status                 live | planned. Planned shapes are shown greyed out.",
+    "  database_server_types  Values offered for database_server_type.",
+    "  storage_server_types   Values offered for storage_server_type. HC = High",
+    "                         Capacity, EF = Extreme Flash.",
+    "  server_types_required  AWS documents both server types as mandatory for",
+    "                         Exadata.X11M. The card marks them required and",
+    "                         /api/validate rejects a blank one.",
+    "",
+    "AWS recommends the ListDbSystemShapes API for the authoritative list of server",
+    "models available in a given region."
+  ],
+  "default_shape": "Exadata.X11M",
+  "shapes": [
+    { "shape": "Exadata.X9M",   "label": "Exadata X9M",   "status": "live", "database_server_types": ["X9M"],   "storage_server_types": ["X9M-HC", "X9M-EF"],   "server_types_required": false },
+    { "shape": "Exadata.X10M",  "label": "Exadata X10M",  "status": "live", "database_server_types": ["X10M"],  "storage_server_types": ["X10M-HC", "X10M-EF"], "server_types_required": false },
+    { "shape": "Exadata.X11M",  "label": "Exadata X11M",  "status": "live", "database_server_types": ["X11M"],  "storage_server_types": ["X11M-HC", "X11M-EF"], "server_types_required": true },
+    { "shape": "Exadata.X11MV", "label": "Exadata X11MV", "status": "live", "database_server_types": ["X11MV"], "storage_server_types": ["X11MV-HC"],           "server_types_required": false }
+  ]
+}

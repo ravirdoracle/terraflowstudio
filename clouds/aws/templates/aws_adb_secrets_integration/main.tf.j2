@@ -1,0 +1,24 @@
+# AWS Secrets Manager integration for Autonomous Database Serverless.
+#
+# One per AWS account and Region, shared by every Autonomous Database there —
+# including databases outside this configuration. Creating it adopts an
+# integration that is already enabled; destroying it disables the integration
+# for the whole account and Region.
+#
+# It provisions an Oracle-managed service role (role_arn). Create a
+# customer-managed IAM role whose trust policy allows role_arn to assume it and
+# that may read the secret, then name that role and the secret on each database.
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 6.68.0" }
+  }
+}
+
+resource "aws_odb_autonomous_database_secrets_manager_integration" "this" {
+  # A destroy here would cut off every Secrets Manager-backed database in the
+  # account and Region. To stop managing it from this configuration, drop it
+  # from state with a `removed` block (lifecycle { destroy = false }) instead.
+  lifecycle {
+    prevent_destroy = true
+  }
+}

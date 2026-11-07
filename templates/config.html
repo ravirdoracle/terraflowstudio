@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuration — Terraflow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--orange2:#ff6b2b;--o-dim:rgba(232,80,10,0.08);--o-dim2:rgba(232,80,10,0.18);
+  --green:#1a7a4a;--red:#c0392b;
+  --radius:6px;--radius-lg:10px;
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:linear-gradient(150deg,#1e1c1a 0%,#141210 100%);color:var(--ink);font-family:var(--font-b);min-height:100vh;line-height:1.5;display:flex;flex-direction:column;}
+
+/* ── Header ── */
+header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.04) inset;}
+.logo{display:flex;align-items:baseline;gap:14px;text-decoration:none;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:#fff;line-height:1;}
+.logo-name .ac{color:var(--orange2);}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.nav-link{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:var(--radius);border:1px solid #333;color:#888;text-decoration:none;transition:all .15s;}
+.nav-link:hover{color:#ccc;border-color:#555;}
+.nav-link.active{color:var(--orange2);border-color:var(--orange2);background:var(--o-dim2);}
+
+/* ── Page layout ── */
+.page-wrap{flex:1;padding:32px 40px 64px;max-width:960px;margin:0 auto;width:100%;}
+.page-title{font-family:var(--font-d);font-weight:800;font-size:28px;color:#f0ede8;letter-spacing:-.5px;margin-bottom:4px;}
+.page-sub{font-size:13px;color:#5a5650;margin-bottom:32px;}
+.page-sub code{font-family:var(--font-m);font-size:11px;color:#6a6460;background:rgba(255,255,255,0.06);padding:1px 6px;border-radius:3px;}
+
+/* ── Section card ── */
+.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);margin-bottom:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.32),0 1px 4px rgba(0,0,0,0.18);}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--off);}
+.section-label{font-family:var(--font-d);font-weight:800;font-size:16px;letter-spacing:.02em;color:var(--ink);}
+.section-save{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 18px;border-radius:var(--radius);border:1.5px solid var(--orange);background:var(--o-dim);color:var(--orange);cursor:pointer;transition:all .15s;}
+.section-save:hover{background:var(--orange);color:#fff;}
+.section-save:disabled{opacity:.4;cursor:not-allowed;}
+.section-body{padding:20px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px 24px;}
+
+/* ── Field ── */
+.field{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-family:var(--font-d);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);}
+.field-wrap{position:relative;display:flex;align-items:center;}
+.field-input{width:100%;background:var(--off2);border:1.5px solid var(--line);border-radius:var(--radius);color:var(--ink);font-family:var(--font-m);font-size:12px;padding:8px 12px;outline:none;transition:border-color .15s;}
+.field-input:focus{border-color:var(--orange);background:#fff;}
+.field-input.has-toggle{padding-right:38px;}
+select.field-input{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px;}
+.toggle-vis{position:absolute;right:10px;background:none;border:none;cursor:pointer;color:var(--ink4);font-size:13px;padding:2px;line-height:1;}
+.toggle-vis:hover{color:var(--ink2);}
+
+/* ── Status toast ── */
+.toast{position:fixed;bottom:28px;right:28px;z-index:999;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:var(--radius-lg);font-family:var(--font-d);font-weight:700;font-size:13px;letter-spacing:.04em;box-shadow:0 4px 20px rgba(0,0,0,0.18);opacity:0;transform:translateY(12px);transition:opacity .25s,transform .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{background:#e8f5ee;border:1.5px solid #1a7a4a;color:#1a7a4a;}
+.toast.err{background:#fdecea;border:1.5px solid var(--red);color:var(--red);}
+
+/* ── Section status dot ── */
+.sec-status{width:8px;height:8px;border-radius:50%;background:var(--line);transition:background .4s;flex-shrink:0;}
+.sec-status.saved{background:#1a7a4a;}
+.sec-status.err{background:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header>
+  <a class="logo" href="/">
+    <span class="logo-name">Terraflow<span class="ac">Studio</span></span>
+    <span class="logo-sub">IaC Generator</span>
+  </a>
+  <div class="header-right">
+    <a class="nav-link" href="/aws">ODB@AWS</a>
+    <a class="nav-link" href="/gcp">AI DB@GCP</a>
+    <a class="nav-link active" href="/config">Config</a>
+  </div>
+</header>
+
+<!-- ── Page ── -->
+<div class="page-wrap">
+  <h1 class="page-title">Configuration</h1>
+  <p class="page-sub">All settings are saved to <code>.env</code> and applied immediately — no restart required for most values.</p>
+
+  <div id="sections-root"></div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+const SCHEMA = {{ schema | tojson }};
+
+let currentValues = {};
+
+async function loadConfig() {
+  const res = await fetch('/api/config');
+  const data = await res.json();
+  currentValues = data.values || {};
+  renderSections();
+}
+
+function renderSections() {
+  const root = document.getElementById('sections-root');
+  root.innerHTML = '';
+  SCHEMA.forEach(group => {
+    root.appendChild(buildSection(group));
+  });
+}
+
+function buildSection(group) {
+  const section = document.createElement('div');
+  section.className = 'section';
+  section.id = 'sec-' + group.id;
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'section-header';
+  const dot = document.createElement('div');
+  dot.className = 'sec-status';
+  dot.id = 'dot-' + group.id;
+  const lbl = document.createElement('div');
+  lbl.style.display = 'flex';
+  lbl.style.alignItems = 'center';
+  lbl.style.gap = '10px';
+  lbl.appendChild(dot);
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'section-label';
+  labelSpan.textContent = group.label;
+  lbl.appendChild(labelSpan);
+  const btn = document.createElement('button');
+  btn.className = 'section-save';
+  btn.textContent = 'Save';
+  btn.onclick = () => saveSection(group);
+  hdr.appendChild(lbl);
+  hdr.appendChild(btn);
+  section.appendChild(hdr);
+
+  // Optional note banner
+  if (group.note) {
+    const note = document.createElement('div');
+    note.style.cssText = 'padding:8px 22px;font-size:11px;color:#888;background:#faf9f6;border-bottom:1px solid var(--line);font-family:var(--font-m)';
+    note.textContent = '⚠ ' + group.note;
+    section.appendChild(note);
+  }
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'section-body';
+  group.fields.forEach(f => body.appendChild(buildField(f)));
+  section.appendChild(body);
+
+  return section;
+}
+
+function buildField(f) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+
+  const lbl = document.createElement('label');
+  lbl.className = 'field-label';
+  lbl.textContent = f.label;
+  lbl.htmlFor = 'field-' + f.key;
+  wrap.appendChild(lbl);
+
+  const fw = document.createElement('div');
+  fw.className = 'field-wrap';
+
+  let input;
+  if (f.type === 'select') {
+    input = document.createElement('select');
+    input.className = 'field-input';
+    (f.options || []).forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt;
+      o.textContent = opt || '— none —';
+      if ((currentValues[f.key] || '') === opt) o.selected = true;
+      input.appendChild(o);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = f.type === 'password' ? 'password' : (f.type === 'number' ? 'text' : 'text');
+    input.className = 'field-input' + (f.type === 'password' ? ' has-toggle' : '');
+    input.value = currentValues[f.key] || '';
+    input.placeholder = f.placeholder || '';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+  }
+  input.id = 'field-' + f.key;
+  input.dataset.key = f.key;
+  fw.appendChild(input);
+
+  if (f.type === 'password') {
+    const tog = document.createElement('button');
+    tog.type = 'button';
+    tog.className = 'toggle-vis';
+    tog.title = 'Show / hide';
+    tog.textContent = '👁';
+    tog.onclick = () => {
+      input.type = input.type === 'password' ? 'text' : 'password';
+    };
+    fw.appendChild(tog);
+  }
+
+  wrap.appendChild(fw);
+  return wrap;
+}
+
+async function saveSection(group) {
+  const payload = {};
+  group.fields.forEach(f => {
+    const el = document.getElementById('field-' + f.key);
+    if (el) payload[f.key] = el.value;
+  });
+
+  const btn = document.querySelector(`#sec-${group.id} .section-save`);
+  const dot = document.getElementById('dot-' + group.id);
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      data.saved.forEach(k => { currentValues[k] = payload[k]; });
+      dot.className = 'sec-status saved';
+      showToast('✓ ' + group.label + ' saved', 'ok');
+    } else {
+      dot.className = 'sec-status err';
+      showToast('Error: ' + (data.error || 'unknown'), 'err');
+    }
+  } catch (e) {
+    dot.className = 'sec-status err';
+    showToast('Network error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save';
+  }
+}
+
+let _toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => { t.className = 'toast'; }, 3000);
+}
+
+loadConfig();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+# Autonomous AI Database Serverless on Oracle AI Database@GCP.
+#
+# Serverless, not Dedicated: there is no Exadata Infrastructure or VM Cluster
+# under this. Oracle runs the fleet and this resource asks for a slice of it,
+# which is why it takes a compute_count and a storage size rather than an
+# infra_key.
+#
+# It is a *regional* resource — unlike the Exadata Infrastructure, VM Clusters
+# and ODB Subnets, it is not placed in a gcp_oracle_zone.
+#
+# Networking: ADB attaches to the ODB Network's CLIENT subnet only. The backup
+# subnet is used by Exadata VM Clusters and never by an Autonomous Database, so
+# this module takes odb_subnet but no backup_odb_subnet.
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.5.0"
+    }
+  }
+}
+
+resource "google_oracle_database_autonomous_database" "this" {
+  autonomous_database_id = var.autonomous_database_id
+  location               = var.location
+  project                = var.project != null ? var.project : null
+  database               = var.database
+  display_name           = var.display_name != null && var.display_name != "" ? var.display_name : var.autonomous_database_id
+
+  # Required by the provider and never written into a generated file —
+  # supply it at apply time. See var.admin_password.
+  admin_password = var.admin_password
+
+  odb_network = var.odb_network
+  odb_subnet  = var.odb_subnet
+
+  deletion_protection = var.deletion_protection
+  labels              = var.labels
+
+  properties {
+    db_workload  = var.db_workload
+    license_type = var.license_type
+    db_edition   = var.db_edition
+    db_version   = var.db_version
+
+    compute_count                   = var.compute_count
+    data_storage_size_gb            = var.data_storage_size_gb
+    is_auto_scaling_enabled         = var.is_auto_scaling_enabled
+    is_storage_auto_scaling_enabled = var.is_storage_auto_scaling_enabled
+
+    backup_retention_period_days = var.backup_retention_period_days
+    maintenance_schedule_type    = var.maintenance_schedule_type
+
+    character_set             = var.character_set
+    n_character_set           = var.n_character_set
+    operations_insights_state = var.operations_insights_state
+
+    mtls_connection_required = var.mtls_connection_required
+    private_endpoint_label   = var.private_endpoint_label != "" ? var.private_endpoint_label : null
+    # Must fall inside the client subnet's CIDR. Left null, Oracle picks one.
+    private_endpoint_ip = var.private_endpoint_ip != "" ? var.private_endpoint_ip : null
+
+    dynamic "customer_contacts" {
+      for_each = var.customer_contacts
+      content { email = customer_contacts.value }
+    }
+  }
+
+  timeouts {
+    create = "4h"
+    update = "2h"
+    delete = "2h"
+  }
+
+  # Autonomous scaling rewrites the compute and storage values in place, so a
+  # plan run after the service has scaled would otherwise propose shrinking the
+  # database back to its seed size. This is the ignore list Oracle publishes for
+  # ADB@GCP; the sibling gcp-vm-cluster module guards its own fields the same way.
+  #
+  # Consequence: editing any of these in terraform.auto.tfvars produces no plan.
+  # To resize deliberately, comment the field out here, apply, then restore it.
+  lifecycle {
+    ignore_changes = [
+      properties[0].compute_count,
+      properties[0].data_storage_size_gb,
+      properties[0].data_storage_size_tb,
+      properties[0].db_version,
+      properties[0].db_edition,
+      properties[0].is_auto_scaling_enabled,
+      properties[0].is_storage_auto_scaling_enabled,
+      properties[0].backup_retention_period_days,
+    ]
+  }
+}

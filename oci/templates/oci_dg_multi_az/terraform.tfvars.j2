@@ -1,0 +1,13 @@
+prefix                 = "{{ prefix }}"
+oci_region             = "{{ oci_region }}"
+compartment_id         = "{{ compartment_id or '<compartment-ocid>' }}"
+
+primary_vcn_id         = "{{ primary_vcn_id or '<primary-vcn-ocid>' }}"
+primary_nsg_id         = "{{ primary_nsg_id or '<primary-nsg-ocid>' }}"
+primary_client_cidr    = "{{ primary_client_cidr }}"
+primary_route_table_id = "{{ primary_route_table_id or '<primary-default-rt-ocid>' }}"
+
+standby_vcn_id         = "{{ standby_vcn_id or '<standby-vcn-ocid>' }}"
+standby_nsg_id         = "{{ standby_nsg_id or '<standby-nsg-ocid>' }}"
+standby_client_cidr    = "{{ standby_client_cidr }}"
+standby_route_table_id = "{{ standby_route_table_id or '<standby-default-rt-ocid>' }}"

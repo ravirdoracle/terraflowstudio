@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Terraflow Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #0d0d0d;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  .deck {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  /* ── SLIDE ─────────────────────────────────────────── */
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px 80px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .slide.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  /* ── SLIDE 1 — hero ─────────────────────────────────── */
+  #slide1 {
+    background: radial-gradient(ellipse at 30% 40%, #1a0a00 0%, #0d0d0d 70%);
+  }
+  #slide1::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,100,0,.04) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(255,100,0,.04) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #ff6a00;
+    margin-bottom: 18px;
+  }
+
+  .hero-title {
+    font-size: clamp(52px, 7vw, 88px);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -2px;
+    background: linear-gradient(135deg, #fff 0%, #ff6a00 60%, #ff3d00 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 22px);
+    font-weight: 300;
+    color: #bbb;
+    max-width: 700px;
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 52px;
+  }
+
+  .hero-sub strong { color: #ff6a00; font-weight: 600; }
+
+  .cloud-badges {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 52px;
+  }
+
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1.5px solid;
+  }
+  .badge.aws   { border-color: #ff9900; color: #ff9900; background: rgba(255,153,0,.08); }
+  .badge.azure { border-color: #0078d4; color: #4da3f5; background: rgba(0,120,212,.08); }
+  .badge.gcp   { border-color: #4285f4; color: #4285f4; background: rgba(66,133,244,.08); }
+  .badge.oci   { border-color: #f80000; color: #f87070; background: rgba(248,0,0,.08); }
+
+  .stack-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pill {
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    background: rgba(255,255,255,.06);
+    color: #aaa;
+    border: 1px solid rgba(255,255,255,.1);
+  }
+
+  /* ── SLIDE 2 — features ─────────────────────────────── */
+  #slide2 {
+    background: radial-gradient(ellipse at 70% 60%, #00081a 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide2::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(66,133,244,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(66,133,244,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s2-header {
+    width: 100%;
+    margin-bottom: 40px;
+    position: relative;
+  }
+  .s2-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #4285f4;
+    margin-bottom: 10px;
+  }
+  .s2-title {
+    font-size: clamp(32px, 4vw, 52px);
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #4285f4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    position: relative;
+  }
+
+  .feat {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .3s, background .3s;
+  }
+  .feat:hover {
+    border-color: rgba(255,255,255,.18);
+    background: rgba(255,255,255,.07);
+  }
+  .feat::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    background: var(--glow, transparent);
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  .feat:hover::after { opacity: 1; }
+
+  .feat.orange { --glow: radial-gradient(circle at top left, rgba(255,106,0,.12), transparent 60%); }
+  .feat.blue   { --glow: radial-gradient(circle at top left, rgba(66,133,244,.12), transparent 60%); }
+  .feat.green  { --glow: radial-gradient(circle at top left, rgba(52,199,89,.12), transparent 60%); }
+  .feat.purple { --glow: radial-gradient(circle at top left, rgba(175,82,222,.12), transparent 60%); }
+  .feat.teal   { --glow: radial-gradient(circle at top left, rgba(90,200,250,.12), transparent 60%); }
+  .feat.red    { --glow: radial-gradient(circle at top left, rgba(248,80,50,.12), transparent 60%); }
+
+  .feat-icon {
+    font-size: 28px;
+    margin-bottom: 14px;
+    display: block;
+  }
+  .feat-title {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #fff;
+  }
+  .feat-desc {
+    font-size: 13px;
+    font-weight: 300;
+    color: #888;
+    line-height: 1.6;
+  }
+  .feat-desc strong { color: #bbb; font-weight: 500; }
+
+  /* ── SLIDE 3 — modular terraform ───────────────────── */
+  #slide3 {
+    background: radial-gradient(ellipse at 20% 70%, #001a0a 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide3::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(52,199,89,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(52,199,89,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s3-header { width: 100%; margin-bottom: 32px; }
+  .s3-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: #34c759; margin-bottom: 10px;
+  }
+  .s3-title {
+    font-size: clamp(30px, 3.8vw, 50px); font-weight: 900; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #34c759 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+
+  .mod-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+  }
+
+  /* left: file tree */
+  .tree-panel {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 16px;
+    padding: 24px 28px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .tree-panel-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: #34c759; margin-bottom: 20px;
+  }
+  .tree { font-size: 13px; line-height: 2; color: #888; }
+  .tree .dir  { color: #fff; font-weight: 600; }
+  .tree .file { color: #aaa; }
+  .tree .ann  { color: #34c759; font-size: 11px; font-style: italic; margin-left: 6px; }
+  .tree .indent1 { padding-left: 20px; }
+  .tree .indent2 { padding-left: 40px; }
+
+  /* right: principle cards */
+  .principles { display: flex; flex-direction: column; gap: 14px; }
+
+  .prin {
+    display: flex; align-items: flex-start; gap: 16px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 18px 20px;
+    transition: border-color .3s;
+  }
+  .prin:hover { border-color: rgba(52,199,89,.3); }
+  .prin-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  .prin-body { flex: 1; }
+  .prin-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .prin-desc  { font-size: 12.5px; font-weight: 300; color: #777; line-height: 1.55; }
+  .prin-desc strong { color: #aaa; font-weight: 500; }
+
+  /* ── SLIDE 4 — CloudFormation ───────────────────────── */
+  #slide4 {
+    background: radial-gradient(ellipse at 60% 30%, #0d0a00 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide4::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(255,153,0,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(255,153,0,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s4-header { width: 100%; margin-bottom: 28px; }
+  .s4-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: #ff9900; margin-bottom: 10px;
+  }
+  .s4-title {
+    font-size: clamp(28px, 3.6vw, 48px); font-weight: 900; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #ff9900 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .s4-sub {
+    margin-top: 8px; font-size: 14px; color: #666; font-weight: 300;
+  }
+
+  .cfn-layout {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 24px;
+    width: 100%;
+  }
+
+  /* yaml preview panel */
+  .yaml-panel {
+    background: #111;
+    border: 1px solid rgba(255,153,0,.2);
+    border-radius: 16px;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .yaml-titlebar {
+    background: rgba(255,153,0,.1);
+    border-bottom: 1px solid rgba(255,153,0,.15);
+    padding: 10px 18px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: #ff9900;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .yaml-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .yaml-body {
+    padding: 18px 22px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.9;
+    flex: 1;
+    overflow: hidden;
+  }
+  .y-comment { color: #555; }
+  .y-key     { color: #79c0ff; }
+  .y-type    { color: #ff9900; font-weight: 600; }
+  .y-str     { color: #a8d8a8; }
+  .y-fn      { color: #d2a8ff; font-style: italic; }
+  .y-indent1 { padding-left: 16px; }
+  .y-indent2 { padding-left: 32px; }
+  .y-indent3 { padding-left: 48px; }
+
+  /* right: feature list */
+  .cfn-feats { display: flex; flex-direction: column; gap: 13px; }
+
+  .cfn-feat {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color .3s;
+  }
+  .cfn-feat:hover { border-color: rgba(255,153,0,.3); }
+  .cfn-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .cfn-body { flex: 1; }
+  .cfn-title { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .cfn-desc  { font-size: 12px; font-weight: 300; color: #777; line-height: 1.55; }
+  .cfn-desc strong { color: #aaa; font-weight: 500; }
+
+  .resource-chips {
+    display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px;
+  }
+  .chip {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    background: rgba(255,153,0,.1);
+    border: 1px solid rgba(255,153,0,.25);
+    color: #ff9900;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* ── SLIDE 5 — validation & fmt ────────────────────── */
+  #slide5 {
+    background: radial-gradient(ellipse at 50% 20%, #0a001a 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide5::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(175,82,222,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(175,82,222,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s5-header { width: 100%; margin-bottom: 26px; }
+  .s5-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: #af52de; margin-bottom: 10px;
+  }
+  .s5-title {
+    font-size: clamp(28px, 3.6vw, 48px); font-weight: 900; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #af52de 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .s5-sub { margin-top: 8px; font-size: 14px; color: #666; font-weight: 300; }
+
+  .val-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+  }
+
+  /* pipeline column */
+  .pipeline { display: flex; flex-direction: column; gap: 0; }
+
+  .pipe-step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    position: relative;
+    padding-bottom: 6px;
+  }
+  .pipe-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 19px;
+    top: 44px;
+    bottom: -6px;
+    width: 2px;
+    background: linear-gradient(to bottom, rgba(175,82,222,.4), rgba(175,82,222,.1));
+  }
+
+  .pipe-num {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(175,82,222,.15);
+    border: 1.5px solid rgba(175,82,222,.4);
+    color: #af52de;
+    font-size: 13px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .pipe-body { padding-top: 6px; padding-bottom: 18px; }
+  .pipe-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .pipe-desc  { font-size: 12px; font-weight: 300; color: #777; line-height: 1.55; }
+  .pipe-desc strong { color: #aaa; font-weight: 500; }
+  .pipe-tags  { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .pipe-tag {
+    font-family: 'SF Mono','Fira Code',monospace;
+    font-size: 10.5px; font-weight: 600;
+    padding: 2px 10px; border-radius: 4px;
+    background: rgba(175,82,222,.12);
+    border: 1px solid rgba(175,82,222,.25);
+    color: #c77dff;
+  }
+  .pipe-tag.green {
+    background: rgba(52,199,89,.1); border-color: rgba(52,199,89,.25); color: #34c759;
+  }
+  .pipe-tag.blue {
+    background: rgba(66,133,244,.1); border-color: rgba(66,133,244,.25); color: #79c0ff;
+  }
+
+  /* checks panel */
+  .checks-panel {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(175,82,222,.2);
+    border-radius: 16px;
+    padding: 22px 24px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .checks-title {
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: #af52de; margin-bottom: 8px;
+  }
+  .check-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 9px;
+  }
+  .check-icon { font-size: 16px; flex-shrink: 0; }
+  .check-label { font-size: 13px; font-weight: 600; color: #ddd; flex: 1; }
+  .check-detail { font-size: 11px; color: #555; font-family: 'SF Mono','Fira Code',monospace; }
+  .pass-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 4px; background: rgba(52,199,89,.15);
+    color: #34c759; border: 1px solid rgba(52,199,89,.3);
+    flex-shrink: 0;
+  }
+
+  /* ── NAV ────────────────────────────────────────────── */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 100;
+  }
+
+  .nav-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,.2);
+    background: rgba(255,255,255,.06);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, border-color .2s;
+    backdrop-filter: blur(8px);
+  }
+  .nav-btn:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
+  .nav-btn:disabled { opacity: .25; cursor: default; }
+
+  .dots { display: flex; gap: 8px; }
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    transition: background .3s, transform .3s;
+  }
+  .dot.active { background: #ff6a00; transform: scale(1.3); }
+
+  /* slide counter */
+  .counter {
+    position: fixed;
+    top: 28px; right: 36px;
+    font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,.3);
+    letter-spacing: 1px;
+    z-index: 100;
+  }
+
+  /* logo watermark */
+  .logo-mark {
+    position: fixed;
+    top: 24px; left: 36px;
+    font-size: 15px; font-weight: 700;
+    color: rgba(255,255,255,.25);
+    letter-spacing: -0.5px;
+    z-index: 100;
+  }
+  .logo-mark span { color: #ff6a00; }
+
+  /* ── SLIDE 6 — HA/DR ───────────────────────────────── */
+  #slide6 {
+    background: radial-gradient(ellipse at 40% 30%, #1a0505 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide6::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(220,38,38,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(220,38,38,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s6-header { width: 100%; margin-bottom: 24px; }
+  .s6-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: #ef4444; margin-bottom: 10px;
+  }
+  .s6-title {
+    font-size: clamp(28px, 3.6vw, 48px); font-weight: 900; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #ef4444 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .s6-sub { margin-top: 8px; font-size: 14px; color: #666; font-weight: 300; }
+
+  .dr-layout { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+
+  .dr-clouds {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .dr-cloud {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 14px;
+    padding: 20px;
+    transition: border-color .3s, background .3s;
+  }
+  .dr-cloud:hover { background: rgba(255,255,255,.07); }
+  .dr-cloud.aws-c  { border-top: 2px solid #ff9900; }
+  .dr-cloud.azure-c { border-top: 2px solid #0078d4; }
+  .dr-cloud.gcp-c  { border-top: 2px solid #4285f4; }
+
+  .dr-cloud-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 4px 12px;
+    border-radius: 4px; margin-bottom: 14px;
+  }
+  .dr-cloud-badge.aws-b   { background: rgba(255,153,0,.12); color: #ff9900; border: 1px solid rgba(255,153,0,.3); }
+  .dr-cloud-badge.azure-b { background: rgba(0,120,212,.12); color: #4da3f5; border: 1px solid rgba(0,120,212,.3); }
+  .dr-cloud-badge.gcp-b   { background: rgba(66,133,244,.12); color: #79c0ff; border: 1px solid rgba(66,133,244,.3); }
+
+  .dr-mode {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .dr-mode-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .dr-mode-body { flex: 1; }
+  .dr-mode-title { font-size: 12.5px; font-weight: 700; color: #ddd; margin-bottom: 2px; }
+  .dr-mode-desc  { font-size: 11px; font-weight: 300; color: #666; line-height: 1.5; }
+  .dr-mode-desc strong { color: #999; font-weight: 500; }
+
+  .dr-bottom {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .dr-feat {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: border-color .3s;
+  }
+  .dr-feat:hover { border-color: rgba(239,68,68,.3); }
+  .dr-feat-icon { font-size: 20px; flex-shrink: 0; }
+  .dr-feat-body { flex: 1; }
+  .dr-feat-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .dr-feat-desc  { font-size: 11.5px; font-weight: 300; color: #666; line-height: 1.5; }
+  .dr-feat-desc strong { color: #aaa; font-weight: 500; }
+
+  /* ── SLIDE 7 — Info Hub ────────────────────────────── */
+  #slide7 {
+    background: radial-gradient(ellipse at 60% 40%, #001318 0%, #0d0d0d 70%);
+    align-items: flex-start;
+  }
+  #slide7::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, rgba(6,182,212,.03) 0 1px, transparent 1px 80px),
+      repeating-linear-gradient(0deg,  rgba(6,182,212,.03) 0 1px, transparent 1px 80px);
+    pointer-events: none;
+  }
+
+  .s7-header { width: 100%; margin-bottom: 24px; }
+  .s7-eyebrow {
+    font-size: 12px; font-weight: 600; letter-spacing: 3px;
+    text-transform: uppercase; color: #06b6d4; margin-bottom: 10px;
+  }
+  .s7-title {
+    font-size: clamp(28px, 3.6vw, 48px); font-weight: 900; letter-spacing: -1.5px;
+    background: linear-gradient(135deg, #fff 0%, #06b6d4 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .s7-sub { margin-top: 8px; font-size: 14px; color: #666; font-weight: 300; }
+
+  .hub-layout {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: 24px;
+    width: 100%;
+  }
+
+  /* hub mockup */
+  .hub-mockup {
+    background: #111;
+    border: 1px solid rgba(6,182,212,.2);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .hub-titlebar {
+    background: rgba(6,182,212,.08);
+    border-bottom: 1px solid rgba(6,182,212,.15);
+    padding: 10px 18px;
+    font-size: 11px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: #06b6d4;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .hub-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .hub-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+  .hub-filter-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+  }
+  .hub-filter {
+    font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    text-transform: uppercase; padding: 4px 12px;
+    border-radius: 4px; border: 1.5px solid;
+    cursor: default;
+  }
+  .hub-filter.all   { border-color: #ff6a00; color: #ff6a00; background: rgba(255,106,0,.1); }
+  .hub-filter.aws   { border-color: rgba(255,153,0,.3); color: #555; background: transparent; }
+  .hub-filter.azure { border-color: rgba(0,120,212,.3); color: #555; background: transparent; }
+  .hub-filter.gcp   { border-color: rgba(66,133,244,.3); color: #555; background: transparent; }
+
+  .hub-ask {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(6,182,212,.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'SF Mono','Fira Code',monospace;
+    font-size: 12px;
+    color: #ddd;
+    position: relative;
+  }
+  .hub-ask::after {
+    content: 'Ask';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    background: #06b6d4; color: #000; font-size: 10px; font-weight: 700;
+    padding: 3px 10px; border-radius: 4px;
+  }
+
+  .hub-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .hub-chip {
+    font-family: 'SF Mono','Fira Code',monospace;
+    font-size: 10px; color: #555;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 20px; padding: 3px 10px;
+  }
+
+  .hub-answer {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(6,182,212,.15);
+    border-radius: 8px;
+    padding: 12px 14px;
+    flex: 1;
+  }
+  .hub-answer-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; color: #06b6d4; margin-bottom: 8px;
+  }
+  .hub-answer-text {
+    font-size: 11.5px; color: #888; line-height: 1.7;
+  }
+  .hub-answer-text strong { color: #bbb; }
+  .hub-sources { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .hub-src {
+    font-family: 'SF Mono','Fira Code',monospace;
+    font-size: 9.5px; color: #444;
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 4px; padding: 2px 8px;
+  }
+
+  /* right: hub features */
+  .hub-feats { display: flex; flex-direction: column; gap: 13px; }
+  .hub-feat {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    transition: border-color .3s;
+  }
+  .hub-feat:hover { border-color: rgba(6,182,212,.35); }
+  .hub-feat-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .hub-feat-body { flex: 1; }
+  .hub-feat-title { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 3px; }
+  .hub-feat-desc  { font-size: 12px; font-weight: 300; color: #777; line-height: 1.55; }
+  .hub-feat-desc strong { color: #aaa; font-weight: 500; }
+
+  .kb-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .kb-chip {
+    font-family: 'SF Mono','Fira Code',monospace;
+    font-size: 10px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px;
+    background: rgba(6,182,212,.08);
+    border: 1px solid rgba(6,182,212,.2);
+    color: #22d3ee;
+  }
+</style>
+</head>
+<body>
+
+<div class="logo-mark">Terraflow<span>Studio</span></div>
+<div class="counter" id="counter">01 / 02</div>
+
+<div class="deck">
+
+  <!-- ══ SLIDE 1 ══════════════════════════════════════ -->
+  <section class="slide active" id="slide1">
+    <p class="hero-eyebrow">Infrastructure as Code — Simplified</p>
+    <h1 class="hero-title">Terraflow Studio</h1>
+    <p class="hero-sub">
+      A web app that generates production-ready
+      <strong>Terraform / OpenTofu</strong> for
+      <strong>Oracle AI Database@AWS</strong> and <strong>Oracle AI DB@GCP</strong> —
+      fill a form, preview live HCL, download a ZIP, or push straight to GitHub.
+    </p>
+
+    <div class="cloud-badges">
+      <div class="badge aws">&#9654;&nbsp; Oracle AI Database @ AWS</div>
+      <div class="badge azure">&#9654;&nbsp; Oracle AI DB @ Azure</div>
+      <div class="badge gcp">&#9654;&nbsp; Oracle AI DB @ GCP</div>
+      <div class="badge oci">&#9654;&nbsp; OCI Provider (DB Home / CDB / PDB)</div>
+    </div>
+
+    <div class="stack-row">
+      <div class="pill">Python 3.12 + Flask</div>
+      <div class="pill">Jinja2 HCL Templates</div>
+      <div class="pill">Vanilla JS</div>
+      <div class="pill">FileStore / CouchDB</div>
+      <div class="pill">RAG Knowledge Base</div>
+      <div class="pill">LLM Assistant</div>
+    </div>
+  </section>
+
+  <!-- ══ SLIDE 2 ══════════════════════════════════════ -->
+  <section class="slide" id="slide2">
+    <div class="s2-header">
+      <p class="s2-eyebrow">Capabilities</p>
+      <h2 class="s2-title">Key Features</h2>
+    </div>
+
+    <div class="features-grid">
+
+      <div class="feat orange">
+        <span class="feat-icon">&#9889;</span>
+        <div class="feat-title">Live HCL Preview</div>
+        <div class="feat-desc">
+          Real-time Terraform output as you fill the form —
+          <strong>no page reload</strong>. Every field change instantly renders
+          valid, modular HCL.
+        </div>
+      </div>
+
+      <div class="feat blue">
+        <span class="feat-icon">&#129302;</span>
+        <div class="feat-title">LLM Assistant</div>
+        <div class="feat-desc">
+          Ask questions or auto-fill forms via <strong>Anthropic, OpenAI,
+          Gemini, or Ollama</strong>. Pluggable provider adapter in
+          <code>llm.py</code>.
+        </div>
+      </div>
+
+      <div class="feat green">
+        <span class="feat-icon">&#128218;</span>
+        <div class="feat-title">RAG Knowledge Base</div>
+        <div class="feat-desc">
+          <strong>ChromaDB</strong> (semantic) or <strong>BM25</strong>
+          (lexical) retrieval over 8 curated markdown docs —
+          AWS &amp; GCP networking, ODB architecture.
+        </div>
+      </div>
+
+      <div class="feat purple">
+        <span class="feat-icon">&#128008;</span>
+        <div class="feat-title">GitHub Push</div>
+        <div class="feat-desc">
+          One-click push of generated Terraform to any GitHub repo via
+          the <strong>Contents API</strong> — configurable branch and
+          base path.
+        </div>
+      </div>
+
+      <div class="feat teal">
+        <span class="feat-icon">&#128230;</span>
+        <div class="feat-title">ZIP Download</div>
+        <div class="feat-desc">
+          Download a fully structured Terraform project as a
+          <strong>.zip archive</strong>, ready to <code>terraform init</code>
+          and apply.
+        </div>
+      </div>
+
+      <div class="feat red">
+        <span class="feat-icon">&#9729;</span>
+        <div class="feat-title">Multi-Cloud Resources</div>
+        <div class="feat-desc">
+          Covers <strong>6 AWS ODB resource types</strong> (ODB Network,
+          Exadata Infra, Peering, VM Cluster, AVMC, OCI DB) and
+          <strong>3 GCP types</strong>.
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══ SLIDE 3 ══════════════════════════════════════ -->
+  <section class="slide" id="slide3">
+    <div class="s3-header">
+      <p class="s3-eyebrow">Architecture</p>
+      <h2 class="s3-title">Modular Terraform Output</h2>
+    </div>
+
+    <div class="mod-layout">
+
+      <!-- FILE TREE -->
+      <div class="tree-panel">
+        <div class="tree-panel-title">Generated Project Structure</div>
+        <div class="tree">
+          <div class="dir">terraform/</div>
+          <div class="indent1 dir">aws_odb_network/ <span class="ann">&#10003; one dir per resource</span></div>
+          <div class="indent2 file">main.tf</div>
+          <div class="indent2 file">variables.tf</div>
+          <div class="indent2 file">outputs.tf</div>
+          <div class="indent2 file">terraform.tfvars</div>
+          <div class="indent1 dir">aws_exadata_infra/</div>
+          <div class="indent2 file">main.tf &nbsp;· variables.tf &nbsp;· outputs.tf</div>
+          <div class="indent1 dir">aws_vm_cluster/</div>
+          <div class="indent2 file">main.tf &nbsp;· variables.tf &nbsp;· outputs.tf</div>
+          <div class="indent1 dir">aws_peering/ &nbsp;· aws_avmcluster/</div>
+          <div class="indent1 dir">oci_db_home/ &nbsp;· oci_cdb/ &nbsp;· oci_pdb/</div>
+          <div class="indent1 dir">gcp_odb_network/ &nbsp;· gcp_exadb_infra/</div>
+          <div class="indent1 dir">gcp_exadb_vm_cluster/</div>
+          <div class="indent1 file" style="margin-top:8px;">root.tf <span class="ann">&#10003; stitches all modules</span></div>
+        </div>
+      </div>
+
+      <!-- PRINCIPLES -->
+      <div class="principles">
+
+        <div class="prin">
+          <span class="prin-icon">&#129693;</span>
+          <div class="prin-body">
+            <div class="prin-title">One Module per Resource Type</div>
+            <div class="prin-desc">Each ODB resource gets its own directory with
+              <strong>main.tf, variables.tf, outputs.tf,</strong> and
+              <strong>terraform.tfvars</strong> — deploy any subset independently.</div>
+          </div>
+        </div>
+
+        <div class="prin">
+          <span class="prin-icon">&#128274;</span>
+          <div class="prin-body">
+            <div class="prin-title">No Hardcoded Secrets</div>
+            <div class="prin-desc">All sensitive values use
+              <strong>sensitive&nbsp;=&nbsp;true</strong> variable declarations.
+              Credentials stay in <strong>.tfvars</strong>, never in templates.</div>
+          </div>
+        </div>
+
+        <div class="prin">
+          <span class="prin-icon">&#128257;</span>
+          <div class="prin-body">
+            <div class="prin-title">Cross-Module References</div>
+            <div class="prin-desc">The root module wires resources together using
+              <strong>module outputs</strong> — e.g. VM Cluster references
+              the Exadata Infra ID automatically.</div>
+          </div>
+        </div>
+
+        <div class="prin">
+          <span class="prin-icon">&#127981;</span>
+          <div class="prin-body">
+            <div class="prin-title">Jinja2 Template Engine</div>
+            <div class="prin-desc">HCL is rendered from
+              <strong>templates/tf/</strong> via Jinja2 — logic stays in Python,
+              keeping templates clean and auditable.</div>
+          </div>
+        </div>
+
+        <div class="prin" style="border-color: rgba(52,199,89,.25); background: rgba(52,199,89,.05);">
+          <span class="prin-icon">&#9881;</span>
+          <div class="prin-body">
+            <div class="prin-title" style="color: #34c759;">Autowired Dependencies</div>
+            <div class="prin-desc">The root module <strong>automatically resolves</strong>
+              inter-resource references — VM Cluster receives the Exadata Infra ID,
+              OCI DB Home receives the VM Cluster ID, and Peering receives the ODB Network ID,
+              all via <strong>module.&lt;name&gt;.&lt;output&gt;</strong> — no manual wiring needed.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══ SLIDE 4 ══════════════════════════════════════ -->
+  <section class="slide" id="slide4">
+    <div class="s4-header">
+      <p class="s4-eyebrow">AWS Native IaC</p>
+      <h2 class="s4-title">CloudFormation Support — ODB@AWS</h2>
+      <p class="s4-sub">Switch from Terraform to CFN in one click — same form, same data, different output format.</p>
+    </div>
+
+    <div class="cfn-layout">
+
+      <!-- YAML PREVIEW -->
+      <div class="yaml-panel">
+        <div class="yaml-titlebar">
+          <div class="yaml-dot" style="background:#ff5f57"></div>
+          <div class="yaml-dot" style="background:#febc2e"></div>
+          <div class="yaml-dot" style="background:#28c840"></div>
+          &nbsp; odb-stack.yaml
+        </div>
+        <div class="yaml-body">
+          <div class="y-comment"># Generated by Terraflow Studio</div>
+          <div><span class="y-key">AWSTemplateFormatVersion:</span> <span class="y-str">"2010-09-09"</span></div>
+          <div><span class="y-key">Description:</span> <span class="y-str">Oracle AI Database @ AWS — ODB Stack</span></div>
+          <div>&nbsp;</div>
+          <div><span class="y-key">Resources:</span></div>
+          <div class="y-indent1"><span class="y-key">ProdOdbNetwork:</span></div>
+          <div class="y-indent2"><span class="y-key">Type:</span> <span class="y-type">AWS::ODB::OdbNetwork</span></div>
+          <div class="y-indent2"><span class="y-key">Properties:</span></div>
+          <div class="y-indent3"><span class="y-key">DisplayName:</span> <span class="y-str">prod-odb-net</span></div>
+          <div class="y-indent3"><span class="y-key">ClientSubnetCidr:</span> <span class="y-str">10.0.0.0/24</span></div>
+          <div class="y-indent3"><span class="y-key">S3Access:</span> <span class="y-str">ENABLED</span></div>
+          <div>&nbsp;</div>
+          <div class="y-indent1"><span class="y-key">ProdExadataInfra:</span></div>
+          <div class="y-indent2"><span class="y-key">Type:</span> <span class="y-type">AWS::ODB::CloudExadataInfrastructure</span></div>
+          <div class="y-indent2"><span class="y-key">Properties:</span></div>
+          <div class="y-indent3"><span class="y-key">DisplayName:</span> <span class="y-str">prod-exadata</span></div>
+          <div class="y-indent3"><span class="y-key">Shape:</span> <span class="y-str">Exadata.X9M</span></div>
+          <div>&nbsp;</div>
+          <div class="y-indent1"><span class="y-key">ProdVmCluster:</span></div>
+          <div class="y-indent2"><span class="y-key">Type:</span> <span class="y-type">AWS::ODB::CloudVmCluster</span></div>
+          <div class="y-indent2"><span class="y-key">Properties:</span></div>
+          <div class="y-indent3"><span class="y-key">OdbNetworkId:</span> <span class="y-fn">!GetAtt ProdOdbNetwork.OdbNetworkId</span></div>
+          <div class="y-indent3"><span class="y-key">CloudExadataInfrastructureId:</span> <span class="y-fn">!GetAtt ProdExadataInfra.Id</span></div>
+        </div>
+      </div>
+
+      <!-- FEATURE LIST -->
+      <div class="cfn-feats">
+
+        <div class="cfn-feat">
+          <span class="cfn-icon">&#128260;</span>
+          <div class="cfn-body">
+            <div class="cfn-title">One-Click Tool Switch</div>
+            <div class="cfn-desc">The toolbar's <strong>CloudFormation button</strong> switches output mode — download becomes
+              <strong>odb-stack.yaml</strong> instead of a ZIP, with CFN syntax highlighting.</div>
+          </div>
+        </div>
+
+        <div class="cfn-feat">
+          <span class="cfn-icon">&#128279;</span>
+          <div class="cfn-body">
+            <div class="cfn-title">Auto !GetAtt Wiring</div>
+            <div class="cfn-desc">VM Cluster and Peering resources automatically reference upstream IDs via
+              <strong>!GetAtt</strong> intrinsics — no manual ARN copy-paste.</div>
+          </div>
+        </div>
+
+        <div class="cfn-feat">
+          <span class="cfn-icon">&#128221;</span>
+          <div class="cfn-body">
+            <div class="cfn-title">Single-File Stack</div>
+            <div class="cfn-desc">All resources emit into <strong>one consolidated YAML</strong> — deploy the entire
+              ODB environment with a single <code>aws cloudformation deploy</code>.</div>
+          </div>
+        </div>
+
+        <div class="cfn-feat">
+          <span class="cfn-icon">&#128736;</span>
+          <div class="cfn-body">
+            <div class="cfn-title">Supported Resource Types</div>
+            <div class="cfn-desc">All five ODB resource types covered:</div>
+            <div class="resource-chips">
+              <span class="chip">AWS::ODB::OdbNetwork</span>
+              <span class="chip">AWS::ODB::CloudExadataInfrastructure</span>
+              <span class="chip">AWS::ODB::OdbNetworkPeeringConnection</span>
+              <span class="chip">AWS::ODB::CloudVmCluster</span>
+              <span class="chip">AWS::ODB::CloudAutonomousVmCluster</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══ SLIDE 5 ══════════════════════════════════════ -->
+  <section class="slide" id="slide5">
+    <div class="s5-header">
+      <p class="s5-eyebrow">Quality Gates</p>
+      <h2 class="s5-title">Terraform Validation &amp; Format</h2>
+      <p class="s5-sub">Three-layer quality pipeline — form → schema → real Terraform CLI — before a single file is written.</p>
+    </div>
+
+    <div class="val-layout">
+
+      <!-- PIPELINE -->
+      <div class="pipeline">
+
+        <div class="pipe-step">
+          <div class="pipe-num">1</div>
+          <div class="pipe-body">
+            <div class="pipe-title">Form-Level Validation &nbsp;<code style="font-size:11px;color:#555">/api/validate</code></div>
+            <div class="pipe-desc">Every field is validated on submit —
+              <strong>CIDR format, required fields, enum values</strong>.
+              Errors surface inline per tab before any HCL is generated.</div>
+            <div class="pipe-tags">
+              <span class="pipe-tag blue">CIDR check</span>
+              <span class="pipe-tag blue">required fields</span>
+              <span class="pipe-tag blue">enum values</span>
+              <span class="pipe-tag blue">cross-field deps</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-num">2</div>
+          <div class="pipe-body">
+            <div class="pipe-title">Schema Validation &nbsp;<code style="font-size:11px;color:#555">/api/tf-validate</code></div>
+            <div class="pipe-desc">
+              <strong>tf_validator.py</strong> simulates <code>terraform validate</code>
+              without needing the Terraform binary — checks HCL structure, provider
+              blocks, resource schemas, variable refs, output refs, and
+              cross-module wiring.</div>
+            <div class="pipe-tags">
+              <span class="pipe-tag">HCL syntax</span>
+              <span class="pipe-tag">provider block</span>
+              <span class="pipe-tag">resource schema</span>
+              <span class="pipe-tag">var.* refs</span>
+              <span class="pipe-tag">module outputs</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="pipe-step">
+          <div class="pipe-num">3</div>
+          <div class="pipe-body">
+            <div class="pipe-title">Terraform / OpenTofu CLI &nbsp;<code style="font-size:11px;color:#555">terraform fmt &amp; validate</code></div>
+            <div class="pipe-desc">When the binary is available (env-var, PATH, or
+              common install paths), the app runs the real
+              <strong>terraform fmt</strong> and <strong>terraform validate</strong>
+              — canonical HCL formatting and full provider-schema validation.</div>
+            <div class="pipe-tags">
+              <span class="pipe-tag green">terraform fmt</span>
+              <span class="pipe-tag green">terraform validate</span>
+              <span class="pipe-tag green">tofu fmt</span>
+              <span class="pipe-tag green">tofu validate</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CHECKS PANEL -->
+      <div class="checks-panel">
+        <div class="checks-title">&#128269; tf_validator.py — 7 Check Categories</div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128196;</span>
+          <span class="check-label">HCL Syntax</span>
+          <span class="check-detail">braces · brackets balanced</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128268;</span>
+          <span class="check-label">Provider Block</span>
+          <span class="check-detail">required_providers · version</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128736;</span>
+          <span class="check-label">Resource Schema</span>
+          <span class="check-detail">AWS &amp; GCP ODB schemas</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128290;</span>
+          <span class="check-label">Variable References</span>
+          <span class="check-detail">var.* → variables.tf</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128228;</span>
+          <span class="check-label">Output References</span>
+          <span class="check-detail">output → resource attr</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128193;</span>
+          <span class="check-label">Module Paths</span>
+          <span class="check-detail">./modules/&lt;name&gt; exists</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+
+        <div class="check-row">
+          <span class="check-icon">&#128257;</span>
+          <span class="check-label">Cross-Module Refs</span>
+          <span class="check-detail">module.&lt;n&gt;.&lt;out&gt; resolvable</span>
+          <span class="pass-badge">PASS</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ══ SLIDE 6 — HA/DR ══════════════════════════════ -->
+  <section class="slide" id="slide6">
+    <div class="s6-header">
+      <p class="s6-eyebrow">Oracle Data Guard</p>
+      <h2 class="s6-title">Business Continuity — HA &amp; DR</h2>
+      <p class="s6-sub">Multi-cloud Data Guard across AWS, Azure, and GCP — same topology, three clouds.</p>
+    </div>
+
+    <div class="dr-layout">
+
+      <!-- CLOUD TOPOLOGY CARDS -->
+      <div class="dr-clouds">
+
+        <div class="dr-cloud aws-c">
+          <div class="dr-cloud-badge aws-b">&#9654; AWS ODB</div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127981;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Multi-AZ (Same Region)</div>
+              <div class="dr-mode-desc"><strong>Local Peering Gateways</strong> connect primary &amp; standby VCNs across AZs — TCP 1521, no DRG needed.</div>
+            </div>
+          </div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127758;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Cross-Region</div>
+              <div class="dr-mode-desc"><strong>DRG + Remote Peering Connections</strong> with hub VCNs — Maximum Performance, Async transport only.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dr-cloud azure-c">
+          <div class="dr-cloud-badge azure-b">&#9654; Azure</div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127981;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Cross-Zone (Same Region)</div>
+              <div class="dr-mode-desc"><strong>OCI Local Peering Gateways</strong> across Azure AZs — recommended for all production deployments.</div>
+            </div>
+          </div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127758;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Cross-Region</div>
+              <div class="dr-mode-desc"><strong>DRG + hub VCN</strong> topology — covers Exadata Dedicated, Exascale, Base DB, and Autonomous.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dr-cloud gcp-c">
+          <div class="dr-cloud-badge gcp-b">&#9654; GCP</div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127981;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Cross-Zone (Same Region)</div>
+              <div class="dr-mode-desc"><strong>OCI LPG</strong> or <strong>GCP-native</strong> network path — dual routing options for zone-level HA.</div>
+            </div>
+          </div>
+          <div class="dr-mode">
+            <span class="dr-mode-icon">&#127758;</span>
+            <div class="dr-mode-body">
+              <div class="dr-mode-title">Cross-Region</div>
+              <div class="dr-mode-desc"><strong>DRG + Remote Peering</strong> or <strong>GCP Cloud Interconnect</strong> — flexible path selection.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- BOTTOM FEATURE ROW -->
+      <div class="dr-bottom">
+
+        <div class="dr-feat">
+          <span class="dr-feat-icon">&#128737;</span>
+          <div class="dr-feat-body">
+            <div class="dr-feat-title">Active Data Guard</div>
+            <div class="dr-feat-desc">Real-Time Query, <strong>DML Offload</strong>, Automatic Block Repair, App Continuity — license required.</div>
+          </div>
+        </div>
+
+        <div class="dr-feat">
+          <span class="dr-feat-icon">&#9728;</span>
+          <div class="dr-feat-body">
+            <div class="dr-feat-title">MAA — Max Availability Arch.</div>
+            <div class="dr-feat-desc">Oracle MAA best practices: <strong>Far Sync</strong>, Global Data Services, Standby Block Change Tracking.</div>
+          </div>
+        </div>
+
+        <div class="dr-feat">
+          <span class="dr-feat-icon">&#128203;</span>
+          <div class="dr-feat-body">
+            <div class="dr-feat-title">Terraform-Ready Networking</div>
+            <div class="dr-feat-desc">Generate the <strong>ODB network + peering</strong> modules from Terraflow — wire Data Guard on top via OCI console.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══ SLIDE 7 — Info Hub ════════════════════════════ -->
+  <section class="slide" id="slide7">
+    <div class="s7-header">
+      <p class="s7-eyebrow">RAG-Powered Q&amp;A</p>
+      <h2 class="s7-title">Info Hub — Unified Knowledge Base</h2>
+      <p class="s7-sub">Ask any Oracle AI Database@Cloud question — answers grounded in curated ODB documentation, across all three clouds.</p>
+    </div>
+
+    <div class="hub-layout">
+
+      <!-- HUB MOCKUP -->
+      <div class="hub-mockup">
+        <div class="hub-titlebar">
+          <div class="hub-dot" style="background:#ff5f57"></div>
+          <div class="hub-dot" style="background:#febc2e"></div>
+          <div class="hub-dot" style="background:#28c840"></div>
+          &nbsp; Info Hub — Terraflow Studio
+        </div>
+        <div class="hub-body">
+
+          <div class="hub-filter-row">
+            <div class="hub-filter all">All clouds</div>
+            <div class="hub-filter aws">AWS</div>
+            <div class="hub-filter azure">Azure</div>
+            <div class="hub-filter gcp">GCP</div>
+          </div>
+
+          <div class="hub-ask">How do I configure cross-region Data Guard on ODB@AWS?</div>
+
+          <div class="hub-chips">
+            <div class="hub-chip">What CIDRs should I plan for Multi-AZ HA?</div>
+            <div class="hub-chip">Exadata X11M shapes</div>
+            <div class="hub-chip">GCP subnet limits</div>
+            <div class="hub-chip">AVMC vs VM Cluster</div>
+            <div class="hub-chip">Azure peering limits</div>
+          </div>
+
+          <div class="hub-answer">
+            <div class="hub-answer-label">&#129504; Answer</div>
+            <div class="hub-answer-text">
+              Cross-region Data Guard requires <strong>DRG + Remote Peering Connections</strong>
+              with hub VCNs in each region. Plan hub CIDRs carefully (min <strong>/28</strong>)
+              to avoid overlap. Protection mode is fixed at <strong>Maximum Performance</strong>
+              with <strong>Async</strong> transport for cross-region configurations.
+              Run Precheck before creating the standby association.
+            </div>
+            <div class="hub-sources">
+              <div class="hub-src">aws_hadr.md</div>
+              <div class="hub-src">aws_odb_network.md</div>
+              <div class="hub-src">maa_multicloud.md</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- FEATURE LIST -->
+      <div class="hub-feats">
+
+        <div class="hub-feat">
+          <span class="hub-feat-icon">&#128269;</span>
+          <div class="hub-feat-body">
+            <div class="hub-feat-title">Dual-Backend RAG Engine</div>
+            <div class="hub-feat-desc">
+              <strong>ChromaDB</strong> (semantic vector search) when embeddings are configured;
+              <strong>BM25</strong> (lexical) as a pure-Python fallback — no extra deps required.
+            </div>
+          </div>
+        </div>
+
+        <div class="hub-feat">
+          <span class="hub-feat-icon">&#127760;</span>
+          <div class="hub-feat-body">
+            <div class="hub-feat-title">Cloud-Filtered Queries</div>
+            <div class="hub-feat-desc">
+              Filter questions by <strong>All / AWS / Azure / GCP</strong> — scopes retrieval
+              and LLM context to the relevant cloud's documentation.
+            </div>
+          </div>
+        </div>
+
+        <div class="hub-feat">
+          <span class="hub-feat-icon">&#128218;</span>
+          <div class="hub-feat-body">
+            <div class="hub-feat-title">Curated Knowledge Base</div>
+            <div class="hub-feat-desc">12+ markdown docs covering HA/DR, networking, onboarding, resources, CIDR planning, and gotchas:</div>
+            <div class="kb-chips">
+              <span class="kb-chip">aws_hadr</span>
+              <span class="kb-chip">azure_hadr</span>
+              <span class="kb-chip">gcp_hadr</span>
+              <span class="kb-chip">maa_multicloud</span>
+              <span class="kb-chip">multicloud_hub</span>
+              <span class="kb-chip">aws_onboarding</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hub-feat">
+          <span class="hub-feat-icon">&#129302;</span>
+          <div class="hub-feat-body">
+            <div class="hub-feat-title">LLM-Augmented Answers</div>
+            <div class="hub-feat-desc">
+              Top-5 retrieved chunks are injected into the LLM system prompt —
+              answers are <strong>grounded in source docs</strong>, not hallucinated.
+              Sources cited per response.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+</div><!-- /deck -->
+
+<!-- ── NAVIGATION ──────────────────────────────────── -->
+<nav class="nav">
+  <button class="nav-btn" id="prev" onclick="go(-1)" disabled>&#8592;</button>
+  <div class="dots">
+    <div class="dot active" onclick="go(0, true)"></div>
+    <div class="dot"        onclick="go(1, true)"></div>
+    <div class="dot"        onclick="go(2, true)"></div>
+    <div class="dot"        onclick="go(3, true)"></div>
+    <div class="dot"        onclick="go(4, true)"></div>
+    <div class="dot"        onclick="go(5, true)"></div>
+    <div class="dot"        onclick="go(6, true)"></div>
+  </div>
+  <button class="nav-btn" id="next" onclick="go(1)">&#8594;</button>
+</nav>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const dots   = document.querySelectorAll('.dot');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prev');
+  const nextBtn = document.getElementById('next');
+  let cur = 0;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    dots[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(n, slides.length - 1));
+    slides[cur].classList.add('active');
+    dots[cur].classList.add('active');
+    counter.textContent = String(cur + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    prevBtn.disabled = cur === 0;
+    nextBtn.disabled = cur === slides.length - 1;
+  }
+
+  function go(delta, absolute) {
+    show(absolute ? delta : cur + delta);
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    go(-1);
+  });
+</script>
+
+</body>
+</html>

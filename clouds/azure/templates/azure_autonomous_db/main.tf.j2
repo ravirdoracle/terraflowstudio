@@ -1,0 +1,54 @@
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.9.0" }
+  }
+}
+
+# Autonomous Database Serverless on Oracle AI Database@Azure.
+#
+# Serverless, not Dedicated: there is no Exadata Infrastructure or VM Cluster
+# under this. Oracle runs the fleet and this resource asks for a slice of it,
+# which is why it takes a compute_count and a storage size rather than an
+# infra_ref. It attaches to the same Oracle-delegated subnet the VM clusters
+# use, so it still belongs to a VNet.
+resource "azurerm_oracle_autonomous_database" "this" {
+  name                = var.name
+  display_name        = var.display_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+
+  db_workload   = var.db_workload
+  db_version    = var.db_version
+  license_model = var.license_model
+  compute_model = var.compute_model
+  compute_count = var.compute_count
+
+  data_storage_size_in_tbs = var.data_storage_size_in_tbs
+
+  auto_scaling_enabled             = var.auto_scaling_enabled
+  auto_scaling_for_storage_enabled = var.auto_scaling_for_storage_enabled
+
+  backup_retention_period_in_days = var.backup_retention_period_in_days
+
+  character_set          = var.character_set
+  national_character_set = var.national_character_set
+
+  # Required by the provider and never written into the generated files —
+  # supply it with: export TF_VAR_{{ module_name }}_admin_password=...
+  admin_password = var.admin_password
+
+  mtls_connection_required = var.mtls_connection_required
+
+  # Private access through the Oracle-delegated subnet, wired from the VNet
+  # module in the root. Both are Optional in the schema; an empty string is not
+  # a valid ID, so send null rather than "".
+  subnet_id          = var.subnet_id != "" ? var.subnet_id : null
+  virtual_network_id = var.virtual_network_id != "" ? var.virtual_network_id : null
+
+  # Public access ACL. Only meaningful without a delegated subnet.
+  allowed_ips = length(var.allowed_ips) > 0 ? var.allowed_ips : null
+
+  customer_contacts = length(var.customer_contacts) > 0 ? var.customer_contacts : null
+
+  tags = var.tags
+}

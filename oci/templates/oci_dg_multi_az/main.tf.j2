@@ -1,0 +1,159 @@
+terraform {
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = ">= 6.0.0"
+    }
+  }
+}
+
+provider "oci" {
+  region = var.oci_region
+  # Auth: set TF_VAR_tenancy_ocid, user_ocid, fingerprint, private_key_path
+  # or rely on instance principal / OCI config file (~/.oci/config)
+}
+
+# ─── Primary: Local Peering Gateway ──────────────────────────────────────────
+
+resource "oci_core_local_peering_gateway" "primary_lpg" {
+  compartment_id = var.compartment_id
+  vcn_id         = var.primary_vcn_id
+  display_name   = "${var.prefix}-primary-lpg"
+  peer_id        = oci_core_local_peering_gateway.standby_lpg.id
+}
+
+# ─── Standby: Local Peering Gateway ──────────────────────────────────────────
+
+resource "oci_core_local_peering_gateway" "standby_lpg" {
+  compartment_id = var.compartment_id
+  vcn_id         = var.standby_vcn_id
+  display_name   = "${var.prefix}-standby-lpg"
+}
+
+# ─── Primary NSG: allow TCP 1521 from standby subnet ─────────────────────────
+
+resource "oci_core_network_security_group_security_rule" "primary_dg_ingress" {
+  network_security_group_id = var.primary_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.standby_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "Data Guard ingress from standby (${var.standby_client_cidr})"
+
+  tcp_options {
+    destination_port_range {
+      min = 1521
+      max = 1521
+    }
+  }
+}
+{% if add_ssh %}
+
+resource "oci_core_network_security_group_security_rule" "primary_ssh_ingress" {
+  network_security_group_id = var.primary_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.standby_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "SSH from standby"
+
+  tcp_options {
+    destination_port_range {
+      min = 22
+      max = 22
+    }
+  }
+}
+{% endif %}
+
+# ─── Standby NSG: allow TCP 1521 from primary subnet ─────────────────────────
+
+resource "oci_core_network_security_group_security_rule" "standby_dg_ingress" {
+  network_security_group_id = var.standby_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.primary_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "Data Guard ingress from primary (${var.primary_client_cidr})"
+
+  tcp_options {
+    destination_port_range {
+      min = 1521
+      max = 1521
+    }
+  }
+}
+{% if add_ssh %}
+
+resource "oci_core_network_security_group_security_rule" "standby_ssh_ingress" {
+  network_security_group_id = var.standby_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.primary_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "SSH from primary"
+
+  tcp_options {
+    destination_port_range {
+      min = 22
+      max = 22
+    }
+  }
+}
+{% endif %}
+
+{% if manage_route_table %}
+# ─── Primary default route table (Terraform-managed) ─────────────────────────
+# Import before apply:
+#   terraform import oci_core_default_route_table.primary_rt {{ primary_route_table_id or "<primary-rt-ocid>" }}
+# After import, run: terraform state show oci_core_default_route_table.primary_rt
+# and copy each pre-existing route_rules block alongside the DG rule below.
+
+resource "oci_core_default_route_table" "primary_rt" {
+  manage_default_resource_id = var.primary_route_table_id
+
+  route_rules {
+    network_entity_id = oci_core_local_peering_gateway.primary_lpg.id
+    destination       = var.standby_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "Data Guard: route to standby subnet via LPG"
+  }
+  # Add pre-existing routes here (from terraform state show)
+}
+
+# ─── Standby default route table (Terraform-managed) ─────────────────────────
+# Import before apply:
+#   terraform import oci_core_default_route_table.standby_rt {{ standby_route_table_id or "<standby-rt-ocid>" }}
+
+resource "oci_core_default_route_table" "standby_rt" {
+  manage_default_resource_id = var.standby_route_table_id
+
+  route_rules {
+    network_entity_id = oci_core_local_peering_gateway.standby_lpg.id
+    destination       = var.primary_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "Data Guard: route to primary subnet via LPG"
+  }
+  # Add pre-existing routes here (from terraform state show)
+}
+{% else %}
+# ─── Route tables — MANUAL management selected ───────────────────────────────
+# Route tables are NOT managed by Terraform. Add DG routes manually after apply.
+#
+# Primary VCN — add route to standby ({{ standby_client_cidr }}) via Primary LPG:
+# OCI CLI:
+#   oci network route-table update --rt-id {{ primary_route_table_id or "<primary-rt-ocid>" }} \
+#     --route-rules '[{"destination":"{{ standby_client_cidr }}","destinationType":"CIDR_BLOCK","networkEntityId":"<primary-lpg-ocid>","description":"Data Guard: to standby via LPG"}]'
+#
+# Standby VCN — add route to primary ({{ primary_client_cidr }}) via Standby LPG:
+# OCI CLI:
+#   oci network route-table update --rt-id {{ standby_route_table_id or "<standby-rt-ocid>" }} \
+#     --route-rules '[{"destination":"{{ primary_client_cidr }}","destinationType":"CIDR_BLOCK","networkEntityId":"<standby-lpg-ocid>","description":"Data Guard: to primary via LPG"}]'
+#
+# LPG OCIDs are available after apply:
+#   terraform output primary_lpg_id
+#   terraform output standby_lpg_id
+#
+# OCI Console: Networking → VCN → Route Tables → Default Route Table
+#   → Add Route Rules → Target Type: Local Peering Gateway
+{% endif %}

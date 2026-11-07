@@ -1,0 +1,35 @@
+terraform {
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = ">= 6.0.0"
+    }
+  }
+}
+resource "oci_database_database" "this" {
+  db_home_id = var.db_home_id
+  source     = "NONE"
+  database {
+    db_name        = var.db_name
+    admin_password = var.admin_password
+    character_set  = var.character_set
+    ncharacter_set = var.ncharacter_set
+{% if pdb_name %}
+    pdb_name       = var.pdb_name
+{% endif %}
+{% if db_unique_name %}
+    db_unique_name = var.db_unique_name
+{% endif %}
+{% if sid_prefix %}
+    sid_prefix     = var.sid_prefix
+{% endif %}
+    db_backup_config {
+      auto_backup_enabled = var.auto_backup_enabled
+{% if auto_backup_enabled %}
+      auto_backup_window      = var.auto_backup_window
+      recovery_window_in_days = var.recovery_window_in_days
+{% endif %}
+    }
+  }
+  lifecycle { ignore_changes = [database[0].admin_password, source] }
+}

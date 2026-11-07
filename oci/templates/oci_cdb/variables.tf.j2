@@ -1,0 +1,58 @@
+variable "db_home_id" {
+  description = "OCID of the Database Home. Auto-wired from module.{{ dbhome_ref }}.db_home_id."
+  type        = string
+  default     = ""
+}
+variable "db_name" {
+  description = "CDB name — max 8 alphanumeric chars."
+  type        = string
+  default     = "{{ db_name }}"
+}
+variable "admin_password" {
+  description = "CDB admin password. Set via: export TF_VAR_{{ module_name }}_admin_password=..."
+  type        = string
+  sensitive   = true
+}
+variable "character_set" {
+  description = "Character set."
+  type        = string
+  default     = "{{ character_set }}"
+}
+variable "ncharacter_set" {
+  description = "NLS character set."
+  type        = string
+  default     = "{{ ncharacter_set }}"
+}
+{% if pdb_name %}
+variable "pdb_name" {
+  description = "Initial PDB name."
+  type        = string
+  default     = "{{ pdb_name }}"
+}
+{% endif %}
+{% if db_unique_name %}
+variable "db_unique_name" {
+  type    = string
+  default = "{{ db_unique_name }}"
+}
+{% endif %}
+{% if sid_prefix %}
+variable "sid_prefix" {
+  type    = string
+  default = "{{ sid_prefix }}"
+}
+{% endif %}
+variable "auto_backup_enabled" {
+  type    = bool
+  default = {{ auto_backup_enabled }}
+}
+{% if auto_backup_enabled %}
+variable "auto_backup_window" {
+  type    = string
+  default = "{{ auto_backup_window }}"
+}
+variable "recovery_window_in_days" {
+  type    = number
+  default = {{ recovery_window_in_days }}
+}
+{% endif %}

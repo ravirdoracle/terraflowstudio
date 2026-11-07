@@ -1,0 +1,80 @@
+variable "prefix" {
+  description = "Name prefix for all resources"
+  type        = string
+  default     = "{{ prefix }}"
+}
+
+variable "oci_region" {
+  description = "OCI region (same for both AZs in a multi-AZ setup)"
+  type        = string
+  default     = "{{ oci_region }}"
+}
+
+variable "compartment_id" {
+  description = "OCI compartment OCID where LPG resources are created"
+  type        = string
+{% if compartment_id %}
+  default     = "{{ compartment_id }}"
+{% endif %}
+  sensitive   = true
+}
+
+variable "primary_vcn_id" {
+  description = "OCID of the Primary VM Cluster VCN"
+  type        = string
+{% if primary_vcn_id %}
+  default     = "{{ primary_vcn_id }}"
+{% endif %}
+}
+
+variable "primary_nsg_id" {
+  description = "OCID of the Primary VM Cluster Network Security Group"
+  type        = string
+{% if primary_nsg_id %}
+  default     = "{{ primary_nsg_id }}"
+{% endif %}
+}
+
+variable "primary_client_cidr" {
+  description = "CIDR of the primary client subnet (e.g. 10.10.1.0/24)"
+  type        = string
+  default     = "{{ primary_client_cidr }}"
+}
+
+variable "primary_route_table_id" {
+  description = "OCID of the Primary VCN default route table — import before apply"
+  type        = string
+{% if primary_route_table_id %}
+  default     = "{{ primary_route_table_id }}"
+{% endif %}
+}
+
+variable "standby_vcn_id" {
+  description = "OCID of the Standby VM Cluster VCN"
+  type        = string
+{% if standby_vcn_id %}
+  default     = "{{ standby_vcn_id }}"
+{% endif %}
+}
+
+variable "standby_nsg_id" {
+  description = "OCID of the Standby VM Cluster Network Security Group"
+  type        = string
+{% if standby_nsg_id %}
+  default     = "{{ standby_nsg_id }}"
+{% endif %}
+}
+
+variable "standby_client_cidr" {
+  description = "CIDR of the standby client subnet (e.g. 10.20.1.0/24)"
+  type        = string
+  default     = "{{ standby_client_cidr }}"
+}
+
+variable "standby_route_table_id" {
+  description = "OCID of the Standby VCN default route table — import before apply"
+  type        = string
+{% if standby_route_table_id %}
+  default     = "{{ standby_route_table_id }}"
+{% endif %}
+}

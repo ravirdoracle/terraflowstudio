@@ -1,0 +1,28 @@
+odb_network_id      = "{{ odb_network_id }}"
+location            = "{{ location }}"
+network             = "{{ network }}"
+{% if project %}
+project             = "{{ project }}"
+{% else %}
+# project             = "my-gcp-project"
+{% endif %}
+{% if gcp_oracle_zone %}
+gcp_oracle_zone     = "{{ gcp_oracle_zone }}"
+{% else %}
+# gcp_oracle_zone     = "us-east4-b-r1"
+{% endif %}
+
+client_subnet_id    = "{{ client_subnet_id }}"
+client_cidr_range   = "{{ client_cidr_range }}"
+backup_subnet_id    = "{{ backup_subnet_id }}"
+backup_cidr_range   = "{{ backup_cidr_range }}"
+
+deletion_protection = {{ deletion_protection }}
+
+labels = {
+{% for k, v in labels.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "managed-by" = "terraform"
+{% endfor %}
+}

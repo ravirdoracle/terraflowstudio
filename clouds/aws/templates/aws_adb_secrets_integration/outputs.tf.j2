@@ -1,0 +1,8 @@
+output "role_arn" {
+  description = "Oracle-managed service role. Your IAM role's trust policy must allow this ARN to assume it."
+  value       = aws_odb_autonomous_database_secrets_manager_integration.this.role_arn
+}
+output "status" {
+  description = "Lifecycle status of the service role."
+  value       = aws_odb_autonomous_database_secrets_manager_integration.this.status
+}

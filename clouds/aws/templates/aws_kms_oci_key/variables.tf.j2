@@ -1,0 +1,30 @@
+variable "compartment_id" {
+  description = "Compartment for the registered key."
+  type        = string
+}
+
+variable "display_name" {
+  description = "Name of the registered key in OCI."
+  type        = string
+}
+
+variable "identity_connector_id" {
+  description = "OCID of the AWS identity connector to register through."
+  type        = string
+}
+
+variable "aws_key_arn" {
+  description = "ARN of the KMS key to register."
+  type        = string
+}
+
+variable "via_cluster" {
+  description = "Key of the cluster whose connector is used — for error messages only."
+  type        = string
+}
+
+variable "freeform_tags" {
+  description = "Freeform tags for the registered key."
+  type        = map(string)
+  default     = {}
+}

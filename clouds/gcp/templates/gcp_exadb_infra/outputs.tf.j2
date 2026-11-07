@@ -1,0 +1,8 @@
+output "infra_self_link" { value = google_oracle_database_cloud_exadata_infrastructure.this.id }
+output "infra_id" { value = google_oracle_database_cloud_exadata_infrastructure.this.cloud_exadata_infrastructure_id }
+output "infra_name" { value = google_oracle_database_cloud_exadata_infrastructure.this.name }
+output "ocid" { value = google_oracle_database_cloud_exadata_infrastructure.this.properties[0].ocid }
+output "state" { value = google_oracle_database_cloud_exadata_infrastructure.this.properties[0].state }
+output "create_time" { value = google_oracle_database_cloud_exadata_infrastructure.this.create_time }
+output "compute_count" { value = google_oracle_database_cloud_exadata_infrastructure.this.properties[0].compute_count }
+output "storage_count" { value = google_oracle_database_cloud_exadata_infrastructure.this.properties[0].storage_count }

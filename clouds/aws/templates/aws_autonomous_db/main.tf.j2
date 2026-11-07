@@ -1,0 +1,94 @@
+# Autonomous Database Serverless on Oracle AI Database@AWS.
+#
+# Serverless, not Dedicated: Oracle runs the Exadata fleet, so this takes an ODB
+# Network and nothing else from this configuration — no Exadata Infrastructure,
+# no Autonomous VM Cluster.
+#
+# Nearly every argument is Optional + Computed in the provider. Left null, each
+# adopts the value the service assigned and does not diff, which is why the
+# optional variables below default to null rather than to a guessed value.
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 6.68.0" }
+  }
+}
+
+resource "aws_odb_autonomous_database" "this" {
+  # Changing the network replaces the database.
+  odb_network_id = var.odb_network_id
+  source         = "NONE"
+
+  display_name             = var.display_name
+  db_name                  = var.db_name
+  db_workload              = var.db_workload
+  license_model            = var.license_model
+  compute_count            = var.compute_count
+  data_storage_size_in_tbs = var.data_storage_size_in_tbs
+
+  database_edition                     = var.database_edition
+  db_version                           = var.db_version
+  is_auto_scaling_enabled              = var.is_auto_scaling_enabled
+  is_auto_scaling_for_storage_enabled  = var.is_auto_scaling_for_storage_enabled
+  backup_retention_period_in_days      = var.backup_retention_period_in_days
+  autonomous_maintenance_schedule_type = var.autonomous_maintenance_schedule_type
+  is_mtls_connection_required          = var.is_mtls_connection_required
+  private_endpoint_label               = var.private_endpoint_label
+  private_endpoint_ip                  = var.private_endpoint_ip
+  # The provider takes 1-1024 entries, so an empty list is sent as null.
+  allowlisted_ips = length(var.allowlisted_ips) > 0 ? var.allowlisted_ips : null
+
+  # Changing either character set replaces the database.
+  character_set  = var.character_set
+  ncharacter_set = var.ncharacter_set
+
+  encryption_key_provider = var.encryption_key_provider
+  kms_key_id              = var.kms_key_id
+
+  # ADMIN password — one of two sources, never a value in state.
+  #   write_only      admin_password_wo is sent to AWS and never stored in plan
+  #                   or state. Bump admin_password_wo_version to rotate.
+  #   secrets_manager OCI reads the password from AWS Secrets Manager through
+  #                   a customer-managed IAM role. Needs the account-level
+  #                   Secrets Manager integration enabled first.
+  # The provider rejects a config carrying more than one source, but a null
+  # value does not count as set (framework ConflictsWith), so one module serves
+  # both and the unused inputs stay null.
+  admin_password_wo         = var.admin_password_wo
+  admin_password_wo_version = var.admin_password_source == "write_only" ? var.admin_password_wo_version : null
+
+  dynamic "admin_password_source" {
+    for_each = var.admin_password_source == "secrets_manager" ? [1] : []
+    content {
+      customer_managed_aws_secret {
+        external_id_type = var.secret_external_id_type
+        iam_role_arn     = var.secret_iam_role_arn
+        secret_arn       = var.secret_arn
+      }
+    }
+  }
+
+  dynamic "customer_contacts_to_send_to_oci" {
+    for_each = var.customer_contacts
+    content {
+      email = customer_contacts_to_send_to_oci.value
+    }
+  }
+
+  tags = var.tags
+
+  # Fails the plan with instructions, rather than reaching AWS with no password.
+  # A precondition may read the ephemeral value; it is never stored.
+  lifecycle {
+    precondition {
+      condition     = var.admin_password_source != "write_only" || var.admin_password_wo != null
+      error_message = <<-EOT
+        No ADMIN password supplied for Autonomous Database "${var.display_name}".
+        Set it in the shell that runs terraform — the value is just the password,
+        12-30 characters:
+          macOS / Linux:  export TF_VAR_aws_adb_admin_password='...'
+          PowerShell:     $env:TF_VAR_aws_adb_admin_password = '...'
+        Or switch the database to admin_password_source = "secrets_manager".
+      EOT
+    }
+  }
+}

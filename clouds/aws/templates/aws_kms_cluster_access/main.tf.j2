@@ -1,0 +1,76 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 6.61.0"
+    }
+  }
+}
+
+# Condition keys AWS documents for an OCI identity-domain provider: rpst_id
+# identifies the OCI resource principal — the VM cluster — so pinning it means no
+# other cluster in the identity domain can use this role. aud is the audience
+# the domain's tokens carry, when known.
+locals {
+  conditions = merge(
+    var.isolate_role_to_cluster ? { "${var.oidc_provider_host}:rpst_id" = var.vm_cluster_ocid } : {},
+    var.audience != "" ? { "${var.oidc_provider_host}:aud" = var.audience } : {},
+  )
+}
+
+# The role the VM cluster assumes, with a token from the OCI identity domain, to
+# reach KMS. Same shape as the role Oracle's CloudFormation stack creates.
+resource "aws_iam_role" "this" {
+  name = var.role_name
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [merge(
+      {
+        Effect    = "Allow"
+        Principal = { Federated = var.oidc_provider_arn }
+        Action    = "sts:AssumeRoleWithWebIdentity"
+      },
+      length(local.conditions) > 0 ? { Condition = { StringEquals = local.conditions } } : {},
+    )]
+  })
+
+  tags = var.tags
+}
+
+# Exactly what TDE needs: DescribeKey for discovery and registration, Encrypt and
+# Decrypt to wrap and unwrap the master key, and ListKeys — which takes no
+# resource — for key discovery. The access is granted here, on the
+# role, and takes effect because the key policy delegates to IAM — the AWS
+# default, and what modules/kms-key writes. An adopted key (existing_arn) needs
+# the same delegation in its policy.
+resource "aws_iam_role_policy" "kms" {
+  name = "kms-tde"
+  role = aws_iam_role.this.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["kms:DescribeKey", "kms:Encrypt", "kms:Decrypt"]
+        Resource = var.kms_key_arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:ListKeys"]
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+# Associating the role is what makes OCI attach an AWS identity connector to the
+# cluster — the connector the key is registered through.
+resource "aws_odb_iam_role_association" "this" {
+  aws_integration = "KmsTde"
+  iam_role_arn    = aws_iam_role.this.arn
+  resource_arn    = var.vm_cluster_arn
+
+  depends_on = [aws_iam_role_policy.kms]
+}

@@ -1,0 +1,14 @@
+output "primary_rpc_id" {
+  description = "OCID of the primary Remote Peering Connection"
+  value       = oci_core_remote_peering_connection.primary.id
+}
+
+output "dr_rpc_id" {
+  description = "OCID of the DR Remote Peering Connection"
+  value       = oci_core_remote_peering_connection.dr.id
+}
+
+output "peering_status" {
+  description = "Peering status — becomes PEERED after successful apply"
+  value       = oci_core_remote_peering_connection.primary.peering_status
+}

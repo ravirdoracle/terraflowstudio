@@ -1,0 +1,24 @@
+output "network_anchor_id" {
+  description = "Azure resource ID of the Network Anchor."
+  value       = azapi_resource.this.id
+}
+output "subnet_id" {
+  description = "ID of the Network Anchor's delegated subnet."
+  value       = azurerm_subnet.network_anchor.id
+}
+output "oci_vcn_id" {
+  description = "OCID of the VCN OCI built behind the anchor."
+  value       = try(azapi_resource.this.output.properties.ociVcnId, null)
+}
+output "oci_subnet_id" {
+  description = "OCID of the OCI subnet behind the anchor."
+  value       = try(azapi_resource.this.output.properties.ociSubnetId, null)
+}
+output "dns_listening_endpoint_ip" {
+  description = "IP of the OCI DNS listening endpoint, when enabled."
+  value       = try(azapi_resource.this.output.properties.dnsListeningEndpointIpAddress, null)
+}
+output "dns_forwarding_endpoint_ip" {
+  description = "IP of the OCI DNS forwarding endpoint, when enabled."
+  value       = try(azapi_resource.this.output.properties.dnsForwardingEndpointIpAddress, null)
+}

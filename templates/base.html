@@ -1,0 +1,1875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraflow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<header>
+  <a class="logo" href="/" style="text-decoration:none">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span><span style="font-size:10px;font-weight:400;color:#C9A227;margin-left:8px;font-family:var(--font-m);letter-spacing:.04em">v5.3</span></div>
+    <div class="logo-sub" style="color:#C9A227">Oracle AI DB@Cloud · Terraform Generator</div>
+  </a>
+  <div class="header-right">
+    <div class="tool-sw">
+      <button class="tsw-btn sel-tf" id="btn-tf"   onclick="switchTool('terraform')"       title="Generate for Terraform">⬡ Terraform</button>
+      <button class="tsw-btn"         id="btn-tofu" onclick="switchTool('opentofu')"        title="Generate for OpenTofu">⬡ OpenTofu</button>
+      <button class="tsw-btn cfn-btn" id="btn-cfn"  onclick="switchTool('cloudformation')"  title="Generate CloudFormation YAML">☁ CloudFormation</button>
+    </div>
+    {% block cloud_nav %}{% endblock %}
+    <span class="provider-badge" id="prov-badge">{% block provider_badge %}{% endblock %}</span>
+  </div>
+</header>
+
+<!-- ── Customer bar ── -->
+<div class="cust-bar">
+  <span class="cust-label">Customer</span>
+  <input class="cust-input" type="text" id="cust-name" placeholder="Enter customer name…" oninput="onCustInput()">
+  <button class="cust-btn save" id="save-btn" onclick="saveConfig()" title="Save current config for this customer">💾 Save</button>
+  <button class="cust-btn load" id="load-btn" onclick="loadConfig()" title="Load saved config for this customer">📂 Load</button>
+  <button class="cust-btn del" id="del-btn" onclick="deleteConfig()" title="Delete saved config for this customer" disabled>🗑 Delete</button>
+  <button class="cust-btn test" id="test-btn" onclick="runCustomerTests()" title="Run Terraform generation tests for this customer" disabled>🧪 Test</button>
+  <div class="cust-sep"></div>
+  <select class="cust-select" id="cust-select" onchange="onCustSelect()" title="Switch to a saved customer">
+    <option value="">— saved customers —</option>
+  </select>
+  <span class="save-toast" id="save-toast"></span>
+  <span class="backend-pill" id="backend-pill"></span>
+</div>
+
+<!-- ── LLM Prompt Bar ── -->
+<div class="llm-bar" id="llm-bar">
+  <span class="llm-bar-label">✦ AI</span>
+  <button class="llm-bar-btn" id="llm-templates-btn" onclick="toggleTemplates()" style="background:rgba(255,255,255,.04);border-color:#333;color:#666;padding:0 10px">⚡ Templates</button>
+  <input class="llm-bar-input" type="text" id="llm-input"
+    placeholder="Describe what you want… e.g. 'Production ExaDB in us-east-1 with 19c database'"
+    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
+  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
+  <span class="llm-reply" id="llm-reply"></span>
+  <span class="llm-prov" id="llm-prov-badge">checking…</span>
+  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
+  <button class="llm-bar-btn" onclick="openAiTool('plan')" title="Paste terraform plan output and get an AI analysis" style="background:rgba(201,162,39,.1);border-color:#5a4a10;color:#C9A227;">📋 Plan</button>
+  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" title="Paste a terraform error and get a fix" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
+  <button class="llm-bar-btn" onclick="openAiTool('security')" title="AI security review of current config" style="background:rgba(26,122,74,.1);border-color:#1a4a2a;color:#6dd4a0;">🔒 Security</button>
+</div>
+<div id="llm-templates-panel" style="display:none;position:fixed;top:98px;left:28px;right:28px;z-index:600;background:#111;border:1.5px solid #2a2a2a;border-radius:10px;padding:16px 20px 12px;box-shadow:0 8px 32px rgba(0,0,0,.6)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <span style="font-family:var(--font-d);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#666">⚡ Prompt Templates</span>
+    <button onclick="toggleTemplates()" style="background:none;border:none;color:#444;cursor:pointer;font-size:16px;line-height:1;padding:0 4px">✕</button>
+  </div>
+  <div id="llm-tpl-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
+  <div id="llm-template-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div>
+</div>
+
+<!-- ── Test Modal ── -->
+<div class="test-modal-overlay" id="test-modal-overlay" onclick="if(event.target===this)closeTestModal()">
+  <div class="test-modal">
+    <div class="test-modal-head">
+      <span style="font-size:18px">🧪</span>
+      <div>
+        <div class="test-modal-title" id="test-modal-title">Running Tests…</div>
+        <div class="test-modal-sub" id="test-modal-sub"></div>
+      </div>
+      <button class="test-modal-close" onclick="closeTestModal()">✕</button>
+    </div>
+    <div class="test-tab-bar">
+      <button class="test-tab active" id="ttab-functional" onclick="switchTestTab('functional')">⚙ Functional Tests</button>
+      <button class="test-tab" id="ttab-tfvalidate" onclick="switchTestTab('tfvalidate')">🔬 Mock TF Validate</button>
+      <button class="test-tab" id="ttab-tfcli" onclick="switchTestTab('tfcli')">🏗 TF CLI</button>
+    </div>
+    <div class="test-modal-body">
+      <div class="test-progress"><div class="test-progress-bar" id="test-progress-bar"></div></div>
+      <div id="test-summary-row"></div>
+      <div id="test-results-body"></div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<!-- LEFT NAV PANEL -->
+<div class="nav-panel">
+  <div class="nav-cloud-head">
+    <span class="nav-cloud-label">Resources</span>
+  </div>
+  <div class="nav-section-label">Types</div>
+  {% block product_tabs %}{% endblock %}
+</div>
+
+<div class="form-panel">
+  {% block product_pages %}{% endblock %}
+</div><!-- /form-panel -->
+
+<!-- PANEL RESIZER -->
+<div class="resizer" id="panel-resizer" title="Drag to resize"></div>
+
+<!-- OUTPUT PANEL -->
+<div class="output-panel">
+  <div class="out-layout">
+    <div class="file-tree" id="file-tree">
+      <div class="ft-section">Root</div>
+      <div class="ft-root-file active" id="ft-root-main" onclick="selFile('root-main')"><span>📄</span>main.tf</div>
+      <div class="ft-root-file" id="ft-root-tfvars" onclick="selFile('root-tfvars')"><span>📄</span>terraform.tfvars</div>
+      <div id="ft-modules-section"></div>
+    </div>
+    <div class="editor-pane">
+      <div class="editor-header">
+        <div class="editor-filepath"><span class="live-dot"></span><span id="ep-path">main.tf</span></div>
+        <div class="editor-actions">
+          <button class="icon-btn green" id="btn-dl" onclick="dlZip()">⬇ Download ZIP</button>
+          <button class="icon-btn" onclick="loadZip()" title="Load a previously downloaded Terraflow ZIP to restore its configuration">⬆ Load ZIP</button>
+          <input type="file" id="load-zip-input" accept=".zip" style="display:none" onchange="onLoadZipFile(this)">
+          <button class="icon-btn muted" id="gh-push-btn" onclick="pushToGithub()" title="Set GITHUB_TOKEN and GITHUB_REPO in .env to enable Git push">⬆ Push to Git</button>
+          <span id="gh-status-badge" style="font-family:var(--font-m);font-size:9px;color:#444;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis"></span>
+          <button class="icon-btn" id="copybtn" onclick="copyFile()">⎘ Copy</button>
+          <button class="icon-btn" id="explain-btn" onclick="explainCurrentFile()" title="Ask AI to explain the currently viewed file">✦ Explain</button>
+          <button class="icon-btn" id="guide-btn" onclick="showDeployGuide()" title="Step-by-step Terraform deployment guide for your current modules">⚙ Guide</button>
+        </div>
+      </div>
+      <pre class="code-editor" id="code-out"><span style="color:var(--ink4);font-style:italic"># Fill in the form — output appears here in real time.</span></pre>
+      <div id="explain-panel" class="explain-panel" style="display:none">
+        <div class="explain-ph">
+          <span class="explain-ph-title">✦ AI Explanation</span>
+          <span id="explain-file-label" class="explain-ph-file"></span>
+          <button class="icon-btn" onclick="closeExplain()" style="padding:2px 8px;flex-shrink:0">✕ Close</button>
+        </div>
+        <div id="explain-body" class="explain-body"></div>
+      </div>
+      <div id="guide-panel" class="explain-panel" style="display:none">
+        <div class="explain-ph">
+          <span class="explain-ph-title" style="color:var(--ink)">⚙ Deploy Guide</span>
+          <span id="guide-sub" class="explain-ph-file"></span>
+          <button class="icon-btn" onclick="closeDeployGuide()" style="padding:2px 8px;flex-shrink:0">✕ Close</button>
+        </div>
+        <div id="guide-body" class="explain-body" style="padding:0;white-space:normal"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<script>
+// ── Product-specific: region/zone data, state arrays, card builders ───────────
+{% block product_data %}{% endblock %}
+{% block product_state %}{% endblock %}
+
+// ── Shorthand field accessors ─────────────────────────────────────────────────
+function fv(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+function fcb(id){ const e=document.getElementById(id); return e?e.checked:false; }
+function fset(id,v){ const e=document.getElementById(id); if(e&&v!==undefined&&v!==null) e.value=v; }
+function fsetcb(id,v){ const e=document.getElementById(id); if(e) e.checked=!!v; }
+function tog_lbl(cbId,lblId,t,f){ const e=document.getElementById(cbId); const l=document.getElementById(lblId); if(e&&l) l.textContent=e.checked?t:f; }
+
+// ── Net-options html for dropdowns ─────────────────────────────────────────────
+function netOptions(selected='') {
+  if (typeof awsNets === 'undefined') return '';
+  return awsNets.map(n=>`<option value="${n.module_name}"${n.module_name===selected?' selected':''}>${n.module_name}</option>`).join('');
+}
+function infraOptions(selected='') {
+  if (typeof awsInfras === 'undefined') return '';
+  return awsInfras.map(n=>`<option value="${n.module_name}"${n.module_name===selected?' selected':''}>${n.module_name}</option>`).join('');
+}
+function gcpNetOptions(selected='') {
+  if (typeof gcpNets === 'undefined') return '';
+  return gcpNets.map(n=>`<option value="${n.module_name}"${n.module_name===selected?' selected':''}>${n.module_name}</option>`).join('');
+}
+function gcpInfraOptions(selected='') {
+  if (typeof gcpInfras === 'undefined') return '';
+  return gcpInfras.map(n=>`<option value="${n.module_name}"${n.module_name===selected?' selected':''}>${n.module_name}</option>`).join('');
+}
+
+// ── Product-specific orchestration ───────────────────────────────────────────
+{% block product_orchestration %}{% endblock %}
+
+// ── Card toggle ───────────────────────────────────────────────────────────────
+const _cardOpen = {};
+function toggleCard(id) {
+  const el = document.getElementById(id);  if (!el) return;
+  el.classList.toggle('open');
+  _cardOpen[id] = el.classList.contains('open');
+}
+function toggleOptSection(headEl) {
+  headEl.closest('.section').classList.toggle('collapsed');
+}
+// ── Card drag-to-reorder ──────────────────────────────────────────────────────
+let _dragSrc = null;
+function onCardDragStart(e, arr, i, renderFn, prefix) {
+  if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+  _dragSrc = {arr, i, renderFn, prefix};
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(i));
+  e.currentTarget.classList.add('dragging');
+}
+function onCardDragOver(e, arr, i) {
+  if (!_dragSrc || _dragSrc.arr !== arr) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const {top, height} = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.classList.toggle('drag-over-top',    e.clientY < top + height / 2);
+  e.currentTarget.classList.toggle('drag-over-bottom', e.clientY >= top + height / 2);
+}
+function onCardDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+}
+function onCardDrop(e, arr, i, renderFn, prefix) {
+  if (!_dragSrc || _dragSrc.arr !== arr) return;
+  e.preventDefault();
+  const from = _dragSrc.i;
+  const {top, height} = e.currentTarget.getBoundingClientRect();
+  let to = e.clientY < top + height / 2 ? i : i + 1;
+  if (from < to) to--;
+  e.currentTarget.classList.remove('drag-over-top', 'drag-over-bottom');
+  if (from === to) return;
+  const states = arr.map((_, j) => _cardOpen[prefix + j] ?? (j === 0));
+  arr.splice(to, 0, arr.splice(from, 1)[0]);
+  states.splice(to, 0, states.splice(from, 1)[0]);
+  states.forEach((s, j) => { _cardOpen[prefix + j] = s; });
+  renderFn();
+}
+function onCardDragEnd(e) {
+  _dragSrc = null;
+  document.querySelectorAll('.inst-card').forEach(c =>
+    c.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom'));
+}
+
+function _safeRender(containerId, html) {
+  const focusId = document.activeElement?.id;
+  const scrollY = window.scrollY;
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = html;
+  window.scrollTo(0, scrollY);
+  if (focusId) document.getElementById(focusId)?.focus();
+}
+
+// ── MW card toggle ────────────────────────────────────────────────────────────
+function toggleMWCard(p) {
+  const sel = document.getElementById(p+'mwp');
+  const div = document.getElementById(p+'mwcustom');
+  if(sel&&div) div.style.display = (sel.value==='CUSTOM_PREFERENCE'||sel.value==='CustomPreference')?'':'none';
+}
+
+// ── SSH key add for cluster cards ─────────────────────────────────────────────
+function addSshToCluster(i, isGcp) {
+  const arr = isGcp ? gcpClusters : awsClusters;
+  const p   = isGcp ? `gc${i}_` : `ac${i}_`;
+  const ta  = document.getElementById(p+'sshin');
+  if(!ta||!ta.value.trim()) return;
+  arr[i].ssh_public_keys = [...(arr[i].ssh_public_keys||[]), ta.value.trim()];
+  ta.value = '';
+  isGcp ? renderGcpClusters() : renderAwsClusters();
+  refresh();
+}
+
+function addDbServerToCluster(i) {
+  const p = `ac${i}_`;
+  const inp = document.getElementById(`${p}dbsrv-inp`);
+  if (!inp) return;
+  const v = inp.value.trim();
+  if (!v) return;
+  if (!awsClusters[i].db_servers) awsClusters[i].db_servers = [];
+  if (!awsClusters[i].db_servers.includes(v)) {
+    awsClusters[i].db_servers.push(v);
+    renderAwsClusters();
+    refresh();
+  }
+  inp.value = '';
+}
+
+function addGcpDbServerToCluster(i) {
+  const p = `gc${i}_`;
+  const inp = document.getElementById(`${p}gcpdbsrv-inp`);
+  if (!inp) return;
+  const v = inp.value.trim();
+  if (!v) return;
+  if (!gcpClusters[i].db_servers) gcpClusters[i].db_servers = [];
+  if (!gcpClusters[i].db_servers.includes(v)) {
+    gcpClusters[i].db_servers.push(v);
+    renderGcpClusters();
+    refresh();
+  }
+  inp.value = '';
+}
+
+function addDbServerToAvmc(i) {
+  const p = `av${i}_`;
+  const inp = document.getElementById(`${p}dbsrv-inp`);
+  if (!inp) return;
+  const v = inp.value.trim();
+  if (!v) return;
+  if (!awsAvmcs[i].db_servers) awsAvmcs[i].db_servers = [];
+  if (!awsAvmcs[i].db_servers.includes(v)) {
+    awsAvmcs[i].db_servers.push(v);
+    renderAwsAvmcs();
+    refresh();
+  }
+  inp.value = '';
+}
+
+function addCidrToPeer(i) {
+  const inp = document.getElementById(`ap${i}_cidrin`);
+  if(!inp||!inp.value.trim()) return;
+  const cidr = inp.value.trim();
+  if(!/^\d{1,3}(\.\d{1,3}){3}\/\d{1,2}$/.test(cidr)) { inp.style.borderColor='var(--red)'; return; }
+  inp.style.borderColor='';
+  awsPeerings[i].peer_network_cidrs = [...(awsPeerings[i].peer_network_cidrs||[]), cidr];
+  inp.value='';
+  renderAwsPeerings(); refresh();
+}
+
+// ── Validate & Generate ───────────────────────────────────────────────────────
+async function vgen(tab, isGcp){
+  const p=buildPayload(); p.tab=tab;
+  try {
+    const res=await fetch('/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d=await res.json();
+
+    document.querySelectorAll('.inst-body .field.invalid').forEach(f=>f.classList.remove('invalid'));
+    document.querySelectorAll('.inst-card .card-err-banner').forEach(b=>b.remove());
+
+    if(!d.valid){
+      const byModule = d.errors_by_module || {};
+      for(const [mn, errs] of Object.entries(byModule)){
+        const mnInput = [...document.querySelectorAll('.module-name-field')].find(el=>el.value===mn);
+        if(mnInput){
+          const card = mnInput.closest('.inst-card');
+          if(card){
+            card.classList.add('open');
+            const body = card.querySelector('.inst-body');
+            if(body && !body.querySelector('.card-err-banner')){
+              const banner = document.createElement('div');
+              banner.className = 'card-err-banner';
+              banner.style.cssText='background:var(--r-dim);border:1px solid var(--red);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-family:var(--font-m);font-size:11px;color:var(--red);';
+              banner.innerHTML = '⚠ ' + Object.entries(errs).map(([k,v])=>`<strong>${k}</strong>: ${v}`).join(' &nbsp;·&nbsp; ');
+              body.insertBefore(banner, body.firstChild);
+            }
+            for(const field of Object.keys(errs)){
+              const inp = card.querySelector(`input[id*="${field}"], select[id*="${field}"], textarea[id*="${field}"]`);
+              if(inp){
+                const fieldDiv = inp.closest('.field');
+                if(fieldDiv) fieldDiv.classList.add('invalid');
+              }
+            }
+          }
+        }
+      }
+      const totalErrors = Object.values(byModule).reduce((s,e)=>s+Object.keys(e).length,0);
+      showToast(`${totalErrors} validation error${totalErrors!==1?'s':''} — check highlighted fields`, true);
+      return;
+    }
+    document.querySelectorAll('.card-err-banner').forEach(b=>b.remove());
+    showToast('Valid — generating all files…');
+  } catch(e) {
+    showToast('Error: '+e.message, true);
+    return;
+  }
+  activeFile='root-main';
+  updateTree(); renderEditor();
+}
+
+function copyFile(){const text=document.getElementById('code-out').innerText;navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('copybtn');btn.classList.add('copied');btn.textContent='✓ Copied!';setTimeout(()=>{btn.classList.remove('copied');btn.textContent='⎘ Copy';},2000);});}
+
+// ── Tool switcher ─────────────────────────────────────────────────────────────
+function switchTool(t) {
+  iacTool = t;
+  document.getElementById('btn-tf').className   = 'tsw-btn' + (t==='terraform'       ? ' sel-tf'   : '');
+  document.getElementById('btn-tofu').className = 'tsw-btn' + (t==='opentofu'        ? ' sel-tofu' : '');
+  const cfnBtn = document.getElementById('btn-cfn');
+  if(cfnBtn) cfnBtn.className = 'tsw-btn cfn-btn' + (t==='cloudformation' ? ' sel-cfn' : '');
+  const dlBtn = document.getElementById('btn-dl');
+  if(dlBtn) dlBtn.textContent = (t==='cloudformation') ? '⬇ Download YAML' : '⬇ Download ZIP';
+  if(t==='cloudformation') { activeFile='cfn-main'; }
+  refresh();
+}
+
+// ── File key helpers ──────────────────────────────────────────────────────────
+function fkToPath(k){
+  if(k==='root-main')return'<span class="ep-file">main.tf</span>';
+  if(k==='root-tfvars')return'<span class="ep-file">terraform.tfvars</span>';
+  if(k==='cfn-main')return'<span class="ep-file">odb-stack.yaml</span>';
+  const m2=k.match(/^mod:([^:]+):(main|variables|outputs|tfvars)$/);
+  if(m2){const f=m2[2]==='tfvars'?'terraform.tfvars':m2[2]+'.tf';return'<span class="ep-dir">modules/'+m2[1]+'/</span><span class="ep-file">'+f+'</span>';}
+  return k;
+}
+function fkToApiPath(k){
+  if(k==='root-main')return'main.tf';
+  if(k==='root-tfvars')return'terraform.tfvars';
+  if(k==='cfn-main')return'cfn';
+  const m2=k.match(/^mod:([^:]+):(main|variables|outputs|tfvars)$/);
+  if(m2){const f=m2[2]==='tfvars'?'terraform.tfvars':m2[2]+'.tf';return'modules/'+m2[1]+'/'+f;}
+  return k;
+}
+
+function updateTree(){
+  const sec=document.getElementById('ft-modules-section');
+  if(!sec) return;
+  if(iacTool==='cloudformation'){
+    sec.innerHTML='<div class="ft-section" style="margin-top:8px">CloudFormation</div>'
+      +'<div class="ft-file'+(activeFile==='cfn-main'?' active':'')+'" onclick="selFile(\'cfn-main\')"><span>📄</span>odb-stack.yaml</div>';
+    ['root-main','root-tfvars'].forEach(k=>{const el=document.getElementById('ft-'+k);if(el)el.className='ft-root-file';});
+    return;
+  }
+  const names=getAllModuleNames();
+  let h='<div class="ft-section" style="margin-top:8px">Modules</div>';
+  names.forEach(n=>{
+    h+='<div class="ft-dir">'+n+'/</div>';
+    [['main','main.tf','📄'],['variables','variables.tf','📋'],['outputs','outputs.tf','📤'],['tfvars','terraform.tfvars','⚙']].forEach(([kt,f,ic])=>{
+      const fk='mod:'+n+':'+kt;
+      const sid='ft-mod-'+n.replace(/[^a-z0-9]/gi,'_')+'-'+kt;
+      h+='<div class="ft-file '+(activeFile===fk?'active':'')+'" id="'+sid+'" onclick="selFile(\''+fk+'\')"><span>'+ic+'</span>'+f+'</div>';
+    });
+  });
+  sec.innerHTML=h;
+  ['root-main','root-tfvars'].forEach(k=>{const el=document.getElementById('ft-'+k);if(el)el.className='ft-root-file'+(activeFile===k?' active':'');});
+}
+
+async function fetchFile(fk){
+  const p=buildPayload(); p.file_key=fk;
+  try{const r=await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});const d=await r.json();if(d.error)return'# Error:\n# '+d.error;return d.content||'';}
+  catch(e){return'# Network error: '+e.message;}
+}
+
+async function renderEditor(){
+  document.getElementById('ep-path').innerHTML=fkToPath(activeFile);
+  document.getElementById('code-out').innerHTML='<span style="color:var(--ink4);font-style:italic"># Generating...</span>';
+  const c=await fetchFile(fkToApiPath(activeFile));
+  document.getElementById('code-out').innerHTML=hl(c);
+}
+function selFile(k){activeFile=k;updateTree();renderEditor();}
+function refresh(){
+  document.querySelectorAll('.inst-body .field.invalid').forEach(f=>f.classList.remove('invalid'));
+  document.querySelectorAll('.card-err-banner').forEach(b=>b.remove());
+  clearTimeout(rtimer);rtimer=setTimeout(()=>{updateTree();renderEditor();},300);
+}
+
+function hl(code){
+  let s=code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  if(iacTool==='cloudformation'){
+    return s
+      .replace(/^(#[^\n]*)/gm,'<span class="hcmt">$1</span>')
+      .replace(/^(\s*)(AWSTemplateFormatVersion|Description|Resources|Outputs|Parameters|Conditions|Mappings|Transform):/gm,'$1<span class="hkw">$2</span>:')
+      .replace(/^(\s*)(Type|Properties|DependsOn|Value|Export|Name):/gm,'$1<span class="hkw">$2</span>:')
+      .replace(/(AWS::ODB::[A-Za-z]+)/g,'<span class="hres">$1</span>')
+      .replace(/(!GetAtt|!Sub|!Ref|!Join|!Select|!If)\b/g,'<span class="href">$1</span>')
+      .replace(/:\s*'([^'<>]*)'/g,': <span class="hstr">\'$1\'</span>')
+      .replace(/:\s*(true|false)\b/g,': <span class="hbol">$1</span>')
+      .replace(/:\s*(-?\d+\.?\d*)(\s|$)/gm,': <span class="hnum">$1</span>$2');
+  }
+  return s
+    .replace(/^(#[^\n]*)/gm,'<span class="hcmt">$1</span>')
+    .replace(/\b(resource|module|output|variable|terraform|provider|required_providers|required_version|dynamic|content|for_each|depends_on|source|version|validation|condition|error_message|description|type|default|value|properties)\b(?=[^(])/g,'<span class="hkw">$1</span>')
+    .replace(/"(aws_odb_[a-z_]+)"/g,'"<span class="hres">$1</span>"')
+    .replace(/"(google_oracle_database_[a-z_]+)"/g,'"<span class="hgres">$1</span>"')
+    .replace(/\b(string|number|bool|list|map|any|null)\b/g,'<span class="htype">$1</span>')
+    .replace(/var\.([a-z_][a-z0-9_.]*)/g,'<span class="hvar">var.$1</span>')
+    .replace(/module\.([a-z_][a-z0-9_.]*)/g,'<span class="href">module.$1</span>')
+    .replace(/=\s*"([^"<>]+)"/g,(m,v)=>'= <span class="hstr">"'+v+'"</span>')
+    .replace(/=\s*(true|false)\b/g,'= <span class="hbol">$1</span>')
+    .replace(/=\s*(-?\d+\.?\d*)\b/g,'= <span class="hnum">$1</span>');
+}
+
+// ── Terraform Explain ─────────────────────────────────────────────────────────
+async function explainCurrentFile(){
+  const btn   = document.getElementById('explain-btn');
+  const panel = document.getElementById('explain-panel');
+  const body  = document.getElementById('explain-body');
+  const lbl   = document.getElementById('explain-file-label');
+  const path  = document.getElementById('ep-path').innerText || 'main.tf';
+
+  // If panel is already open for the same file, just close it
+  if(panel.style.display !== 'none' && lbl.textContent === path){
+    closeExplain(); return;
+  }
+
+  closeDeployGuide();
+  btn.textContent = '⟳ …';
+  btn.disabled = true;
+  lbl.textContent = path;
+  body.innerHTML = '<span style="color:var(--ink4);font-style:italic">Generating explanation…</span>';
+  panel.style.display = 'flex';
+
+  const rawCode = await fetchFile(fkToApiPath(activeFile));
+  try{
+    const r = await fetch('/api/llm/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:rawCode,filename:path})});
+    const d = await r.json();
+    if(d.error){body.innerHTML='<span style="color:var(--red)">Error: '+d.error+'</span>';}
+    else{body.textContent=d.explanation;}
+  }catch(e){
+    body.innerHTML='<span style="color:var(--red)">Network error: '+e.message+'</span>';
+  }finally{
+    btn.textContent='✦ Explain'; btn.disabled=false;
+  }
+}
+function closeExplain(){document.getElementById('explain-panel').style.display='none';}
+
+// ── Deployment Guide ──────────────────────────────────────────────────────────
+function _dgMod(name){return `<span class="dg-mod">module.${name}</span>`;}
+
+// Build a resource detail object for rendering
+function _dgRes(module_name, type, cfg, deps, exports_){
+  return {module_name, type, cfg:cfg.filter(Boolean), deps:deps.filter(Boolean), exports:exports_.filter(Boolean)};
+}
+
+function buildDeployGuide(){
+  let p; try{p=buildPayload();}catch(e){return [];}
+  const cloud=p.cloud||'aws';
+  const steps=[];
+
+  if(cloud==='aws'){
+    const nets    =p.aws_networks||[];
+    const infras  =p.aws_infras||[];
+    const peerings=p.aws_peerings||[];
+    const clusters=p.aws_clusters||[];
+    const avmcs   =p.aws_avmclusters||[];
+    const ociDbs  =p.aws_oci_databases||[];
+    if(!nets.length&&!infras.length&&!clusters.length&&!avmcs.length&&!ociDbs.length) return [];
+
+    const firstNet  = nets[0]?.module_name  || 'odb_network';
+    const firstInfra= infras[0]?.module_name|| 'odb_exadata_infra';
+
+    if(nets.length) steps.push({
+      title: `Deploy ODB Network${nets.length>1?' ('+nets.length+', parallel)':''}`,
+      cmds: nets.map(n=>`terraform apply -target=module.${n.module_name}`),
+      desc: 'Foundation resource. Creates the isolated ODB network with client and backup subnets. Must complete before infrastructure or peering.',
+      time: '2–5 min'+(nets.length>1?' each':''),
+      resources: nets.map(n=>_dgRes(n.module_name,'ODB Network',[
+        `Display name: <b>${n.display_name||'odb-network'}</b>`,
+        `AZ: <b>${n.availability_zone_id||'—'}</b>`,
+        `Client CIDR: <b>${n.client_subnet_cidr||'—'}</b>`,
+        `Backup CIDR: <b>${n.backup_subnet_cidr||'—'}</b>`,
+        n.s3_access?`S3 access: <b>ENABLED</b>`:'',
+        n.zero_etl_access?`Zero-ETL: <b>ENABLED</b>`:'',
+        n.default_dns_prefix?`DNS prefix: <b>${n.default_dns_prefix}</b>`:'',
+      ],[],[
+        `module.${n.module_name}.odb_network_id  →  used by peerings &amp; VM clusters as var.odb_network_id`,
+      ])),
+    });
+
+    const iCmds=infras.map(i=>`terraform apply -target=module.${i.module_name}`);
+    const pCmds=peerings.map(pp=>`terraform apply -target=module.${pp.module_name}`);
+
+    const iRes=infras.map(i=>_dgRes(i.module_name,'Exadata Infrastructure',[
+      `Display name: <b>${i.display_name||'—'}</b>`,
+      `AZ: <b>${i.availability_zone_id||'—'}</b>`,
+      `Shape: <b>${i.shape||'—'}</b>`,
+      `Compute nodes: <b>${i.compute_count||2}</b>`,
+      `Storage nodes: <b>${i.storage_count||3}</b>`,
+    ],[],[
+      `module.${i.module_name}.cloud_exadata_infrastructure_id  →  used by VM clusters as var.cloud_exadata_infrastructure_id`,
+    ]));
+
+    const pRes=peerings.map(pp=>_dgRes(pp.module_name,'ODB Peering',[
+      `Display name: <b>${pp.display_name||'—'}</b>`,
+      `Peer VPC: <b>${pp.peer_network_id||'—'}</b>`,
+    ],[
+      `var.odb_network_id  ←  module.${pp.network_ref||firstNet}.odb_network_id`,
+    ],[
+      `module.${pp.module_name}.peering_connection_id`,
+    ]));
+
+    if(iCmds.length&&pCmds.length) steps.push({
+      title:'Deploy Exadata Infrastructure + Network Peering (parallel)',
+      cmds:[...iCmds,...pCmds],
+      desc:'These two resources are independent of each other — start them simultaneously in separate terminals to save time.',
+      tip:'Open two terminals: run the Infra target in one, the Peering target in the other at the same time.',
+      time:'15–30 min (infra) · 1–2 min (peering)',
+      resources:[...iRes,...pRes],
+    });
+    else if(iCmds.length) steps.push({
+      title: `Deploy Exadata Infrastructure${infras.length>1?' ('+infras.length+', parallel)':''}`,
+      cmds: iCmds,
+      desc: 'Provisions physical Exadata hardware in the ODB AZ. Wait for ACTIVE state before creating VM clusters.',
+      time: '15–30 min each',
+      resources: iRes,
+    });
+    else if(pCmds.length) steps.push({
+      title:'Deploy Network Peering',
+      cmds: pCmds,
+      desc:'Connects the ODB network to your application VPC. After creation you must manually add VPC route table entries for both ODB subnet CIDRs.',
+      time:'1–2 min each',
+      resources: pRes,
+    });
+
+    if(clusters.length) steps.push({
+      title: `Deploy VM Cluster${clusters.length>1?' ('+clusters.length+', parallel)':''}`,
+      cmds: clusters.map(c=>`terraform apply -target=module.${c.module_name}`),
+      desc: 'Provisions Oracle Grid Infrastructure and database software on the Exadata hardware.',
+      warn: 'Exadata Infrastructure must reach ACTIVE state before this step.',
+      time: '3–4 hours each',
+      resources: clusters.map(c=>_dgRes(c.module_name,'VM Cluster',[
+        `Display name: <b>${c.display_name||'—'}</b>`,
+        `CPU cores: <b>${c.cpu_core_count||16}</b>`,
+        `GI version: <b>${c.gi_version||'23.0.0.0'}</b>`,
+        `Hostname: <b>${c.hostname_prefix||'vm'}</b>`,
+        `License: <b>${c.license_model||'LICENSE_INCLUDED'}</b>`,
+      ],[
+        `var.odb_network_id  ←  module.${c.network_ref||firstNet}.odb_network_id`,
+        `var.cloud_exadata_infrastructure_id  ←  module.${c.infra_ref||firstInfra}.cloud_exadata_infrastructure_id`,
+      ],[
+        `module.${c.module_name}.cloud_vm_cluster_id  →  used by OCI DB Home as var.vm_cluster_id`,
+      ])),
+    });
+
+    if(avmcs.length) steps.push({
+      title: `Deploy Autonomous VM Cluster${avmcs.length>1?' ('+avmcs.length+')':''}`,
+      cmds: avmcs.map(a=>`terraform apply -target=module.${a.module_name}`),
+      desc: 'Provisions an Autonomous Database cluster on the Exadata Infrastructure.',
+      warn: 'Exadata Infrastructure must be ACTIVE.',
+      time: '45–60 min each',
+      resources: avmcs.map(a=>_dgRes(a.module_name,'Autonomous VM Cluster',[
+        `Display name: <b>${a.display_name||'—'}</b>`,
+        `CPU per node: <b>${a.cpu_core_count_per_node||40}</b>`,
+        `Storage: <b>${a.autonomous_data_storage_size_in_tbs||5} TB</b>`,
+        `Container DBs: <b>${a.total_container_databases||2}</b>`,
+        `License: <b>${a.license_model||'LICENSE_INCLUDED'}</b>`,
+      ],[
+        `var.odb_network_id  ←  module.${a.network_ref||firstNet}.odb_network_id`,
+        `var.cloud_exadata_infrastructure_id  ←  module.${a.infra_ref||firstInfra}.cloud_exadata_infrastructure_id`,
+      ],[])),
+    });
+
+    if(ociDbs.length){
+      const dbRes=[];
+      const dbCmds=[];
+      ociDbs.forEach(db=>{
+        const vcr=db.vmcluster_ref||clusters[0]?.module_name||'odb_vm_cluster';
+        dbCmds.push(`terraform apply -target=module.${db.module_name}_dbhome`);
+        dbRes.push(_dgRes(db.module_name+'_dbhome','DB Home',[
+          `DB Home name: <b>${db.db_home_display_name||db.module_name}</b>`,
+          `DB version: <b>${db.db_version||'—'}</b>`,
+        ],[
+          `var.vm_cluster_id  ←  module.${vcr}.cloud_vm_cluster_id`,
+        ],[
+          `module.${db.module_name}_dbhome.db_home_id  →  used by CDB as var.db_home_id`,
+        ]));
+        dbCmds.push(`terraform apply -target=module.${db.module_name}_cdb`);
+        dbRes.push(_dgRes(db.module_name+'_cdb','Container DB',[
+          `DB name: <b>${db.db_name||db.module_name}</b>`,
+          `Admin password: <b>var.admin_password</b>`,
+        ],[
+          `var.db_home_id  ←  module.${db.module_name}_dbhome.db_home_id`,
+        ],[
+          db.create_pdb&&db.pdb_name?`module.${db.module_name}_cdb.database_id  →  used by PDB as var.cdb_id`:'',
+        ]));
+        if(db.create_pdb&&db.pdb_name){
+          dbCmds.push(`terraform apply -target=module.${db.module_name}_pdb`);
+          dbRes.push(_dgRes(db.module_name+'_pdb','Pluggable DB',[
+            `PDB name: <b>${db.pdb_name}</b>`,
+          ],[
+            `var.cdb_id  ←  module.${db.module_name}_cdb.database_id`,
+          ],[]));
+        }
+      });
+      if(dbCmds.length) steps.push({
+        title:'Deploy OCI Database — DB Home → CDB → PDB (sequential)',
+        cmds: dbCmds,
+        desc:'Each layer depends on the one above. Deploy strictly in order: DB Home first, then CDB, then PDB.',
+        time:'15–30 min total',
+        resources: dbRes,
+      });
+    }
+
+  } else { // GCP
+    const nets    =p.gcp_networks||[];
+    const infras  =p.gcp_infras||[];
+    const clusters=p.gcp_clusters||[];
+    if(!nets.length&&!infras.length&&!clusters.length) return [];
+
+    const firstNet  = nets[0]?.module_name   ||'gcp_odb_network';
+    const firstInfra= infras[0]?.module_name ||'gcp_exadb_infra';
+
+    if(nets.length) steps.push({
+      title: `Deploy ODB Network${nets.length>1?' ('+nets.length+')':''}`,
+      cmds: nets.map(n=>`terraform apply -target=module.${n.module_name}`),
+      desc: 'Creates the ODB network and registers it with your GCP VPC. All other Oracle DB resources depend on this.',
+      time: '5–10 min each',
+      resources: nets.map(n=>_dgRes(n.module_name,'ODB Network',[
+        `Display name: <b>${n.display_name||n.odb_network_id||'—'}</b>`,
+        `GCP project: <b>${n.project||'—'}</b>`,
+        `Location: <b>${n.location||'—'}</b>`,
+        `VPC network: <b>${n.network||'—'}</b>`,
+      ],[],[
+        `module.${n.module_name}.odb_network_id  →  used by subnets &amp; VM clusters as var.odb_network_id`,
+      ])),
+    });
+
+    if(nets.length){
+      const subRes=[];
+      const subCmds=[];
+      nets.forEach(n=>{
+        subCmds.push(`terraform apply -target=module.${n.module_name}_client_subnet`);
+        subRes.push(_dgRes(n.module_name+'_client_subnet','Client Subnet',[
+          `CIDR: <b>${n.client_cidr||'—'}</b>`,
+          `Purpose: <b>CLIENT_SUBNET</b>`,
+        ],[
+          `var.odb_network_id  ←  module.${n.module_name}.odb_network_id`,
+        ],[
+          `module.${n.module_name}_client_subnet.odb_subnet_id  →  used by VM cluster as var.client_subnet_id`,
+        ]));
+        subCmds.push(`terraform apply -target=module.${n.module_name}_backup_subnet`);
+        subRes.push(_dgRes(n.module_name+'_backup_subnet','Backup Subnet',[
+          `CIDR: <b>${n.backup_cidr||'—'}</b>`,
+          `Purpose: <b>BACKUP_SUBNET</b>`,
+        ],[
+          `var.odb_network_id  ←  module.${n.module_name}.odb_network_id`,
+        ],[
+          `module.${n.module_name}_backup_subnet.odb_subnet_id  →  used by VM cluster as var.backup_subnet_id`,
+        ]));
+      });
+      steps.push({
+        title:'Deploy ODB Subnets — client + backup (parallel per network)',
+        cmds: subCmds,
+        desc:'Two subnets required per ODB network. Client subnet hosts database SCAN IPs and DNS listener. Backup subnet is used for Exadata VM Cluster backups only.',
+        tip: infras.length?'Start Exadata Infrastructure in a second terminal while subnets deploy — Infra has no subnet dependency.':'',
+        time:'2–3 min each',
+        resources: subRes,
+      });
+    }
+
+    if(infras.length) steps.push({
+      title: `Deploy Exadata Infrastructure${infras.length>1?' ('+infras.length+', parallel)':''}`,
+      cmds: infras.map(i=>`terraform apply -target=module.${i.module_name}`),
+      desc: 'Provisions physical Exadata hardware. Can run in parallel with subnet creation.',
+      warn: 'Infrastructure must reach lifecycle_state = ACTIVE before VM cluster creation.',
+      time: '60–90 min each',
+      resources: infras.map(i=>_dgRes(i.module_name,'Exadata Infrastructure',[
+        `Display name: <b>${i.display_name||'—'}</b>`,
+        `Zone: <b>${i.gcp_oracle_zone||'—'}</b>`,
+        `Shape: <b>${i.shape||'—'}</b>`,
+        `Compute nodes: <b>${i.compute_count||2}</b>`,
+        `Storage nodes: <b>${i.storage_count||3}</b>`,
+      ],[],[
+        `module.${i.module_name}.cloud_exadata_infrastructure_id  →  used by VM cluster as var.cloud_exadata_infrastructure_id`,
+      ])),
+    });
+
+    if(clusters.length) steps.push({
+      title: `Deploy ExaDB VM Cluster${clusters.length>1?' ('+clusters.length+', parallel)':''}`,
+      cmds: clusters.map(c=>`terraform apply -target=module.${c.module_name}`),
+      desc: 'Provisions Oracle software on the Exadata hardware. All four dependencies (network, subnets ×2, infra) must be healthy before this step.',
+      time: '45–60 min each',
+      resources: clusters.map(c=>_dgRes(c.module_name,'ExaDB VM Cluster',[
+        `Display name: <b>${c.display_name||'—'}</b>`,
+        `GI version: <b>${c.gi_version||'—'}</b>`,
+        `Hostname: <b>${c.hostname||'—'}</b>`,
+        `CPU cores/node: <b>${c.cpu_core_count_per_node||'—'}</b>`,
+        `License: <b>${c.license_model||'LICENSE_INCLUDED'}</b>`,
+      ],[
+        `var.odb_network_id  ←  module.${c.network_ref||firstNet}.odb_network_id`,
+        `var.client_subnet_id  ←  module.${c.client_subnet_ref||(c.network_ref||firstNet)+'_client_subnet'}.odb_subnet_id`,
+        `var.backup_subnet_id  ←  module.${c.backup_subnet_ref||(c.network_ref||firstNet)+'_backup_subnet'}.odb_subnet_id`,
+        `var.cloud_exadata_infrastructure_id  ←  module.${c.infra_ref||firstInfra}.cloud_exadata_infrastructure_id`,
+      ],[])),
+    });
+  }
+
+  if(steps.length) steps.push({
+    title:'Verify — confirm no remaining changes',
+    cmds:['terraform plan'],
+    desc:'A clean plan confirms Terraform state matches your deployed infrastructure.',
+    time:'< 1 min',
+    resources:[],
+  });
+
+  return steps;
+}
+
+function _dgResHTML(r){
+  if(!r.cfg.length&&!r.deps.length&&!r.exports.length) return '';
+  let h=`<div class="dg-resource">`;
+  h+=`<div class="dg-res-name">module.${r.module_name} <span style="color:#444;font-weight:400;font-size:10px">(${r.type})</span></div>`;
+  if(r.cfg.length){
+    h+=`<div class="dg-res-cfg">${r.cfg.map(c=>`<div class="dg-res-cfg-item">${c}</div>`).join('')}</div>`;
+  }
+  if(r.deps.length){
+    h+=`<div class="dg-refs-label">Variable references (inputs)</div>`;
+    r.deps.forEach(d=>{
+      const parts=d.split('←').map(s=>s.trim());
+      h+=`<div class="dg-ref-row"><span class="dg-ref-var">${parts[0]}</span><span class="dg-ref-arrow">←</span><span class="dg-ref-src">${parts[1]||''}</span></div>`;
+    });
+  }
+  if(r.exports.length){
+    h+=`<div class="dg-refs-label">Outputs (used by later modules)</div>`;
+    r.exports.forEach(e=>{
+      const parts=e.split('→').map(s=>s.trim());
+      h+=`<div class="dg-ref-row"><span class="dg-ref-out">${parts[0]}</span>${parts[1]?`<span class="dg-ref-arrow">→</span><span class="dg-ref-note">${parts[1]}</span>`:''}</div>`;
+    });
+  }
+  h+=`</div>`;
+  return h;
+}
+
+function renderDeploySteps(steps){
+  if(!steps.length) return '<div class="dg-empty">Add resources in the form to see deployment steps.</div>';
+  let h='<div class="dg-init-note">Run from the directory containing your downloaded Terraform files, after <code>terraform init</code>.</div>';
+  steps.forEach((s,i)=>{
+    const resHTML=(s.resources||[]).map(_dgResHTML).join('');
+    h+=`<div class="dg-step">
+      <div class="dg-step-head"><span class="dg-step-num">${i+1}</span><span class="dg-step-title">${s.title}</span>${s.time?`<span class="dg-step-time">⏱ ${s.time}</span>`:''}</div>
+      <div class="dg-step-desc">${s.desc||''}</div>
+      ${s.warn?`<div class="dg-warn">⚠ ${s.warn}</div>`:''}
+      ${s.tip?`<div class="dg-tip">💡 ${s.tip}</div>`:''}
+      <div class="dg-cmds">${s.cmds.map(c=>`<div class="dg-cmd"><span class="dg-prompt">$</span>${c}</div>`).join('')}</div>
+      ${resHTML}
+    </div>`;
+  });
+  return h;
+}
+
+function showDeployGuide(){
+  closeExplain();
+  const panel=document.getElementById('guide-panel');
+  if(panel.style.display!=='none'){closeDeployGuide();return;}
+  if(iacTool==='cloudformation'){
+    document.getElementById('guide-sub').textContent='CloudFormation · single-stack deploy';
+    document.getElementById('guide-body').innerHTML=`<div class="dg-step"><div class="dg-step-num">1</div><div><div class="dg-step-title">Deploy the CloudFormation stack</div><div class="dg-step-desc">Download <code>odb-stack.yaml</code> then deploy via AWS CLI or Console:</div><div class="dg-cmd">aws cloudformation deploy --template-file odb-stack.yaml --stack-name odb-stack --capabilities CAPABILITY_IAM</div><div class="dg-tip">CloudFormation handles resource ordering automatically via DependsOn. All ODB resources are deployed in a single stack operation.</div></div></div><div class="dg-step"><div class="dg-step-num">2</div><div><div class="dg-step-title">Monitor stack events</div><div class="dg-step-desc">ODB resources can take 30–90 min. Monitor progress:</div><div class="dg-cmd">aws cloudformation describe-stack-events --stack-name odb-stack --query 'StackEvents[*].[ResourceType,ResourceStatus,Timestamp]' --output table</div></div></div><div class="dg-step"><div class="dg-step-num">3</div><div><div class="dg-step-title">Post-deployment: configure VPC routes</div><div class="dg-step-desc">After the stack completes, manually add routes in your VPC route table for the ODB client and backup subnet CIDRs pointing to the peering connection. CloudFormation does not automate this step.</div></div></div>`;
+    panel.style.display='flex';
+    return;
+  }
+  const steps=buildDeployGuide();
+  let p;try{p=buildPayload();}catch(e){p={};}
+  const cloud=(p.cloud||'aws').toUpperCase();
+  const total=(p.aws_networks||p.gcp_networks||[]).length+(p.aws_infras||p.gcp_infras||[]).length+(p.aws_clusters||p.gcp_clusters||[]).length+(p.aws_peerings||[]).length+(p.aws_avmclusters||[]).length+(p.aws_oci_databases||[]).length;
+  document.getElementById('guide-sub').textContent=`${cloud} · ${total} module${total!==1?'s':''} · ${Math.max(0,steps.length-1)} deploy step${steps.length-1!==1?'s':''}`;
+  document.getElementById('guide-body').innerHTML=renderDeploySteps(steps);
+  panel.style.display='flex';
+}
+function closeDeployGuide(){document.getElementById('guide-panel').style.display='none';}
+
+// ── LLM Prompt Templates ──────────────────────────────────────────────────────
+const LLM_TEMPLATES = [
+  // ── AWS — Networking ──
+  {cloud:'aws',tag:'aws',cat:'Networking',title:'Quick start — AWS prod',desc:'Network + X11M infra + 16-core VM cluster in us-east-1',prompt:'Set up a production ODB@AWS environment in us-east-1 (AZ use1-az6). ODB network CIDRs 10.2.0.0/24 and 10.2.1.0/24. Exadata.X11M infra 2 compute 3 storage. VM cluster prod-vmcluster 16 CPU cores GI 23.0.0.0 hostname vm LICENSE_INCLUDED.'},
+  {cloud:'aws',tag:'aws',cat:'Networking',title:'S3 + Zero-ETL access',desc:'Network with S3 and Zero-ETL enabled for data lake',prompt:'Create an ODB network in us-east-1 AZ use1-az6 CIDRs 10.4.0.0/24 and 10.4.1.0/24. Enable s3_access and zero_etl_access. Add Exadata.X11M infra and VM cluster 32 cores GI 23.0.0.0 hostname dl LICENSE_INCLUDED.'},
+  {cloud:'aws',tag:'aws',cat:'Networking',title:'Custom DNS prefix',desc:'ODB network with custom_domain_name',prompt:'Create an ODB network in us-east-1 AZ use1-az6 CIDRs 10.8.0.0/24 and 10.8.1.0/24. Set custom_domain_name to odb.corp.example.com. Add Exadata.X11M infra 2 compute 3 storage and VM cluster 16 cores GI 23.0.0.0.'},
+  {cloud:'aws',tag:'aws',cat:'Networking',title:'VPC peering connection',desc:'Peer the ODB network to an existing VPC',prompt:'Add a network peering connection named prod-peering connecting the ODB network to peer VPC vpc-0abc123456def7890. Add peer CIDR ranges 172.16.0.0/16 and 172.17.0.0/16.'},
+  {cloud:'aws',tag:'aws',cat:'Networking',title:'Multi-region DR',desc:'Second stack in us-west-2 for disaster recovery',prompt:'Create a second ODB@AWS disaster recovery stack in us-west-2 (AZ usw2-az3). Network CIDRs 10.3.0.0/24 and 10.3.1.0/24. Exadata.X11M infra named dr-exaInfra 2 compute 3 storage. VM cluster dr-vmcluster 16 cores GI 23.0.0.0 hostname drvm LICENSE_INCLUDED.'},
+
+  // ── AWS — Infra ──
+  {cloud:'aws',tag:'aws',cat:'Infra',title:'X11M — 4 compute nodes',desc:'High-compute X11M with 4 compute 6 storage servers',prompt:'Update the Exadata infrastructure to Exadata.X11M shape with 4 compute nodes and 6 storage nodes.'},
+  {cloud:'aws',tag:'aws',cat:'Infra',title:'Maintenance window — Sunday 2am',desc:'Custom weekly maintenance ROLLING patching',prompt:'Update the Exadata infrastructure maintenance window to CUSTOM_PREFERENCE patching mode ROLLING. Schedule Sunday hours_of_day 2 week 1 of month lead time 1 week.'},
+  {cloud:'aws',tag:'aws',cat:'Infra',title:'Maintenance window — Saturday off-hours',desc:'Custom Saturday 10pm maintenance window',prompt:'Set the Exadata infrastructure maintenance window to CUSTOM_PREFERENCE ROLLING. Schedule Saturday hours_of_day 22 every week of month.'},
+  {cloud:'aws',tag:'aws',cat:'Infra',title:'Customer contact for patching alerts',desc:'Add ops team email to infra customer_contacts',prompt:'Add customer contact alerts@mycompany.com to the Exadata infrastructure.'},
+
+  // ── AWS — VM Cluster ──
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Dev/test — small footprint',desc:'Minimal X9M + 8 cores for dev workloads',prompt:'Create a dev/test ODB@AWS setup in us-west-2 (AZ usw2-az3). Network CIDRs 10.10.0.0/24 and 10.10.1.0/24. Exadata.X9M infra 2 compute 3 storage. VM cluster dev-cluster 8 CPU cores GI 19.0.0.0 hostname dev BRING_YOUR_OWN_LICENSE.'},
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'32-core production cluster',desc:'X11M 4c/6s with 32 CPU cores, 23c GI',prompt:'Add a second ODB network in us-east-1 AZ use1-az6 CIDRs 10.12.0.0/24 and 10.12.1.0/24. Add Exadata.X11M infra 4 compute 6 storage. VM cluster named prod-large 32 CPU cores GI 23.0.0.0 hostname plvm data_storage_size_in_tbs 20 memory_size_in_gbs 720 LICENSE_INCLUDED.'},
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Custom SCAN listener port',desc:'Set scan_listener_port_tcp to 1522',prompt:'Set the VM cluster scan_listener_port_tcp to 1522.'},
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'BYOL — switch all clusters',desc:'Change all clusters to Bring Your Own License',prompt:'Change the license model on all VM clusters and Autonomous VM clusters to BRING_YOUR_OWN_LICENSE.'},
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Enable DCO diagnostics',desc:'Turn on all three diagnostic/monitoring flags',prompt:'Enable dco_is_diagnostics_events_enabled, dco_is_health_monitoring_enabled, and dco_is_incident_logs_enabled on all VM clusters.'},
+  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Large storage cluster',desc:'64 cores, 40TB data, 900GB node storage',prompt:'Create a VM cluster named dwh-cluster 64 CPU cores GI 23.0.0.0 hostname dwh data_storage_size_in_tbs 40 db_node_storage_size_in_gbs 900 memory_size_in_gbs 1440 LICENSE_INCLUDED.'},
+
+  // ── AWS — Autonomous VM Cluster ──
+  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'Autonomous VM Cluster',desc:'40 cores/node, 5TB ADS, 2 CDBs',prompt:'Add an Autonomous VM Cluster named odb-avmcluster on the first infra and network. 40 CPU cores per node 5TB autonomous data storage 2 container databases memory 2GB per OCU LICENSE_INCLUDED. mTLS disabled.'},
+  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'Large AVMC — 80 cores/node',desc:'80 cores, 20TB ADS, 4 CDBs, mTLS on',prompt:'Add an Autonomous VM Cluster named avmc-large on the first infra and network. 80 CPU cores per node 20TB autonomous data storage 4 container databases memory 4GB per OCU LICENSE_INCLUDED. Enable mTLS.'},
+  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'AVMC — BYOL dev',desc:'16 cores, 2TB ADS, minimal dev AVMC',prompt:'Add an Autonomous VM Cluster named avmc-dev 16 CPU cores per node 2TB autonomous data storage 1 container database memory 2GB per OCU BRING_YOUR_OWN_LICENSE mTLS disabled.'},
+
+  // ── AWS — Database ──
+  {cloud:'aws',tag:'aws',cat:'Database',title:'19c DB + PDB + auto-backup',desc:'DB Home, CDB PROD19, PDB SALESDB, 14-day retention',prompt:'Add a 19c Oracle database on the first VM cluster. DB home display name dbhome19. CDB name PROD19 character set AL32UTF8 PDB name SALESDB. Enable auto-backup SLOT_TWO 14 day recovery window.'},
+  {cloud:'aws',tag:'aws',cat:'Database',title:'23c DB on VM Cluster',desc:'Latest Oracle 23c DB Home + CDB + PDB',prompt:'Add a 23c Oracle database on the first VM cluster. DB home named dbhome23. CDB name MYDB23 PDB name MYPDB23. No auto-backup.'},
+  {cloud:'aws',tag:'aws',cat:'Database',title:'19c BYOL + custom SID',desc:'19c DB with SID prefix and BYOL licensing',prompt:'Add a 19c Oracle database on the first VM cluster. DB home dbhome-byol. CDB name BYOLDB SID prefix BY PDB name BYLPDB. Auto-backup disabled. Use BRING_YOUR_OWN_LICENSE on the cluster.'},
+  {cloud:'aws',tag:'aws',cat:'Database',title:'Multi-PDB setup',desc:'CDB with 3 different PDB configurations',prompt:'Add three Oracle database entries on the first VM cluster. First: DB home dbhome1 CDB COREDB PDB COREAPP 23c auto-backup 7 days. Second: DB home dbhome2 CDB ANALYTDB PDB ANALYTIC 19c no backup. Third: DB home dbhome3 CDB DEVDB PDB DEVAPP 19c no backup.'},
+
+  // ── GCP — Networking ──
+  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'Quick start — GCP prod',desc:'ODB network + X9M infra + ExaDB cluster in us-east4',prompt:'Set up a production AI DB@GCP environment. ODB network my-odb-network in us-east4 project my-gcp-project VPC projects/my-gcp-project/global/networks/default CIDRs 10.5.0.0/24 and 10.5.1.0/24. Exadata.X9M infra gcp-infra 2 compute 3 storage. ExaDB cluster gcp-cluster 2 nodes 8 ECPU per node GI 23.0.0.0 hostname vm LICENSE_INCLUDED.'},
+  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'EU region — GCP',desc:'AI DB@GCP in europe-west4',prompt:'Create a AI DB@GCP setup in europe-west4 project eu-project. ODB network eu-odb-net CIDRs 10.6.0.0/24 and 10.6.1.0/24. Exadata.X9M infra eu-exaInfra 2 compute 3 storage. ExaDB cluster eu-cluster 2 nodes 8 ECPU GI 23.0.0.0 hostname eu LICENSE_INCLUDED.'},
+  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'Asia Pacific — GCP',desc:'AI DB@GCP in asia-east1 (Taiwan)',prompt:'Create a AI DB@GCP setup in asia-east1 project apac-project. ODB network apac-odb-net CIDRs 10.7.0.0/24 and 10.7.1.0/24. Exadata.X9M infra apac-infra 2 compute 3 storage. ExaDB cluster apac-cluster 2 nodes 8 ECPU GI 23.0.0.0 hostname apac LICENSE_INCLUDED.'},
+
+  // ── GCP — Infra ──
+  {cloud:'gcp',tag:'gcp',cat:'Infra',title:'Dev cluster — GCP',desc:'Minimal GCP setup for development',prompt:'Create a minimal AI DB@GCP dev setup in us-central1 project dev-project. ODB network dev-odb-net CIDRs 10.20.0.0/24 and 10.20.1.0/24. Exadata.X9M infra 2 compute 3 storage. ExaDB cluster dev-cluster 2 nodes 4 ECPU GI 19.0.0.0 hostname dev BRING_YOUR_OWN_LICENSE.'},
+  {cloud:'gcp',tag:'gcp',cat:'Infra',title:'GCP maintenance window',desc:'Custom Saturday off-hours maintenance',prompt:'Set the GCP Exadata infrastructure maintenance window to CUSTOM_PREFERENCE ROLLING patching mode. Schedule Saturday hours_of_day 22 every week of month.'},
+
+  // ── GCP — VM Cluster ──
+  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'4-node high availability',desc:'4 nodes, 16 ECPU each — HA setup',prompt:'Set the ExaDB VM cluster to 4 nodes with 16 enabled ECPU per node. Keep all other settings. This is for a high-availability production workload.'},
+  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'Memory-optimized cluster',desc:'High memory_per_node_in_gbs for in-memory workloads',prompt:'Set the GCP ExaDB cluster to 2 nodes 16 ECPU per node memory_per_node_in_gbs 240 data_storage_size_in_tbs 10 vm_file_system_storage_size_gbs 200 GI 23.0.0.0 LICENSE_INCLUDED.'},
+  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'Custom SCAN listener port',desc:'Set scan listener port on GCP cluster',prompt:'Set the GCP ExaDB cluster scan_listener_port_tcp to 1522.'},
+  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'BYOL — GCP cluster',desc:'Switch GCP cluster to Bring Your Own License',prompt:'Change the GCP ExaDB VM cluster license_type to BRING_YOUR_OWN_LICENSE.'},
+  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'HIGH disk redundancy',desc:'Set disk_redundancy to HIGH (3-way mirror)',prompt:'Set disk_redundancy on the GCP ExaDB cluster to HIGH.'},
+
+  // ── GCP — Database ──
+  {cloud:'gcp',tag:'gcp',cat:'Database',title:'19c DB on GCP cluster',desc:'DB Home + CDB + PDB with auto-backup',prompt:'Add a 19c Oracle database on the first GCP ExaDB cluster. DB home dbhome19. CDB name GCPDB PDB name GCPPDB character set AL32UTF8. Enable auto-backup SLOT_TWO 14 day recovery.'},
+  {cloud:'gcp',tag:'gcp',cat:'Database',title:'23c DB on GCP cluster',desc:'Latest Oracle 23c on GCP ExaDB',prompt:'Add a 23c Oracle database on the first GCP ExaDB cluster. DB home dbhome23. CDB name GCP23DB PDB name GCP23PDB. No auto-backup.'},
+
+  // ── Both clouds ──
+  {cloud:'aws',tag:'both',cat:'Utility',title:'Reset to blank',desc:'Clear all resources and start fresh',prompt:'Remove all configured resources and reset to a blank configuration with no networks infras clusters or databases.'},
+  {cloud:'aws',tag:'both',cat:'Utility',title:'Enable all diagnostics',desc:'Turn on DCO monitoring across all resources',prompt:'Enable all diagnostic settings: dco_is_diagnostics_events_enabled, dco_is_health_monitoring_enabled, and dco_is_incident_logs_enabled on every VM cluster and infra.'},
+];
+
+let _tplCat = 'All';
+function renderTemplates() {
+  const grid = document.getElementById('llm-template-grid');
+  const pills = document.getElementById('llm-tpl-pills');
+  if (!grid) return;
+  const forCloud = LLM_TEMPLATES.filter(t => t.tag === 'both' || t.cloud === cloud);
+  const cats = ['All', ...new Set(forCloud.map(t => t.cat))];
+  if (pills) pills.innerHTML = cats.map(c =>
+    `<button class="llm-tpl-pill${c===_tplCat?' active':''}" onclick="_tplCat='${c}';renderTemplates()">${c}</button>`
+  ).join('');
+  const show = _tplCat === 'All' ? forCloud : forCloud.filter(t => t.cat === _tplCat);
+  grid.innerHTML = show.map(t => `
+    <button class="llm-tpl-card" onclick="useTemplate(${JSON.stringify(t.prompt).replace(/"/g,'&quot;')})">
+      <div><span class="llm-tpl-tag ${t.tag}">${t.cat}</span></div>
+      <div class="llm-tpl-title">${t.title}</div>
+      <div class="llm-tpl-desc">${t.desc}</div>
+    </button>`).join('');
+}
+
+function toggleTemplates() {
+  const panel = document.getElementById('llm-templates-panel');
+  const btn   = document.getElementById('llm-templates-btn');
+  const open  = panel.style.display === 'none' || !panel.style.display;
+  panel.style.display = open ? 'block' : 'none';
+  btn.style.borderColor = open ? '#7b42bc' : '#333';
+  btn.style.color       = open ? '#b080e0' : '#666';
+  if (open) { _tplCat = 'All'; renderTemplates(); }
+}
+
+function useTemplate(prompt) {
+  const inp = document.getElementById('llm-input');
+  if (inp) inp.value = prompt;
+  document.getElementById('llm-templates-panel').style.display = 'none';
+  document.getElementById('llm-templates-btn').style.borderColor = '#333';
+  document.getElementById('llm-templates-btn').style.color = '#666';
+  inp && inp.focus();
+}
+
+document.addEventListener('click', function(e) {
+  const panel = document.getElementById('llm-templates-panel');
+  const btn   = document.getElementById('llm-templates-btn');
+  if (panel && panel.style.display !== 'none') {
+    if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+      panel.style.display = 'none';
+      btn.style.borderColor = '#333'; btn.style.color = '#666';
+    }
+  }
+});
+
+// ── LLM Prompt Bar ────────────────────────────────────────────────────────────
+async function initLlmBar() {
+  try {
+    const r = await fetch('/api/llm/info');
+    const d = await r.json();
+    const badge = document.getElementById('llm-prov-badge');
+    if (d.configured) {
+      badge.textContent = `${d.provider} · ${d.model}`;
+      badge.className = 'llm-prov ok';
+    } else {
+      badge.textContent = 'LLM not configured';
+      badge.className = 'llm-prov err';
+      document.getElementById('llm-send-btn').disabled = true;
+      document.getElementById('llm-input').placeholder = 'Set LLM_PROVIDER and LLM_API_KEY in .env to enable AI';
+    }
+  } catch(e) {
+    const badge = document.getElementById('llm-prov-badge');
+    if (badge) { badge.textContent = 'unavailable'; }
+  }
+}
+
+async function sendLlmPrompt() {
+  const inp   = document.getElementById('llm-input');
+  const reply = document.getElementById('llm-reply');
+  const btn   = document.getElementById('llm-send-btn');
+  const prompt = inp.value.trim();
+  if (!prompt) return;
+  btn.disabled = true; btn.textContent = '…';
+  reply.textContent = 'Thinking…'; reply.style.color = '#555';
+  try {
+    const r = await fetch('/api/llm/fill', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({prompt, cloud, current: buildPayload()}),
+    });
+    const d = await r.json();
+    console.log('[LLM fill] response:', JSON.stringify(d, null, 2));
+    if (d.error) {
+      reply.textContent = '✗ ' + d.error; reply.style.color = '#c0392b';
+    } else {
+      if (d.payload && Object.keys(d.payload).length) {
+        console.log('[LLM fill] applying payload keys:', Object.keys(d.payload));
+        applyConfig(d.payload);
+      } else {
+        console.warn('[LLM fill] payload empty or missing:', d.payload);
+      }
+      reply.textContent = '✓ ' + (d.explanation || 'Done');
+      reply.style.color = '#1a7a4a'; inp.value = '';
+    }
+  } catch(e) {
+    reply.textContent = '✗ Network error: ' + e.message; reply.style.color = '#c0392b';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Ask';
+  }
+}
+
+// ── GitHub Integration ────────────────────────────────────────────────────────
+async function initGithub() {
+  try {
+    const r = await fetch('/api/github/info');
+    const d = await r.json();
+    const btn = document.getElementById('gh-push-btn');
+    const badge = document.getElementById('gh-status-badge');
+    if (d.configured) {
+      btn.dataset.configured = 'true';
+      btn.classList.remove('muted');
+      btn.classList.add('green');
+      btn.title = `Push all Terraform files to ${d.repo} / ${d.branch}`;
+      badge.textContent = `${d.repo} / ${d.branch}`;
+      badge.style.color = '#2a7a4a';
+    } else {
+      btn.title = `Git push not configured — set GITHUB_TOKEN and GITHUB_REPO in .env: ${d.error||''}`;
+    }
+  } catch(e) {}
+}
+
+async function pushToGithub() {
+  const btn = document.getElementById('gh-push-btn');
+  const badge = document.getElementById('gh-status-badge');
+  if (btn.dataset.configured !== 'true') {
+    badge.textContent = '✗ Not configured — add GITHUB_TOKEN and GITHUB_REPO to .env';
+    badge.style.color = '#c0392b';
+    return;
+  }
+  const prev = btn.textContent;
+  btn.disabled = true; btn.textContent = '↑ Pushing…';
+  badge.textContent = ''; badge.style.color = '#555';
+  const payload = buildPayload();
+  const customer = getCustName();
+  const ts = new Date().toISOString().slice(0,16).replace('T',' ') + ' UTC';
+  payload.commit_message = `chore: Terraflow update — ${customer||'unnamed'} — ${ts}`;
+  payload.customer = customer;
+  try {
+    const r = await fetch('/api/github/push', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    if (d.error) {
+      badge.textContent = '✗ ' + d.error; badge.style.color = '#c0392b';
+    } else {
+      const errs = (d.errors||[]).length;
+      badge.textContent = errs ? `✓ ${d.pushed?.length} pushed, ${errs} errors` : `✓ ${d.pushed?.length} files pushed`;
+      badge.style.color = errs ? '#e67e22' : '#1a7a4a';
+      if (d.commit_url) { badge.style.cursor = 'pointer'; badge.onclick = ()=>window.open(d.commit_url,'_blank'); }
+    }
+  } catch(e) {
+    badge.textContent = '✗ Network error'; badge.style.color = '#c0392b';
+  } finally {
+    btn.disabled = false; btn.textContent = prev;
+  }
+}
+
+async function dlZip(){
+  const p=buildPayload();
+  const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  const b=await r.blob();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  if(iacTool==='cloudformation'){a.download='odb-stack.yaml';}
+  else{const tool=iacTool==='opentofu'?'-tofu':'';const cust=getCustName().replace(/[^a-z0-9_-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');const suffix=(cust?'-'+cust:'')+tool+'.zip';const names={'aws':'terraflow-studio-aws'+suffix,'gcp':'terraflow-studio-gcp'+suffix};a.download=names[cloud]||'terraform.zip';}
+  a.click();
+}
+
+function loadZip() { document.getElementById('load-zip-input').click(); }
+async function onLoadZipFile(inp) {
+  const file = inp.files[0];
+  if (!file) return;
+  inp.value = '';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch('/api/load-zip', {method: 'POST', body: fd});
+    const doc = await r.json();
+    if (doc.error) { showToast(doc.error, true); return; }
+    const cld = doc.cloud || cloud;
+    if (cld !== cloud) {
+      showToast(`This ZIP is for ${cld.toUpperCase()} — open that product page to load it`, true);
+      return;
+    }
+    applyConfig(doc);
+    showToast('ZIP loaded ✓');
+  } catch(e) { showToast('Load failed: ' + e.message, true); }
+}
+
+// ── Customer & Config persistence ────────────────────────────────────────────
+function getCustName() { return (document.getElementById('cust-name').value || '').trim(); }
+
+function onCustInput() {
+  const n = getCustName();
+  document.getElementById('save-btn').disabled = !n;
+  updateDelBtn();
+  updateTestBtn();
+}
+
+function updateDelBtn() {
+  const name = getCustName();
+  const sel  = document.getElementById('cust-select');
+  const hasMatch = Array.from(sel.options).some(o => {
+    if (!o.value) return false;
+    const [, cld] = o.value.split('|');
+    return o.dataset.name === name && cld === cloud;
+  });
+  document.getElementById('del-btn').disabled = !hasMatch;
+}
+
+function onCustSelect() {
+  const sel = document.getElementById('cust-select');
+  const val = sel.value;
+  if (!val) return;
+  const [slug, cld] = val.split('|');
+  const opt = sel.options[sel.selectedIndex];
+  const name = opt.dataset.name || slug;
+  document.getElementById('cust-name').value = name;
+  if (cld && cld !== cloud) {
+    showToast(`This config is for ${cld.toUpperCase()} — open that product page to load it`, true);
+    return;
+  }
+  loadConfigFor(name, cld || cloud);
+}
+
+async function saveConfig() {
+  const name = getCustName();
+  if (!name) { showToast('Enter a customer name first', true); return; }
+  const payload = { ...buildPayload(), customer: name };
+  try {
+    const r = await fetch('/api/config/save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (d.error) { showToast('Save failed: ' + d.error, true); return; }
+    showToast('Saved ✓');
+    const btn = document.getElementById('save-btn');
+    btn.classList.add('saved');
+    setTimeout(() => btn.classList.remove('saved'), 2000);
+    await refreshCustomerList();
+  } catch(e) { showToast('Save error: ' + e.message, true); }
+}
+
+async function deleteConfig() {
+  const name = getCustName();
+  if (!name) { showToast('Enter a customer name first', true); return; }
+  if (!confirm(`Delete saved config for "${name}" (${cloud.toUpperCase()})?`)) return;
+  try {
+    const r = await fetch(`/api/config/delete/${encodeURIComponent(name)}/${cloud}`, {
+      method: 'DELETE'
+    });
+    const d = await r.json();
+    if (!d.ok) { showToast('Nothing to delete', true); return; }
+    showToast(`Deleted "${name}" (${cloud.toUpperCase()}) ✓`);
+    await refreshCustomerList();
+  } catch(e) { showToast('Delete error: ' + e.message, true); }
+}
+
+async function loadConfig() {
+  const name = getCustName();
+  if (!name) { showToast('Enter a customer name first', true); return; }
+  await loadConfigFor(name, cloud);
+}
+
+async function loadConfigFor(name, cld) {
+  try {
+    const r = await fetch(`/api/config/load/${encodeURIComponent(name)}/${cld}`);
+    if (r.status === 404) { showToast('No saved config found', true); return; }
+    const doc = await r.json();
+    if (doc.error) { showToast('Load failed: ' + doc.error, true); return; }
+    applyConfig(doc);
+    showToast('Loaded ✓');
+  } catch(e) { showToast('Load error: ' + e.message, true); }
+}
+
+function showToast(msg, isError=false) {
+  if (!isError) {
+    const el = document.getElementById('save-toast');
+    if (el) { el.textContent = msg; el.style.color = '#4aaf79'; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 2500); return; }
+  }
+  let t = document.getElementById('vgen-toast');
+  if (!t) { t = document.createElement('div'); t.id = 'vgen-toast'; t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--ink);color:var(--white);font-family:var(--font-m);font-size:12px;padding:10px 16px;border-radius:8px;max-width:360px;white-space:pre-wrap;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:opacity .3s;'; document.body.appendChild(t); }
+  t.style.background = isError ? 'var(--red)' : 'var(--ink)';
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = '0'; }, isError ? 5000 : 2500);
+}
+
+async function refreshCustomerList() {
+  try {
+    const r = await fetch('/api/config/list');
+    const list = await r.json();
+    const sel = document.getElementById('cust-select');
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— saved customers —</option>';
+    list.forEach(c => {
+      const opt = document.createElement('option');
+      // Use current cloud if customer has it saved, otherwise the first available cloud
+      const cld = c.clouds.includes(cloud) ? cloud : (c.clouds[0] || cloud);
+      opt.value = `${c.slug}|${cld}`;
+      opt.dataset.name = c.customer;
+      if (c.clouds.includes(cloud)) {
+        opt.textContent = c.customer;
+      } else {
+        opt.textContent = `${c.customer} [${c.clouds.join('/')}]`;
+        opt.style.color = '#999';
+      }
+      if (opt.value === prev) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    updateDelBtn();
+  } catch(e) { console.warn('Could not refresh customer list:', e); }
+}
+
+async function initStorage() {
+  try {
+    const r = await fetch('/api/config/backend');
+    const d = await r.json();
+    const type = d.backend.startsWith('couchdb') ? '🛢 CouchDB' : '📁 File';
+    document.getElementById('backend-pill').textContent = type;
+  } catch(e) {}
+  await refreshCustomerList();
+}
+
+// ── Test modal ────────────────────────────────────────────────────────────────
+let _activeTestTab = 'functional';
+
+function switchTestTab(tab) {
+  _activeTestTab = tab;
+  document.querySelectorAll('.test-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('ttab-' + tab).classList.add('active');
+  const overlay = document.getElementById('test-modal-overlay');
+  if (overlay.classList.contains('open')) {
+    _runCurrentTab();
+  }
+}
+
+function updateTestBtn() {
+  const name = getCustName();
+  const btn = document.getElementById('test-btn');
+  if (btn) btn.disabled = !name;
+}
+
+async function runCustomerTests() {
+  const name = getCustName();
+  if (!name) { showToast('Enter a customer name first', true); return; }
+  document.getElementById('test-modal-overlay').classList.add('open');
+  _runCurrentTab();
+}
+
+async function _runCurrentTab() {
+  const name = getCustName();
+  const tab  = _activeTestTab;
+
+  const tabLabels = { functional: `Testing "${name}"…`, tfvalidate: `TF Validate "${name}"…`, tfcli: `TF CLI "${name}"…` };
+  const tabHints  = { functional: 'Running functional tests…', tfvalidate: 'Running mock Terraform validation…',
+                      tfcli: '⏳ Running terraform fmt + init + validate… (init may take ~30s to download providers)' };
+  document.getElementById('test-modal-title').textContent = tabLabels[tab] || `Testing "${name}"…`;
+  document.getElementById('test-modal-sub').textContent = `Cloud: ${cloud.toUpperCase()}`;
+  document.getElementById('test-progress-bar').style.width = '15%';
+  document.getElementById('test-summary-row').innerHTML = '';
+  document.getElementById('test-results-body').innerHTML = `<div class="test-running">${tabHints[tab] || '⏳ Running…'}</div>`;
+
+  const endpoints = { functional: '/api/test', tfvalidate: '/api/tf-validate', tfcli: '/api/tf-cli' };
+  const endpoint = endpoints[tab] || '/api/test';
+  try {
+    const payload = { ...buildPayload(), customer: name };
+    const r = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json();
+    document.getElementById('test-progress-bar').style.width = '100%';
+    if (tab === 'functional') renderTestResults(d);
+    else if (tab === 'tfvalidate') renderTFValidateResults(d);
+    else renderTFCliResults(d);
+  } catch (e) {
+    document.getElementById('test-results-body').innerHTML =
+      `<div class="test-err">Network error: ${e.message}</div>`;
+  }
+}
+
+function closeTestModal() {
+  document.getElementById('test-modal-overlay').classList.remove('open');
+}
+
+function renderTestResults(d) {
+  const { passed, failed, total, results, customer, cloud: cl } = d;
+  const allPass = failed === 0;
+
+  document.getElementById('test-modal-title').textContent =
+    allPass ? `✅ All tests passed — "${customer}"` : `❌ ${failed} test${failed!==1?'s':''} failed — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent =
+    `Cloud: ${(cl||'').toUpperCase()} · ${total} checks`;
+
+  document.getElementById('test-summary-row').innerHTML = `
+    <div class="test-summary">
+      <div class="test-stat pass"><div class="test-stat-num">${passed}</div><div class="test-stat-lbl">Passed</div></div>
+      <div class="test-stat fail"><div class="test-stat-num">${failed}</div><div class="test-stat-lbl">Failed</div></div>
+      <div class="test-stat skip"><div class="test-stat-num">${total}</div><div class="test-stat-lbl">Total</div></div>
+    </div>`;
+
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results);
+}
+
+function renderTFValidateResults(d) {
+  const { passed=0, failed=0, warned=0, total=0, results=[], customer='', cloud: cl='', files_generated=0 } = d;
+  const allOk = failed === 0;
+  const icon  = allOk ? (warned > 0 ? '⚠️' : '✅') : '❌';
+
+  document.getElementById('test-modal-title').textContent =
+    `${icon} Mock TF Validate — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent =
+    `Cloud: ${(cl||'').toUpperCase()} · ${files_generated} files · ${total} checks`;
+
+  document.getElementById('test-summary-row').innerHTML = `
+    <div class="test-summary">
+      <div class="test-stat pass"><div class="test-stat-num">${passed}</div><div class="test-stat-lbl">Passed</div></div>
+      <div class="test-stat fail"><div class="test-stat-num">${failed}</div><div class="test-stat-lbl">Failed</div></div>
+      <div class="test-stat warn"><div class="test-stat-num">${warned}</div><div class="test-stat-lbl">Warnings</div></div>
+      <div class="test-stat skip"><div class="test-stat-num">${total}</div><div class="test-stat-lbl">Total</div></div>
+    </div>
+    <div style="font-family:var(--font-m);font-size:11px;color:var(--ink3);margin-bottom:12px;padding:8px 12px;background:var(--off);border-radius:var(--radius);">
+      🔬 <strong>Mock Terraform Validator</strong> — simulates <code>terraform validate</code> checking HCL syntax, provider schemas, variable resolution, output validity, and cross-module references without requiring Terraform or cloud credentials.
+    </div>`;
+
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results, true);
+}
+
+function renderTFCliResults(d) {
+  const { passed=0, failed=0, warned=0, total=0, results=[], customer='', cloud: cl='',
+          files_generated=0, bin='terraform', bin_version='' } = d;
+  const allOk = failed === 0;
+  const icon  = allOk ? (warned > 0 ? '⚠️' : '✅') : '❌';
+
+  document.getElementById('test-modal-title').textContent =
+    `${icon} TF CLI — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent =
+    `Cloud: ${(cl||'').toUpperCase()} · ${files_generated} files · ${bin}${bin_version ? ' v'+bin_version : ''}`;
+
+  document.getElementById('test-summary-row').innerHTML = `
+    <div class="test-summary">
+      <div class="test-stat pass"><div class="test-stat-num">${passed}</div><div class="test-stat-lbl">Passed</div></div>
+      <div class="test-stat fail"><div class="test-stat-num">${failed}</div><div class="test-stat-lbl">Failed</div></div>
+      <div class="test-stat warn"><div class="test-stat-num">${warned}</div><div class="test-stat-lbl">Warnings</div></div>
+      <div class="test-stat skip"><div class="test-stat-num">${total}</div><div class="test-stat-lbl">Total</div></div>
+    </div>
+    <div style="font-family:var(--font-m);font-size:11px;color:var(--ink3);margin-bottom:12px;padding:8px 12px;background:var(--off);border-radius:var(--radius);">
+      🏗 Runs <code>${bin} fmt --check</code>, <code>${bin} init -backend=false</code>, and <code>${bin} validate</code> against the generated files in a temporary directory.
+    </div>`;
+
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results, true);
+}
+
+function _buildResultsHTML(results, showWarn=false) {
+  if (!results || results.length === 0) return '<div class="test-running">No tests ran.</div>';
+
+  const groups = {};
+  results.forEach(r => {
+    if (!groups[r.group]) groups[r.group] = [];
+    groups[r.group].push(r);
+  });
+
+  let html = '';
+  for (const [grpName, rows] of Object.entries(groups)) {
+    const grpFail = rows.filter(r => r.status === 'fail').length;
+    const grpWarn = rows.filter(r => r.status === 'warn').length;
+    let badge = '';
+    if (grpFail)      badge = `<span style="color:var(--red);font-size:10px"> ✗ ${grpFail} failed</span>`;
+    else if (grpWarn) badge = `<span style="color:#d4a017;font-size:10px"> ⚠ ${grpWarn} warnings</span>`;
+    else              badge = `<span style="color:var(--green);font-size:10px"> ✓ all passed</span>`;
+
+    html += `<div class="test-group"><div class="test-group-name">${grpName}${badge}</div>`;
+    rows.forEach(r => {
+      const icon = r.status === 'pass' ? '✅' : r.status === 'warn' ? '⚠️' : '❌';
+      const rowClass = r.status === 'warn' ? ' test-warn-row' : '';
+      const fileLabel = r.file ? `<span style="font-family:var(--font-m);font-size:10px;color:var(--ink4);margin-left:6px">${r.file}</span>` : '';
+      html += `<div class="test-row${rowClass}">
+        <span class="test-icon">${icon}</span>
+        <div style="flex:1">
+          <span class="test-name">${r.name}</span>${fileLabel}
+          ${r.error ? `<div class="test-err">${r.error}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  return html;
+}
+
+// ── Tooltip system ────────────────────────────────────────────────────────────
+const TOOLTIPS = {
+  'display_name':                   'Human-friendly name for this resource. Can be updated after creation. Used in the AWS Console and OCI.',
+  'availability_zone_id':           'AWS Availability Zone ID (not name). Example: <code>use1-az6</code>. Find with <code>aws ec2 describe-availability-zones</code>. Cannot be changed after creation.',
+  'client_subnet_cidr':             'IPv4 CIDR block for the client subnet inside the ODB Network. Must be a valid RFC1918 range (e.g. <code>10.2.0.0/24</code>). Cannot overlap backup subnet or 192.168.128.0/20.',
+  'backup_subnet_cidr':             'IPv4 CIDR block for the backup subnet. Used for database backups and Data Guard replication. Cannot overlap client subnet or 192.168.128.0/20.',
+  's3_access':                       'Allows Oracle Database instances in this network to access Amazon S3 directly. Enable if you plan to use S3 for backups or external tables.',
+  'zero_etl_access':                 'Enables Zero-ETL integrations between Oracle Database and AWS analytics services (e.g. Redshift). Enable only if you need this feature.',
+  'availability_zone':              'Human-readable AZ name (e.g. <code>us-east-1a</code>). Optional — prefer <em>availability_zone_id</em> for consistency across accounts.',
+  'region':                          'AWS region override. Defaults to the provider region if omitted. Example: <code>us-east-1</code>.',
+  'default_dns_prefix':             'DNS prefix used for hostnames inside the ODB Network. Must be unique within the region. Alphanumeric, max 12 chars. Mutually exclusive with custom_domain_name.',
+  'custom_domain_name':             'Custom domain name for ODB Network hostnames (e.g. <code>myodb.corp.example.com</code>). Mutually exclusive with default_dns_prefix — only one may be set.',
+  'delete_associated_resources':    'When true, deleting this ODB Network also destroys all associated resources (subnets, peering connections). Use with caution.',
+  'shape':                           'Exadata system family shape. Determines hardware generation and capacity increments. <em>X11M</em> is the latest; <em>X9M</em> is previous-gen. Cannot be changed after provisioning.',
+  'compute_count':                   'Number of Exadata database server nodes. Minimum 2. Each node adds OCPUs and memory. Can be scaled up after creation.',
+  'storage_count':                   'Number of Exadata storage cell servers. Minimum 3. Each cell adds storage capacity. Can be scaled up after creation.',
+  'database_server_type':           'Specific database server hardware type, e.g. <code>X11M</code>. Leave blank to use the default for the selected shape.',
+  'storage_server_type':            'Specific storage server hardware type, e.g. <code>X11M-HC</code>. HC = High Capacity. Leave blank to use the default.',
+  'customer_contacts':              'Email addresses that receive OCI maintenance and operational notifications. Up to 10 addresses. Oracle emails these for planned maintenance events.',
+  'mw_preference':                   '<em>NO_PREFERENCE</em>: Oracle picks the schedule. <em>CUSTOM_PREFERENCE</em>: you specify days, hours, weeks, and months below.',
+  'mw_patching_mode':               '<em>ROLLING</em>: nodes patched one at a time — cluster stays available. <em>NON_ROLLING</em>: all nodes patched together — faster but causes downtime.',
+  'lead_time_week':                  'Weeks of advance notice before Oracle initiates maintenance. Range 1–4. Gives you time to prepare.',
+  'hours_of_day':                   'Hours (UTC, 0–23) when maintenance may start. Example: <code>4, 8</code> allows maintenance starting at 4 AM or 8 AM UTC.',
+  'weeks_of_month':                  'Weeks of the month (1–4) when maintenance may occur. Week 1 starts on the 1st of the month.',
+  'days_of_week':                   'Days when maintenance may run. Example: <code>SUNDAY, MONDAY</code>. Full names required.',
+  'months':                          'Months when maintenance may run. Example: <code>JANUARY, APRIL, JULY, OCTOBER</code> for quarterly windows.',
+  'is_custom_action_timeout_enabled': 'Enable a waiting period before Oracle begins maintenance on DB servers. Useful if you need time to quiesce workloads.',
+  'custom_action_timeout_mins':      'Minutes to wait before Oracle begins the maintenance action. Range 15–120 minutes.',
+  'peer_network_id':                 'ID of the peer AWS VPC to connect to. Example: <code>vpc-0abc123def456789</code>. The VPC must be in the same region.',
+  'odb_network_id':                  'ID of the source ODB Network. Auto-wired from <code>module.odb_network.network_id</code> — leave blank unless referencing a different stack.',
+  'peer_network_cidrs':   'Set of peer network CIDRs. Add/remove is only supported during update operation. During create this attribute is computed only.',
+  'cpu_core_count':                  'Number of enabled OCPU cores across the VM Cluster. Minimum 2. Each OCPU provides 2 vCPUs. Can be scaled up or down after creation.',
+  'gi_version':                      'Oracle Grid Infrastructure software version. Example: <code>23.0.0.0</code>. Determines which Oracle Database versions can run. Cannot be downgraded.',
+  'hostname_prefix':                 'Prefix for generating VM hostnames. Max 12 chars, letters/numbers/hyphens, must start with a letter. Hostname = prefix + node index.',
+  'license_model':                   '<em>LICENSE_INCLUDED</em>: Oracle Database license is bundled — pay-as-you-go. <em>BRING_YOUR_OWN_LICENSE</em>: use your existing Oracle license agreements.',
+  'cloud_exadata_infrastructure_id': 'ID of the Exadata Infrastructure this cluster runs on. Auto-wired from <code>module.odb_exadata_infra.infra_id</code>.',
+  'cloud_exadata_infrastructure_arn': 'ARN of the Exadata Infrastructure. Use ARN-mode when referencing infra from a different AWS account or stack.',
+  'odb_network_arn':                 'ARN of the ODB Network. Use ARN-mode when the network is in a different AWS account or when cross-account peering is required.',
+  'ssh_public_keys':                 'Public SSH keys for accessing VM Cluster compute nodes. Add one or more RSA or ED25519 public keys. Keys are installed on all nodes.',
+  'db_servers':                      'Specific DB server IDs to place this VM Cluster on. Leave empty to use all available servers from the Exadata Infrastructure. Typically from a data source.',
+  'is_diagnostics_events_enabled':   'Enables Oracle diagnostic data collection. Allows Oracle support to proactively identify and resolve issues. Recommended: true.',
+  'is_health_monitoring_enabled':    'Enables health metrics collection. Oracle uses this to monitor system health and provide enhanced support. Recommended: true.',
+  'is_incident_logs_enabled':        'Enables incident log and trace collection. Required for Oracle to diagnose guest VM issues. Recommended: true.',
+  'cluster_name':                    'Internal Oracle cluster name. Max 11 chars, letters and hyphens only. If omitted, Oracle generates one. Cannot be changed after creation.',
+  'timezone':                        'Time zone for the VM Cluster. Default is UTC. Use IANA format: <code>America/New_York</code>, <code>Europe/London</code>, etc.',
+  'data_storage_size_in_tbs':       'Total usable Exadata storage allocated to this cluster in TiB. Must be in multiples of 1 TiB, minimum 2. Cannot be reduced after creation.',
+  'db_node_storage_size_in_gbs':    'Local DB node storage per VM in GiB. Used for OS, Grid Infrastructure, and database files. Minimum 60 GiB.',
+  'memory_size_in_gbs':             'Total memory per VM in GiB. Minimum 30 GiB per VM. Must be a multiple of 1 GiB. More memory improves database performance.',
+  'scan_listener_port_tcp':         'TCP port for the SCAN (Single Client Access Name) listener. Default 1521. Cannot be changed after creation. Ensure firewall allows this port.',
+  'is_local_backup_enabled':        'Enables backup to local Exadata storage. Faster recovery, but uses cluster storage capacity. Cannot be changed after creation.',
+  'is_sparse_diskgroup_enabled':    'Enables sparse disk group for thin-provisioned clones (Oracle Multitenant). Cannot be changed after creation. Enable only if using snapshot-based cloning.',
+  'location':                        'GCP region where this resource is created. Example: <code>us-east4</code>. Must match the zone of all dependent resources (subnets, infra, cluster).',
+  'network':                         'Full self-link of the GCP VPC network to associate. Format: <code>projects/{project}/global/networks/{name}</code>.',
+  'gcp_oracle_zone':                 'GCP Oracle Zone within the region, e.g. <code>us-east4-b-r1</code>. Represents the OCI child site. Determines hardware availability. Immutable.',
+  'deletion_protection':             'When true, Terraform will refuse to destroy this resource. Set to false before running <code>terraform destroy</code>. Recommended: true for production.',
+  'odb_subnet_id':                   'Unique subnet identifier. Max 63 chars, lowercase letters/numbers/hyphens, must start with a letter. Immutable.',
+  'cidr_range':                      'IPv4 CIDR range for this subnet in RFC1918 space. Minimum /27, maximum /22. Example: <code>10.0.1.0/24</code>. Cannot overlap other subnets in the ODB Network.',
+  'total_storage_size_gb':           'Total raw storage in GiB to allocate. If unset, uses the shape minimum. Example: <code>196608</code> (192 TiB).',
+  'exadb_vm_cluster_id':            'Unique cluster ID. Max 63 chars, lowercase letters/numbers/hyphens, starts with letter. Immutable.',
+  'node_count':                      'Number of VM Cluster nodes (virtual machines). Minimum 2. More nodes = higher availability and more OCPUs available.',
+  'enabled_ecpu_count_per_node':    'Number of enabled ECPUs per VM node. Minimum 8, must be a multiple of 4. ECPUs determine database compute capacity per node.',
+  'additional_ecpu_count_per_node': 'Reserved (but not enabled) ECPUs per node. Range 0–192, multiples of 4. Reserve capacity to scale up later without reprovisioning.',
+  'vm_file_system_storage_size_gbs': 'Local file-system storage per node in GiB (60–900). Used for OS, GI, and local data files. Cannot be reduced after creation.',
+  'odb_network':                     'Full ODB Network resource path. Auto-wired from <code>module.gcp_odb_network.odb_network_name</code> in root main.tf.',
+  'odb_subnet':                      'Full client ODB Subnet path. Auto-wired from <code>module.gcp_odb_client_subnet.odb_subnet_name</code> in root main.tf.',
+  'backup_odb_subnet':              'Full backup ODB Subnet path. Auto-wired from <code>module.gcp_odb_backup_subnet.odb_subnet_name</code> in root main.tf.',
+  'exadata_infrastructure':         'Full Exadata Infrastructure resource path. Auto-wired from <code>module.gcp_exadb_infra.infra_name</code> in root main.tf.',
+  'license_type':                    '<em>LICENSE_INCLUDED</em>: Oracle license bundled in the price. <em>BRING_YOUR_OWN_LICENSE</em>: apply your existing Oracle license agreement.',
+  'time_zone':                       'VM Cluster time zone. Default UTC. Use IANA names: <code>America/New_York</code>, <code>Asia/Tokyo</code>, <code>Europe/Berlin</code>, etc.',
+  'memory_per_node_in_gbs':         'Memory allocated per VM node in GiB. Minimum 30 GiB. Leave blank to use the shape default. More memory improves SGA and PGA sizing.',
+  'db_node_storage_size_per_vm_in_gbs': 'Local DB node storage per VM in GiB (60–900). Used for OS, Grid Infrastructure, and local database files.',
+  'spare_snapshot_space_in_gbs':    'Storage reserved for sparse snapshots (Oracle Database snapshot clones). Enable if using thin-provisioned PDB snapshots. Cannot be changed after creation.',
+  'disk_redundancy':                 '<em>HIGH</em>: triple mirroring — better durability, ~33% usable capacity. <em>NORMAL</em>: double mirroring — ~50% usable. HIGH recommended for production.',
+  'diagnostics_events_enabled':     'Collect diagnostic events. Allows Oracle to notify you and proactively resolve guest VM issues. Recommended: enabled.',
+  'health_monitoring_enabled':      'Collect health metrics for Oracle support visibility. Provides enhanced proactive support. Recommended: enabled.',
+  'incident_logs_enabled':          'Collect incident logs and traces. Required for Oracle to diagnose failures. Recommended: enabled.',
+  'project':                         'GCP project ID. If omitted, uses the provider default project. Override for cross-project deployments.',
+};
+
+function injectTooltips() {
+  document.querySelectorAll('.field-lbl').forEach(lbl => {
+    const rawText = lbl.textContent.replace(/[*?]/g,'').replace(/\s+/g,' ').trim();
+    let tip = TOOLTIPS[rawText];
+    if (!tip) {
+      const words = rawText.split('_');
+      for (let len = words.length; len >= 2; len--) {
+        const key = words.slice(-len).join('_');
+        if (TOOLTIPS[key]) { tip = TOOLTIPS[key]; break; }
+      }
+    }
+    if (!tip) return;
+    if (lbl.querySelector('.tip-icon')) return;
+    const icon = document.createElement('span');
+    icon.className = 'tip-icon';
+    icon.textContent = '?';
+    const box = document.createElement('span');
+    box.className = 'tip-box';
+    box.innerHTML = tip;
+    icon.appendChild(box);
+    lbl.appendChild(icon);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => { setTimeout(injectTooltips, 50); });
+
+// ── Runtime state ─────────────────────────────────────────────────────────────
+let rtimer = null;
+let activeFile = 'root-main';
+let iacTool = 'terraform';
+
+// ── Init on load ─────────────────────────────────────────────────────────────
+initStorage();
+updateTree();
+renderEditor();
+
+// ── Product-specific initial state seed ──────────────────────────────────────
+{% block product_seed %}{% endblock %}
+
+// NOTE: renderAll() is called AFTER TOOLTIPS is defined above
+renderAll();
+initLlmBar();
+initGithub();
+
+// ── Panel resizer ─────────────────────────────────────────────────────────────
+(function() {
+  const app   = document.querySelector('.app');
+  const rz    = document.getElementById('panel-resizer');
+  if (!app || !rz) return;
+  const MIN = 280, MAX_FRAC = 0.82;
+  const saved = localStorage.getItem('tf-rhs-width');
+  if (saved) app.style.setProperty('--rhs-width', saved + 'px');
+  let startX, startW;
+  rz.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = parseFloat(getComputedStyle(app).getPropertyValue('--rhs-width')) || 500;
+    rz.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+  function onMove(e) {
+    const delta = startX - e.clientX;
+    const newW = Math.max(MIN, Math.min(window.innerWidth * MAX_FRAC, startW + delta));
+    app.style.setProperty('--rhs-width', newW + 'px');
+  }
+  function onUp() {
+    rz.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    const w = parseFloat(getComputedStyle(app).getPropertyValue('--rhs-width'));
+    if (w) localStorage.setItem('tf-rhs-width', Math.round(w));
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+})();
+</script>
+
+<!-- ── AI Tools Modal ── -->
+<div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)closeAiModal()">
+  <div class="ai-modal">
+    <div class="ai-modal-head">
+      <span style="font-size:18px">🤖</span>
+      <div class="ai-modal-title" id="ai-modal-title">📋 Plan Explainer</div>
+      <div class="ai-tool-switch">
+        <button class="ai-tool-sw-btn active" id="ai-sw-plan"         onclick="switchAiTab('plan')"         title="Plan Explainer">📋</button>
+        <button class="ai-tool-sw-btn"        id="ai-sw-troubleshoot" onclick="switchAiTab('troubleshoot')" title="Error Troubleshooter">🔧</button>
+        <button class="ai-tool-sw-btn"        id="ai-sw-security"     onclick="switchAiTab('security')"     title="Security Review">🔒</button>
+      </div>
+      <button class="ai-modal-maximize" id="ai-maximize-btn" onclick="toggleAiMaximize()" title="Maximize / Restore">⤢</button>
+      <button class="ai-modal-close" onclick="closeAiModal()">✕</button>
+    </div>
+
+    <!-- Plan Explainer -->
+    <div class="ai-modal-body" id="ai-body-plan">
+      <div>
+        <div class="ai-paste-label">Paste terraform plan output</div>
+        <textarea class="ai-textarea" id="ai-plan-input" placeholder="Paste the output of `terraform plan` here…&#10;&#10;Terraform will perform the following actions:&#10;  # aws_odb_network.this will be created&#10;  + resource &quot;aws_odb_network&quot; &quot;this&quot; {&#10;  …"></textarea>
+      </div>
+      <button class="ai-run-btn" id="ai-plan-btn" onclick="runPlanExplainer()">Analyse Plan</button>
+      <div class="ai-result" id="ai-plan-result">
+        <div class="ai-summary-box">
+          <div class="ai-section-label" style="margin-bottom:8px;">Summary</div>
+          <div class="ai-summary-text" id="ai-plan-summary"></div>
+          <div class="ai-stats" id="ai-plan-stats" style="margin-top:10px;"></div>
+        </div>
+        <div id="ai-plan-changes-wrap">
+          <div class="ai-section-label">Changes</div>
+          <div class="ai-changes-list" id="ai-plan-changes"></div>
+        </div>
+        <div id="ai-plan-risks-wrap">
+          <div class="ai-section-label">Risks</div>
+          <div class="ai-risks-list" id="ai-plan-risks"></div>
+        </div>
+        <div id="ai-plan-recs-wrap">
+          <div class="ai-section-label">Recommendations</div>
+          <div class="ai-recs-list" id="ai-plan-recs"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Review -->
+    <div class="ai-modal-body" id="ai-body-security" style="display:none">
+      <div class="ai-sec-scan-row">
+        <button class="ai-run-btn" id="ai-sec-btn" onclick="runSecurityReview()" style="border-color:#2a6a3a;background:rgba(26,122,74,.18);color:#6dd4a0;">🔒 Scan Current Config</button>
+        <div class="ai-sec-info">Scans all generated HCL for security misconfigurations — CIDRs, encryption, access controls, backup settings, and more.</div>
+      </div>
+      <div class="ai-result" id="ai-sec-result">
+        <div class="ai-score-row" id="ai-sec-score-row">
+          <div class="ai-score-gauge">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+              <circle cx="36" cy="36" r="30" fill="none" stroke="#2e2c28" stroke-width="7"/>
+              <circle id="ai-score-arc" cx="36" cy="36" r="30" fill="none" stroke="#6dd4a0" stroke-width="7"
+                stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5"/>
+            </svg>
+            <div class="ai-score-gauge-num" id="ai-sec-score-num">—</div>
+          </div>
+          <div class="ai-score-grade" id="ai-sec-grade">—</div>
+          <div class="ai-score-detail">
+            <div class="ai-score-summary" id="ai-sec-summary"></div>
+            <div class="ai-score-files" id="ai-sec-files"></div>
+            <div class="ai-sev-pills" id="ai-sec-pills"></div>
+          </div>
+        </div>
+        <div id="ai-sec-findings-wrap">
+          <div class="ai-section-label">Findings</div>
+          <div class="ai-findings-list" id="ai-sec-findings"></div>
+        </div>
+        <div class="ai-clean-box" id="ai-sec-clean" style="display:none">
+          <span class="ai-clean-icon">✅</span>
+          <span class="ai-clean-text">No security issues found — configuration looks clean.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error Troubleshooter -->
+    <div class="ai-modal-body" id="ai-body-troubleshoot" style="display:none">
+      <div>
+        <div class="ai-paste-label">Paste terraform error output</div>
+        <textarea class="ai-textarea" id="ai-error-input" placeholder="Paste the error from `terraform apply` here…&#10;&#10;Error: creating ODB Network: ResourceConflictException&#10;  with module.odb_net.aws_odb_network.this,&#10;  on ../modules/odb_net/main.tf line 13…"></textarea>
+      </div>
+      <button class="ai-run-btn" id="ai-error-btn" onclick="runTroubleshooter()">Diagnose Error</button>
+      <div class="ai-result" id="ai-error-result">
+        <div class="ai-root-cause">
+          <div class="ai-root-cause-label">Root Cause</div>
+          <div class="ai-root-cause-text" id="ai-error-root"></div>
+        </div>
+        <div class="ai-explanation" id="ai-error-explanation"></div>
+        <div>
+          <div class="ai-section-label">Fix Steps</div>
+          <div class="ai-steps-list" id="ai-error-steps"></div>
+        </div>
+        <div class="ai-prevention" id="ai-error-prevention-wrap">
+          <strong>Prevention: </strong><span id="ai-error-prevention"></span>
+        </div>
+        <div class="ai-docs-hint" id="ai-error-docs"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── AI Tools ─────────────────────────────────────────────────────────────────
+let _aiActiveTab = 'plan';
+
+function openAiTool(tab) {
+  _aiActiveTab = tab || 'plan';
+  switchAiTab(_aiActiveTab);
+  document.getElementById('ai-modal-overlay').classList.add('open');
+}
+function closeAiModal() {
+  document.getElementById('ai-modal-overlay').classList.remove('open');
+  document.querySelector('.ai-modal').classList.remove('maximized');
+  document.getElementById('ai-maximize-btn').textContent = '⤢';
+}
+function toggleAiMaximize() {
+  const m = document.querySelector('.ai-modal');
+  const btn = document.getElementById('ai-maximize-btn');
+  const isMax = m.classList.toggle('maximized');
+  btn.textContent = isMax ? '⤡' : '⤢';
+}
+const _AI_LABELS = {plan:'📋 Plan Explainer', troubleshoot:'🔧 Error Troubleshooter', security:'🔒 Security Review'};
+function switchAiTab(tab) {
+  _aiActiveTab = tab;
+  document.getElementById('ai-modal-title').textContent = _AI_LABELS[tab] || 'AI Tools';
+  ['plan','troubleshoot','security'].forEach(t => {
+    document.getElementById('ai-sw-' + t).classList.toggle('active', t === tab);
+    document.getElementById('ai-body-' + t).style.display = t === tab ? 'flex' : 'none';
+  });
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAiModal(); });
+
+// ── Plan Explainer ────────────────────────────────────────────────────────────
+async function runPlanExplainer() {
+  const text = document.getElementById('ai-plan-input').value.trim();
+  if (!text) { alert('Please paste your terraform plan output first.'); return; }
+  const btn = document.getElementById('ai-plan-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spinner"></span>Analysing…';
+  document.getElementById('ai-plan-result').classList.remove('visible');
+  try {
+    const res = await fetch('/api/ai/explain-plan', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ plan_text: text, cloud: (typeof cloud !== 'undefined' ? cloud : 'aws') })
+    });
+    const d = await res.json();
+    if (d.error) { renderAiError('ai-plan-result', d.error); return; }
+    // Summary
+    document.getElementById('ai-plan-summary').textContent = d.summary || '';
+    // Stats
+    const stats = d.stats || {};
+    const sb = document.getElementById('ai-plan-stats');
+    sb.innerHTML = '';
+    if (stats.add)     sb.innerHTML += `<div class="ai-stat add">+${stats.add} add</div>`;
+    if (stats.change)  sb.innerHTML += `<div class="ai-stat change">~${stats.change} change</div>`;
+    if (stats.destroy) sb.innerHTML += `<div class="ai-stat destroy">−${stats.destroy} destroy</div>`;
+    // Changes
+    const cl = document.getElementById('ai-plan-changes');
+    cl.innerHTML = '';
+    (d.changes || []).forEach(c => {
+      const act = (c.action||'').toLowerCase();
+      cl.innerHTML += `<div class="ai-change-row">
+        <span class="ai-change-badge ${act}">${act}</span>
+        <span class="ai-change-resource">${esc(c.resource||'')}</span>
+        <span class="ai-change-note">${esc(c.note||'')}</span>
+      </div>`;
+    });
+    document.getElementById('ai-plan-changes-wrap').style.display = d.changes?.length ? '' : 'none';
+    // Risks
+    const rl = document.getElementById('ai-plan-risks');
+    rl.innerHTML = '';
+    (d.risks || []).forEach(r => {
+      const sev = (r.severity||'low').toLowerCase();
+      rl.innerHTML += `<div class="ai-risk-row ${sev}">
+        <span class="ai-risk-sev ${sev}">${sev}</span>
+        <span class="ai-risk-msg">${esc(r.message||'')}</span>
+      </div>`;
+    });
+    document.getElementById('ai-plan-risks-wrap').style.display = d.risks?.length ? '' : 'none';
+    // Recommendations
+    const recl = document.getElementById('ai-plan-recs');
+    recl.innerHTML = '';
+    (d.recommendations || []).forEach((r, i) => {
+      recl.innerHTML += `<div class="ai-rec-row"><span class="ai-rec-num">${i+1}.</span><span>${esc(r)}</span></div>`;
+    });
+    document.getElementById('ai-plan-recs-wrap').style.display = d.recommendations?.length ? '' : 'none';
+    document.getElementById('ai-plan-result').classList.add('visible');
+  } catch(e) {
+    renderAiError('ai-plan-result', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyse Plan';
+  }
+}
+
+// ── Error Troubleshooter ──────────────────────────────────────────────────────
+async function runTroubleshooter() {
+  const text = document.getElementById('ai-error-input').value.trim();
+  if (!text) { alert('Please paste your terraform error first.'); return; }
+  const btn = document.getElementById('ai-error-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spinner"></span>Diagnosing…';
+  document.getElementById('ai-error-result').classList.remove('visible');
+  try {
+    const res = await fetch('/api/ai/troubleshoot', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ error_text: text, cloud: (typeof cloud !== 'undefined' ? cloud : 'aws') })
+    });
+    const d = await res.json();
+    if (d.error) { renderAiError('ai-error-result', d.error); return; }
+    document.getElementById('ai-error-root').textContent        = d.root_cause   || '';
+    document.getElementById('ai-error-explanation').textContent = d.explanation  || '';
+    const sl = document.getElementById('ai-error-steps');
+    sl.innerHTML = '';
+    (d.fix_steps || []).forEach((s, i) => {
+      sl.innerHTML += `<div class="ai-step-row">
+        <span class="ai-step-num">${i+1}</span>
+        <span class="ai-step-text">${esc(s)}</span>
+      </div>`;
+    });
+    document.getElementById('ai-error-prevention').textContent = d.prevention || '';
+    document.getElementById('ai-error-prevention-wrap').style.display = d.prevention ? '' : 'none';
+    const dh = document.getElementById('ai-error-docs');
+    dh.textContent = d.docs_hint ? '📖 ' + d.docs_hint : '';
+    dh.style.display = d.docs_hint ? '' : 'none';
+    document.getElementById('ai-error-result').classList.add('visible');
+  } catch(e) {
+    renderAiError('ai-error-result', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Diagnose Error';
+  }
+}
+
+// ── Security Reviewer ─────────────────────────────────────────────────────────
+const _SEV_ORDER = ['critical','high','medium','low','info'];
+
+async function runSecurityReview() {
+  let payload;
+  try { payload = buildPayload(); } catch(e) { alert('Build config first: ' + e.message); return; }
+  const btn = document.getElementById('ai-sec-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="ai-spinner"></span>Scanning…';
+  document.getElementById('ai-sec-result').classList.remove('visible');
+  try {
+    const res = await fetch('/api/ai/security-review', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await res.json();
+    if (d.error) { renderAiError('ai-sec-result', d.error); return; }
+
+    // Score gauge
+    const score = Math.max(0, Math.min(100, d.score || 0));
+    const circ = 2 * Math.PI * 30; // 188.5
+    const arc  = document.getElementById('ai-score-arc');
+    arc.setAttribute('stroke-dashoffset', circ * (1 - score / 100));
+    const gradeColor = score >= 80 ? '#6dd4a0' : score >= 60 ? '#e0b840' : score >= 40 ? '#e0a040' : '#f08070';
+    arc.setAttribute('stroke', gradeColor);
+    document.getElementById('ai-sec-score-num').textContent = score;
+    const gradeEl = document.getElementById('ai-sec-grade');
+    gradeEl.textContent  = d.grade || '—';
+    gradeEl.style.color  = gradeColor;
+    document.getElementById('ai-sec-summary').textContent = d.summary || '';
+    document.getElementById('ai-sec-files').textContent =
+      `${d.files_reviewed || 0} file${d.files_reviewed !== 1 ? 's' : ''} reviewed`;
+
+    // Severity pill counts
+    const findings = d.findings || [];
+    const counts = {};
+    findings.forEach(f => { const s=(f.severity||'info').toLowerCase(); counts[s]=(counts[s]||0)+1; });
+    const pills = document.getElementById('ai-sec-pills');
+    pills.innerHTML = '';
+    _SEV_ORDER.forEach(s => {
+      if (counts[s]) pills.innerHTML +=
+        `<span class="ai-sev-pill ${s}">${counts[s]} ${s}</span>`;
+    });
+
+    // Findings cards
+    const fl = document.getElementById('ai-sec-findings');
+    fl.innerHTML = '';
+    const sorted = [...findings].sort((a,b) =>
+      _SEV_ORDER.indexOf(a.severity) - _SEV_ORDER.indexOf(b.severity));
+    sorted.forEach(f => {
+      const sev = (f.severity||'info').toLowerCase();
+      fl.innerHTML += `<div class="ai-finding-card ${sev}">
+        <div class="ai-finding-top">
+          <span class="ai-finding-sev ${sev}">${sev}</span>
+          <span class="ai-finding-cat">${esc(f.category||'')}</span>
+          ${f.resource ? `<span class="ai-finding-resource">${esc(f.resource)}</span>` : ''}
+        </div>
+        <div class="ai-finding-issue">${esc(f.issue||'')}</div>
+        <div class="ai-finding-rec">${esc(f.recommendation||'')}</div>
+        ${f.file ? `<div class="ai-finding-file">📄 ${esc(f.file)}</div>` : ''}
+      </div>`;
+    });
+
+    document.getElementById('ai-sec-findings-wrap').style.display = findings.length ? '' : 'none';
+    document.getElementById('ai-sec-clean').style.display = findings.length ? 'none' : 'flex';
+    document.getElementById('ai-sec-result').classList.add('visible');
+  } catch(e) {
+    renderAiError('ai-sec-result', e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '🔒 Scan Current Config';
+  }
+}
+
+function renderAiError(resultId, msg) {
+  const el = document.getElementById(resultId);
+  el.innerHTML = `<div class="ai-err-box">Error: ${esc(msg)}</div>`;
+  el.classList.add('visible');
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>

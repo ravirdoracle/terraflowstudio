@@ -1,0 +1,99 @@
+variable "display_name" {
+  type = string
+}
+
+variable "shape" {
+  type    = string
+  default = "Exadata.X11M"
+}
+
+variable "compute_count" {
+  type    = number
+  default = 2
+}
+
+variable "storage_count" {
+  type    = number
+  default = 3
+}
+
+variable "availability_zone_id" {
+  type = string
+}
+
+variable "availability_zone" {
+  type    = string
+  default = ""
+}
+
+variable "region" {
+  type    = string
+  default = ""
+}
+
+variable "database_server_type" {
+  type    = string
+  default = ""
+}
+
+variable "storage_server_type" {
+  type    = string
+  default = ""
+}
+
+variable "customer_contacts" {
+  description = "OCI notification contacts — list of email addresses."
+  type        = list(string)
+  default     = []
+}
+
+# maintenance_window configuration — passed through to the aws_odb_cloud_exadata_infrastructure resource.
+variable "mw_preference" {
+  type    = string
+  default = "NO_PREFERENCE"
+}
+
+variable "mw_patching_mode" {
+  type    = string
+  default = "ROLLING"
+}
+
+variable "mw_is_custom_action_timeout_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "mw_custom_action_timeout_in_mins" {
+  type    = number
+  default = 15
+}
+
+variable "mw_lead_time_in_weeks" {
+  type    = number
+  default = 0
+}
+
+variable "mw_days_of_week" {
+  type    = list(string)
+  default = []
+}
+
+variable "mw_months" {
+  type    = list(string)
+  default = []
+}
+
+variable "mw_hours_of_day" {
+  type    = list(number)
+  default = []
+}
+
+variable "mw_weeks_of_month" {
+  type    = list(number)
+  default = []
+}
+
+variable "tags" {
+  type    = map(string)
+  default = { "ManagedBy" = "Terraform" }
+}

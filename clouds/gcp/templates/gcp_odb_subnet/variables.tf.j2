@@ -1,0 +1,51 @@
+variable "odb_subnet_id" {
+  description = "Unique ID for the ODB Subnet. Max 63 chars, lowercase letters/numbers/hyphens."
+  type        = string
+{% if odb_subnet_id %}
+  default     = "{{ odb_subnet_id }}"
+{% endif %}
+}
+
+variable "location" {
+  description = "GCP region — must match the parent ODB Network region."
+  type        = string
+{% if location %}
+  default     = "{{ location }}"
+{% endif %}
+}
+
+variable "odb_network" {
+  description = "Parent ODB Network ID (just the short ID, not the full resource path)."
+  type        = string
+{% if odb_network %}
+  default     = "{{ odb_network }}"
+{% endif %}
+}
+
+variable "cidr_range" {
+  description = "CIDR range for the subnet. Must be RFC1918, /27 minimum, /22 maximum."
+  type        = string
+{% if cidr_range %}
+  default     = "{{ cidr_range }}"
+{% endif %}
+}
+
+variable "purpose" {
+  description = "Subnet type: CLIENT_SUBNET or BACKUP_SUBNET."
+  type        = string
+  default     = "{{ purpose }}"
+  validation {
+    condition     = contains(["CLIENT_SUBNET", "BACKUP_SUBNET"], var.purpose)
+    error_message = "purpose must be CLIENT_SUBNET or BACKUP_SUBNET."
+  }
+}
+
+variable "project" {
+  type    = string
+  default = "{{ project }}"
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = {{ deletion_protection }}
+}

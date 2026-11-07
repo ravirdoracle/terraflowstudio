@@ -1,0 +1,8 @@
+output "share_arn" {
+  description = "Resource share ARN."
+  value       = aws_ram_resource_share.this.arn
+}
+output "share_id" {
+  description = "Resource share ID."
+  value       = aws_ram_resource_share.this.id
+}

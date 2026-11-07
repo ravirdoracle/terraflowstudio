@@ -1,0 +1,14 @@
+output "id" {
+  description = "OCID of the registered key — the aws_encryption_key_id for a database."
+  value       = oci_dbmulticloud_oracle_db_aws_key.this.id
+}
+
+output "compartment_id" {
+  description = "Compartment of the registered key."
+  value       = oci_dbmulticloud_oracle_db_aws_key.this.compartment_id
+}
+
+output "state" {
+  description = "Lifecycle state of the registered key."
+  value       = oci_dbmulticloud_oracle_db_aws_key.this.state
+}

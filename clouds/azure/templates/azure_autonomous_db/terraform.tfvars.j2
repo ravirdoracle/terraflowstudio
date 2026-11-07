@@ -1,0 +1,36 @@
+resource_group_name              = "{{ resource_group_name }}"
+location                         = "{{ location }}"
+name                             = "{{ name }}"
+display_name                     = "{{ display_name }}"
+db_workload                      = "{{ db_workload }}"
+db_version                       = "{{ db_version }}"
+license_model                    = "{{ license_model }}"
+compute_model                    = "{{ compute_model }}"
+compute_count                    = {{ compute_count }}
+data_storage_size_in_tbs         = {{ data_storage_size_in_tbs }}
+auto_scaling_enabled             = {{ auto_scaling_enabled }}
+auto_scaling_for_storage_enabled = {{ auto_scaling_for_storage_enabled }}
+backup_retention_period_in_days  = {{ backup_retention_period_in_days }}
+character_set                    = "{{ character_set }}"
+national_character_set           = "{{ national_character_set }}"
+mtls_connection_required         = {{ mtls_connection_required }}
+{% if allowed_ips %}
+allowed_ips                      = [{{ allowed_ips | map("tojson") | join(", ") }}]
+{% endif %}
+{% if customer_contacts %}
+customer_contacts                = [{{ customer_contacts | map("tojson") | join(", ") }}]
+{% endif %}
+
+# admin_password is deliberately absent — never commit it to a tfvars file.
+#   export TF_VAR_admin_password='...'      (inside this module)
+#   export TF_VAR_{{ module_name }}_admin_password='...'   (from the root)
+
+# subnet_id / virtual_network_id are wired from the VNet module in the root.
+{% if tags %}
+
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% endfor %}
+}
+{% endif %}

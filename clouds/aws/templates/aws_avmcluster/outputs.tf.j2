@@ -1,0 +1,12 @@
+output "avmc_id" {
+  description = "Autonomous VM Cluster ID."
+  value       = aws_odb_cloud_autonomous_vm_cluster.this.id
+}
+output "avmc_arn" {
+  description = "Autonomous VM Cluster ARN."
+  value       = aws_odb_cloud_autonomous_vm_cluster.this.arn
+}
+output "avmc_ocid" {
+  description = "OCI OCID of the Autonomous VM Cluster."
+  value       = aws_odb_cloud_autonomous_vm_cluster.this.ocid
+}

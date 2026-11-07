@@ -1,0 +1,42 @@
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.9.0" }
+  }
+}
+
+resource "azurerm_oracle_exadata_infrastructure" "this" {
+  name                = var.name
+  display_name        = var.display_name
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  shape               = var.shape
+  # terraform fmt aligns each run of arguments between comments separately, so
+  # the block above stays at its own width and the one below widens to fit
+  # database_server_type. Keep the comment here or fmt will disagree.
+  #
+  # Optional, and ForceNew like almost everything else here. An empty string is
+  # not a valid model name, so send null and let the service pick the default
+  # for the shape. Values come from config/azure_shapes.json.
+  database_server_type = var.database_server_type != "" ? var.database_server_type : null
+  storage_server_type  = var.storage_server_type != "" ? var.storage_server_type : null
+  compute_count        = var.compute_count
+  storage_count        = var.storage_count
+  zones                = [var.zone]
+
+  maintenance_window {
+    lead_time_in_weeks = var.mw_lead_time_in_weeks
+    preference         = var.mw_preference
+    patching_mode      = var.mw_patching_mode
+    days_of_week       = length(var.mw_days_of_week) > 0 ? var.mw_days_of_week : null
+    hours_of_day       = length(var.mw_hours_of_day) > 0 ? var.mw_hours_of_day : null
+    weeks_of_month     = length(var.mw_weeks_of_month) > 0 ? var.mw_weeks_of_month : null
+    months             = length(var.mw_months) > 0 ? var.mw_months : null
+  }
+
+  tags = var.tags
+
+  timeouts {
+    create = "6h"
+    delete = "3h"
+  }
+}

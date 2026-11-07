@@ -1,0 +1,12 @@
+output "peering_connection_id" {
+  description = "ID of the ODB peering connection."
+  value       = aws_odb_network_peering_connection.this.id
+}
+output "peering_connection_arn" {
+  description = "ARN of the ODB peering connection."
+  value       = aws_odb_network_peering_connection.this.arn
+}
+output "display_name" {
+  description = "Display name."
+  value       = aws_odb_network_peering_connection.this.display_name
+}

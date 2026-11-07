@@ -1,0 +1,4 @@
+# container_database_id is auto-wired from module.{{ cdb_ref }}.cdb_id in root main.tf.
+# pdb_admin_password is sensitive — NEVER set here.
+#   export TF_VAR_{{ module_name }}_pdb_admin_password="YourPassword123#"
+pdb_name = "{{ pdb_name }}"

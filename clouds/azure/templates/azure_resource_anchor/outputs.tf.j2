@@ -1,0 +1,12 @@
+output "resource_anchor_id" {
+  description = "Resource ID of the Oracle Resource Anchor."
+  value       = azurerm_oracle_resource_anchor.this.id
+}
+output "resource_anchor_location" {
+  description = "Azure region where the Resource Anchor exists."
+  value       = azurerm_oracle_resource_anchor.this.location
+}
+output "linked_compartment_id" {
+  description = "OCI compartment OCID created or linked by the Resource Anchor."
+  value       = azurerm_oracle_resource_anchor.this.linked_compartment_id
+}

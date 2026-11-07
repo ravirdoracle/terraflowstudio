@@ -1,0 +1,14 @@
+output "role_arn" {
+  description = "ARN of the IAM role."
+  value       = aws_iam_role.this.arn
+}
+
+output "association_status" {
+  description = "Status of the role association — CONNECTED once the cluster can assume the role."
+  value       = aws_odb_iam_role_association.this.status
+}
+
+output "association_status_reason" {
+  description = "Why the association is in its current status, when the service says."
+  value       = aws_odb_iam_role_association.this.status_reason
+}

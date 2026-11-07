@@ -1,0 +1,137 @@
+variable "display_name" {
+  description = "Display name for the Autonomous VM Cluster."
+  type        = string
+}
+
+variable "autonomous_data_storage_size_in_tbs" {
+  description = "Data storage size allocated for Autonomous Databases, in TBs."
+  type        = number
+  default     = 5
+}
+
+variable "cpu_core_count_per_node" {
+  description = "Number of CPU cores enabled per node."
+  type        = number
+  default     = 40
+}
+
+variable "memory_per_oracle_compute_unit_in_gbs" {
+  description = "Memory allocated per Oracle Compute Unit, in GBs."
+  type        = number
+  default     = 2
+}
+
+variable "total_container_databases" {
+  description = "Total number of Autonomous Container Databases that can be created."
+  type        = number
+  default     = 2
+}
+
+variable "scan_listener_port_non_tls" {
+  description = "SCAN listener port for non-TLS (TCP). Default 1521."
+  type        = number
+  default     = 1521
+}
+
+variable "scan_listener_port_tls" {
+  description = "SCAN listener port for TLS (TCP). Default 2484."
+  type        = number
+  default     = 2484
+}
+
+variable "license_model" {
+  description = "Oracle license model."
+  type        = string
+  default     = "LICENSE_INCLUDED"
+  validation {
+    condition     = contains(["LICENSE_INCLUDED", "BRING_YOUR_OWN_LICENSE"], var.license_model)
+    error_message = "Must be LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE."
+  }
+}
+
+variable "is_mtls_enabled_vm_cluster" {
+  description = "Enable mutual TLS (mTLS) authentication."
+  type        = bool
+  default     = false
+}
+
+{% if use_arn_pair %}
+# ── Infrastructure references — ARN pair ──────────────────────────────────────
+# Auto-wired from the aws_avmclusters_arn entry in root main.tf.
+variable "cloud_exadata_infrastructure_arn" {
+  description = "Exadata Infrastructure ARN — for infra provisioned in another account or stack."
+  type        = string
+}
+
+variable "odb_network_arn" {
+  description = "ODB Network ARN — for a network provisioned in another account or stack."
+  type        = string
+}
+{% else %}
+# ── Infrastructure references — ID pair ───────────────────────────────────────
+# Wired from the Exadata Infrastructure and ODB network modules in the root.
+variable "cloud_exadata_infrastructure_id" {
+  description = "Exadata Infrastructure ID — wired from the Exadata Infrastructure module in the root."
+  type        = string
+}
+
+variable "odb_network_id" {
+  description = "ODB Network ID — wired from the ODB network module in the root."
+  type        = string
+}
+{% endif %}
+
+variable "db_servers" {
+  description = "DB server IDs — auto-discovered via data.aws_odb_db_servers at the root, or supplied manually."
+  type        = list(string)
+  default     = []
+}
+
+variable "description" {
+  description = "User-provided description."
+  type        = string
+  default     = ""
+}
+
+variable "time_zone" {
+  description = "Time zone for the Autonomous VM cluster."
+  type        = string
+  default     = ""
+}
+
+# maintenance_window configuration — preference plus the schedule fields.
+variable "mw_preference" {
+  type    = string
+  default = "NO_PREFERENCE"
+}
+
+variable "mw_lead_time_in_weeks" {
+  type    = number
+  default = 0
+}
+
+variable "mw_days_of_week" {
+  type    = list(string)
+  default = []
+}
+
+variable "mw_months" {
+  type    = list(string)
+  default = []
+}
+
+variable "mw_hours_of_day" {
+  type    = list(number)
+  default = []
+}
+
+variable "mw_weeks_of_month" {
+  type    = list(number)
+  default = []
+}
+
+variable "tags" {
+  description = "Tags to assign to the resource."
+  type        = map(string)
+  default     = { "ManagedBy" = "Terraform" }
+}

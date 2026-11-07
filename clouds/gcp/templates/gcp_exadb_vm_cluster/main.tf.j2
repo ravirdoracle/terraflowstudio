@@ -1,0 +1,76 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.5.0"
+    }
+  }
+}
+
+resource "google_oracle_database_cloud_vm_cluster" "this" {
+  cloud_vm_cluster_id    = var.cloud_vm_cluster_id
+  display_name           = var.display_name != null && var.display_name != "" ? var.display_name : var.cloud_vm_cluster_id
+  location               = var.location
+  exadata_infrastructure = var.exadata_infrastructure
+  odb_network            = var.odb_network
+  odb_subnet             = var.odb_subnet
+  backup_odb_subnet      = var.backup_odb_subnet
+  project                = var.project != null ? var.project : null
+  deletion_protection    = var.deletion_protection
+  labels                 = var.labels
+
+  properties {
+    gi_version               = var.gi_version != null && var.gi_version != "" ? var.gi_version : null
+    hostname_prefix          = var.hostname_prefix
+    cpu_core_count           = var.cpu_core_count
+    memory_size_gb           = var.memory_size_gb
+    db_node_storage_size_gb  = var.db_node_storage_size_gb
+    data_storage_size_tb     = var.data_storage_size_tb
+    local_backup_enabled     = var.local_backup_enabled
+    sparse_diskgroup_enabled = var.sparse_diskgroup_enabled
+    ssh_public_keys          = var.ssh_public_keys
+    license_type             = var.license_type
+    db_server_ocids          = var.db_server_ocids
+
+    cluster_name           = var.cluster_name
+    node_count             = var.node_count
+    ocpu_count             = var.ocpu_count
+    disk_redundancy        = var.disk_redundancy
+    scan_listener_port_tcp = var.scan_listener_port_tcp
+
+    diagnostics_data_collection_options {
+      diagnostics_events_enabled = var.dco_diagnostics
+      health_monitoring_enabled  = var.dco_health
+      incident_logs_enabled      = var.dco_incident_logs
+    }
+
+    dynamic "time_zone" {
+      for_each = var.time_zone != null && var.time_zone != "" ? [1] : []
+      content { id = var.time_zone }
+    }
+  }
+
+  timeouts {
+    create = "12h"
+    update = "2h"
+    delete = "8h"
+  }
+
+  lifecycle {
+    ignore_changes = [
+      properties[0].db_server_ocids,
+      properties[0].cpu_core_count,
+      properties[0].memory_size_gb,
+      properties[0].db_node_storage_size_gb,
+      properties[0].data_storage_size_tb,
+      properties[0].local_backup_enabled,
+      properties[0].sparse_diskgroup_enabled,
+      properties[0].ssh_public_keys,
+      # Also default_from_api. Harmless while left null — Terraform adopts
+      # whatever the API reports — but a replacement risk the moment someone
+      # sets them in terraform.tfvars and the service normalises the value.
+      properties[0].ocpu_count,
+      properties[0].node_count,
+    ]
+  }
+}

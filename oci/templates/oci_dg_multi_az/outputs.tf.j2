@@ -1,0 +1,19 @@
+output "primary_lpg_id" {
+  description = "OCID of the Primary Local Peering Gateway"
+  value       = oci_core_local_peering_gateway.primary_lpg.id
+}
+
+output "standby_lpg_id" {
+  description = "OCID of the Standby Local Peering Gateway"
+  value       = oci_core_local_peering_gateway.standby_lpg.id
+}
+
+output "primary_lpg_peering_status" {
+  description = "Peering status of the Primary LPG (should become PEERED after apply)"
+  value       = oci_core_local_peering_gateway.primary_lpg.peering_status
+}
+
+output "standby_lpg_peering_status" {
+  description = "Peering status of the Standby LPG (should become PEERED after apply)"
+  value       = oci_core_local_peering_gateway.standby_lpg.peering_status
+}

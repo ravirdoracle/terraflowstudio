@@ -1,0 +1,63 @@
+display_name          = "{{ display_name }}"
+availability_zone_id  = "{{ availability_zone_id }}"
+client_subnet_cidr    = "{{ client_subnet_cidr }}"
+backup_subnet_cidr    = "{{ backup_subnet_cidr }}"
+s3_access             = "{{ s3_access }}"
+zero_etl_access       = "{{ zero_etl_access }}"
+{% if sts_access %}
+sts_access            = "{{ sts_access }}"
+{% else %}
+# sts_access            = "ENABLED"
+{% endif %}
+{% if kms_access %}
+kms_access            = "{{ kms_access }}"
+{% else %}
+# kms_access            = "ENABLED"
+{% endif %}
+{% if s3_policy_document %}
+s3_policy_document = <<-EOT
+{{ s3_policy_document }}
+EOT
+{% endif %}
+{% if sts_policy_document %}
+sts_policy_document = <<-EOT
+{{ sts_policy_document }}
+EOT
+{% endif %}
+{% if kms_policy_document %}
+kms_policy_document = <<-EOT
+{{ kms_policy_document }}
+EOT
+{% endif %}
+{% if cross_region_s3_restore_sources_access %}
+cross_region_s3_restore_sources_access = [{% for r in cross_region_s3_restore_sources_access %}"{{ r }}"{{ ", " if not loop.last }}{% endfor %}]
+{% endif %}
+{% if availability_zone %}
+availability_zone     = "{{ availability_zone }}"
+{% else %}
+# availability_zone     = "us-east-1a"
+{% endif %}
+{% if region %}
+region                = "{{ region }}"
+{% else %}
+# region                = "us-east-1"
+{% endif %}
+{% if custom_domain_name %}
+custom_domain_name    = "{{ custom_domain_name }}"
+# default_dns_prefix  = "myodb"
+{% elif default_dns_prefix %}
+default_dns_prefix    = "{{ default_dns_prefix }}"
+# custom_domain_name  = "corp.example.com"
+{% else %}
+# default_dns_prefix  = "myodb"
+# custom_domain_name  = "corp.example.com"
+{% endif %}
+delete_associated_resources = {{ delete_associated_resources }}
+
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "ManagedBy" = "Terraform"
+{% endfor %}
+}

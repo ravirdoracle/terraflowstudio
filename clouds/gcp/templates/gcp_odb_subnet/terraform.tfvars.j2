@@ -1,0 +1,15 @@
+odb_subnet_id = "{{ odb_subnet_id }}"
+location      = "{{ location }}"
+{% if odb_network_is_literal %}
+odb_network   = "{{ odb_network }}"
+{% else %}
+# odb_network   = ""  # from module.{{ mn0 }}.odb_network_id
+{% endif %}
+cidr_range    = "{{ cidr_range }}"
+purpose       = "{{ purpose }}"
+{% if project %}
+project       = "{{ project }}"
+{% else %}
+# project       = "my-gcp-project"
+{% endif %}
+deletion_protection = {{ deletion_protection }}

@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Acme AI DB@GCP" id="terraflow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <object label='&lt;b&gt;ODB Network&lt;/b&gt;&lt;br&gt;gcp_network&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;network: odb-vpc&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;gcp_oracle_zone: us-east4-a-r1&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;client_cidr: 10.10.1.0/24&lt;/span&gt;' tf_type="gcp_odb_network" provider="gcp" module_name="gcp_network" network="odb-vpc" gcp_oracle_zone="us-east4-a-r1" client_cidr="10.10.1.0/24" backup_cidr="10.10.2.0/24" id="n1">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F0FE;strokeColor=#4285F4;fontColor=#174EA6;" vertex="1" parent="1">
+            <mxGeometry x="40" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <object label='&lt;b&gt;Exadata Infra&lt;/b&gt;&lt;br&gt;gcp_infra&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;shape: Exadata.X9M&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;compute_count: 2&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;storage_count: 3&lt;/span&gt;' tf_type="gcp_exadb_infra" provider="oci" module_name="gcp_infra" shape="Exadata.X9M" compute_count="2" storage_count="3" gcp_oracle_zone="us-east4-a-r1" id="n2">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBE9E7;strokeColor=#C74634;fontColor=#7A1B12;" vertex="1" parent="1">
+            <mxGeometry x="400" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <object label='&lt;b&gt;Exadb VM Cluster&lt;/b&gt;&lt;br&gt;gcp_cluster&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;cpu_core_count: 16&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;gi_version: 23.0.0.0&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;license_type: LICENSE_INCLUDED&lt;/span&gt;' tf_type="gcp_exadb_vm_cluster" provider="oci" module_name="gcp_cluster" cpu_core_count="16" gi_version="23.0.0.0" license_type="LICENSE_INCLUDED" id="n3">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBE9E7;strokeColor=#C74634;fontColor=#7A1B12;" vertex="1" parent="1">
+            <mxGeometry x="760" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <mxCell id="e1" value="runs on" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#8A8A8A;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="n3" target="n2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="attached to" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#8A8A8A;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="n3" target="n1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

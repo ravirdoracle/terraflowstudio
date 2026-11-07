@@ -1,0 +1,60 @@
+resource "google_project_service" "cloudkms" {
+  project            = var.gcp_project_id
+  service            = "cloudkms.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_kms_key_ring" "exadb" {
+  project  = var.gcp_project_id
+  name     = var.gcp_key_ring_name
+  location = var.gcp_kms_location
+
+  depends_on = [google_project_service.cloudkms]
+}
+
+# ExaDB-D needs RAW encryption with an AES-256-CBC key for its TDE master keys.
+resource "google_kms_crypto_key" "exadb_tde" {
+  name     = var.gcp_crypto_key_name
+  key_ring = google_kms_key_ring.exadb.id
+  purpose  = "RAW_ENCRYPT_DECRYPT"
+
+  version_template {
+    algorithm        = "AES_256_CBC"
+    protection_level = var.key_protection_level
+  }
+
+  # Destroying it - or its active version - makes every database encrypted
+  # with it unreadable.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+# Least privilege for Oracle's PKCS#11 flow: discovery, raw AES-CBC version
+# management, and encrypt/decrypt.
+resource "google_project_iam_custom_role" "oracle_exadb_kms" {
+  project     = var.gcp_project_id
+  role_id     = var.oracle_kms_role_id
+  title       = "Oracle ExaDB-D Cloud KMS access"
+  description = "Least-privilege Cloud KMS access for Oracle AI Database@Google Cloud ExaDB-D."
+
+  permissions = [
+    "cloudkms.cryptoKeyVersions.get",
+    "cloudkms.cryptoKeyVersions.list",
+    "cloudkms.cryptoKeyVersions.create",
+    "cloudkms.cryptoKeyVersions.manageRawAesCbcKeys",
+    "cloudkms.cryptoKeyVersions.useToDecrypt",
+    "cloudkms.cryptoKeyVersions.useToEncrypt",
+    "cloudkms.cryptoKeys.get",
+    "cloudkms.cryptoKeys.list",
+    "cloudkms.keyRings.get",
+    "cloudkms.keyRings.list",
+    "cloudkms.locations.get",
+  ]
+}
+
+resource "google_kms_key_ring_iam_member" "oracle_exadb" {
+  key_ring_id = google_kms_key_ring.exadb.id
+  role        = google_project_iam_custom_role.oracle_exadb_kms.name
+  member      = "serviceAccount:${var.oracle_workload_resource_service_agent}"
+}

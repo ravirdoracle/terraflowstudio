@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Region Catalogues — Terraflow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--o-dim:rgba(232,80,10,0.08);
+  --green:#1a7a4a;--green-dim:rgba(26,122,74,0.1);--red:#c0392b;--red-dim:rgba(192,57,43,0.1);
+  --blue:#1a56a0;--blue-dim:rgba(26,86,160,0.1);
+  --radius:6px;--radius-lg:10px;
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:linear-gradient(150deg,#1e1c1a 0%,#141210 100%);color:var(--ink);font-family:var(--font-b);min-height:100vh;line-height:1.5;display:flex;flex-direction:column;}
+
+header{background:#000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,.45);}
+.logo{display:flex;align-items:baseline;gap:14px;text-decoration:none;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:#fff;line-height:1;}
+.logo-name .ac{color:#ff6b2b;}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.nav-link{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 14px;border-radius:var(--radius);border:1px solid #333;color:#888;text-decoration:none;transition:all .15s;}
+.nav-link:hover{color:#ccc;border-color:#555;}
+
+.page-wrap{flex:1;padding:32px 40px 64px;max-width:1340px;margin:0 auto;width:100%;}
+.page-title{font-family:var(--font-d);font-weight:800;font-size:28px;color:#f0ede8;letter-spacing:-.5px;margin-bottom:4px;}
+.page-sub{font-size:13px;color:#5a5650;margin-bottom:22px;}
+.page-sub code{font-family:var(--font-m);font-size:12px;color:#7a746c;}
+
+.cloud-tabs{display:flex;gap:8px;margin-bottom:18px;}
+.cloud-tab{font-family:var(--font-d);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:8px 22px;border-radius:var(--radius);border:1.5px solid #333;background:transparent;color:#888;cursor:pointer;transition:all .15s;}
+.cloud-tab:hover{color:#ccc;border-color:#555;}
+.cloud-tab.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+.section{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);margin-bottom:20px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.32);}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px solid var(--line);background:var(--off);gap:12px;flex-wrap:wrap;}
+.section-label{font-family:var(--font-d);font-weight:800;font-size:16px;color:var(--ink);}
+.section-note{font-family:var(--font-m);font-size:11px;color:var(--ink4);}
+.section-body{padding:18px 22px;}
+
+.btn{font-family:var(--font-d);font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:8px 20px;border-radius:var(--radius);border:1.5px solid;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:var(--orange);border-color:var(--orange);color:#fff;}
+.btn-primary:hover:not(:disabled){background:#c84208;border-color:#c84208;}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--ink3);}
+.btn-ghost:hover:not(:disabled){border-color:var(--ink3);color:var(--ink);}
+.btn-sm{font-size:11px;padding:5px 12px;}
+
+/* Region table */
+.rtable{width:100%;border-collapse:collapse;font-size:12px;}
+.rtable th{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);text-align:left;padding:6px 8px;border-bottom:1.5px solid var(--line);white-space:nowrap;}
+.rtable td{padding:5px 8px;border-bottom:1px solid var(--off2);vertical-align:top;}
+.rtable tr:hover td{background:var(--off);}
+.rtable input,.rtable select{width:100%;background:var(--off2);border:1.5px solid transparent;border-radius:4px;color:var(--ink);font-family:var(--font-m);font-size:12px;padding:5px 8px;outline:none;transition:border-color .15s,background .15s;}
+.rtable input:focus,.rtable select:focus{border-color:var(--orange);background:#fff;}
+.rtable input.blank{color:var(--ink4);}
+.col-act{width:34px;}
+/* min-width on a <td> is only advisory once the table algorithm starts
+   shrinking columns — the constraint has to sit on the control inside it. */
+.col-zones input{min-width:96px;}
+.col-zones{min-width:326px;}
+.col-wide input{min-width:215px;}
+.col-code input{min-width:132px;}
+.col-status select{min-width:92px;}
+
+.zone-chips{display:flex;flex-wrap:wrap;gap:4px;align-items:center;}
+.zchip{display:inline-flex;align-items:center;gap:5px;background:var(--blue-dim);border:1px solid rgba(26,86,160,.35);border-radius:20px;padding:1px 4px 1px 9px;font-family:var(--font-m);font-size:11px;color:var(--blue);}
+.zchip button{background:none;border:none;color:var(--blue);cursor:pointer;font-size:13px;line-height:1;padding:0 3px;opacity:.55;}
+.zchip button:hover{opacity:1;}
+.zone-add{width:118px !important;font-size:11px !important;}
+.zone-none{font-family:var(--font-m);font-size:11px;color:var(--ink4);font-style:italic;}
+
+.status-live{color:var(--green);}
+.status-planned{color:var(--ink4);}
+
+.banner{border-radius:var(--radius);padding:10px 14px;font-size:12.5px;margin-bottom:14px;display:flex;gap:9px;align-items:flex-start;line-height:1.55;}
+.banner code{font-family:var(--font-m);font-size:11.5px;}
+.banner-info{background:var(--blue-dim);border:1px solid rgba(26,86,160,.3);color:#14487f;}
+.banner-err{background:var(--red-dim);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);}
+.hidden{display:none;}
+
+.foot-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;border-top:1px solid var(--line);background:var(--off);flex-wrap:wrap;}
+.dirty-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);margin-right:6px;}
+
+.toast{position:fixed;bottom:28px;right:28px;z-index:999;display:flex;align-items:center;gap:10px;padding:12px 20px;border-radius:var(--radius-lg);font-family:var(--font-d);font-weight:700;font-size:13px;letter-spacing:.04em;box-shadow:0 4px 20px rgba(0,0,0,.18);opacity:0;transform:translateY(12px);transition:opacity .25s,transform .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.ok{background:#1a7a4a;color:#fff;}
+.toast.err{background:#c0392b;color:#fff;}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span></div>
+    <div class="logo-sub">Region Catalogues</div>
+  </a>
+  <div class="header-right">
+    <a class="nav-link" href="/">&#8592; Home</a>
+    <a class="nav-link" href="/config">Config</a>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <div class="page-title">Catalogues</div>
+  <div class="page-sub">The values every product page offers in a dropdown. Edits are written to <code>config/&lt;cloud&gt;_&lt;catalogue&gt;.json</code> &mdash; the one source feeding the form and the generated Terraform. A rejected save writes nothing.</div>
+
+  <div class="cloud-tabs" id="cat-tabs" style="margin-bottom:6px">
+    {% for cat in catalogues %}<button class="cloud-tab{% if loop.first %} active{% endif %}" data-cat="{{ cat.key }}" onclick="selectCatalogue('{{ cat.key }}')">{{ cat.label }}</button>{% endfor %}
+  </div>
+
+  <div class="cloud-tabs" id="cloud-tabs">
+    {% for c in clouds %}<button class="cloud-tab{% if loop.first %} active{% endif %}" data-cloud="{{ c }}" onclick="selectCloud('{{ c }}')">{{ c }}</button>{% endfor %}
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label" id="sec-label">Regions</div>
+      <div class="section-note" id="sec-note"></div>
+    </div>
+    <div class="section-body">
+      <div class="banner banner-info" id="scoped-note">
+        <span>&#8505;</span>
+        <span id="scoped-text"></span>
+      </div>
+      <div class="banner banner-err hidden" id="err-banner"></div>
+      <div style="overflow-x:auto">
+        <table class="rtable">
+          <thead id="rt-head"></thead>
+          <tbody id="rt-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="foot-row">
+      <button class="btn btn-ghost btn-sm" id="add-btn" onclick="addEntry()">&#65291; Add</button>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="section-note" id="dirty-note"></span>
+        <button class="btn btn-ghost btn-sm" onclick="loadCloud(current, true)">Reload</button>
+        <button class="btn btn-primary" id="save-btn" onclick="saveCloud()">Save Catalogue</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CLOUDS = {{ clouds | tojson }};
+// One entry per catalogue this page can edit. Adding a third means adding a
+// module, a config file and a line in app.py - no change to this page.
+const CATALOGUES = {{ catalogues | tojson }};
+
+let currentCat = CATALOGUES[0].key;
+let current = CLOUDS[0];
+let doc = null;          // the whole catalogue document
+let spec = null;         // {core, optional, list_fields, bool_fields, ...}
+let dirty = false;
+
+function cat(){ return CATALOGUES.find(c => c.key === currentCat); }
+function entriesKey(){ return cat().entries; }        // 'regions' | 'shapes'
+function rows(){ return (doc && doc[entriesKey()]) || []; }
+function noun(){ return cat().noun; }                 // 'region' | 'shape'
+
+// Fields rendered as a list of chips rather than a text box. Regions keep their
+// zones; shapes carry the server-model lists.
+function listFields(){
+  if(entriesKey()==='regions') return ['zones'];
+  return (spec && spec.list_fields) || [];
+}
+function boolFields(){ return (spec && spec.bool_fields) || []; }
+
+function toast(msg, ok=true){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show '+(ok?'ok':'err');
+  setTimeout(()=>t.className='toast',2600);
+}
+function showError(msg){
+  const b=document.getElementById('err-banner');
+  if(!msg){ b.classList.add('hidden'); b.textContent=''; return; }
+  b.classList.remove('hidden'); b.textContent=msg;
+}
+function markDirty(){
+  dirty=true;
+  document.getElementById('dirty-note').innerHTML='<span class="dirty-dot"></span>unsaved changes';
+}
+function clearDirty(){
+  dirty=false;
+  document.getElementById('dirty-note').textContent='';
+}
+
+function fields(){ return spec ? spec.core.concat(spec.optional) : []; }
+
+function selectCatalogue(key){
+  if(dirty && !confirm('Discard unsaved changes to '+current+'?')) return;
+  currentCat=key;
+  document.querySelectorAll('#cat-tabs .cloud-tab').forEach(t=>t.classList.toggle('active', t.dataset.cat===key));
+  // A catalogue may not cover every cloud; fall back to its first.
+  const allowed=cat().clouds;
+  if(allowed.indexOf(current)<0) current=allowed[0];
+  document.querySelectorAll('#cloud-tabs .cloud-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.cloud===current);
+    t.style.display = allowed.indexOf(t.dataset.cloud)<0 ? 'none' : '';
+  });
+  loadCloud(current);
+}
+
+function selectCloud(cloud){
+  if(dirty && !confirm('Discard unsaved changes to '+current+'?')) return;
+  current=cloud;
+  document.querySelectorAll('#cloud-tabs .cloud-tab').forEach(t=>t.classList.toggle('active', t.dataset.cloud===cloud));
+  loadCloud(cloud);
+}
+
+async function loadCloud(cloud, announce){
+  showError('');
+  try{
+    const res=await fetch('/api/'+currentCat+'/'+cloud);
+    const d=await res.json();
+    if(!res.ok){ showError(d.error||'could not load '+cloud); return; }
+    doc=d.doc; spec=d.spec;
+    clearDirty(); render();
+    if(announce) toast('Reloaded '+cloud+' '+entriesKey());
+  }catch(e){ showError('could not reach the server: '+e.message); }
+}
+
+function render(){
+  const f=fields(), n=rows().length;
+  document.getElementById('sec-label').textContent=current.toUpperCase()+' '+entriesKey();
+  document.getElementById('add-btn').innerHTML='&#65291; Add '+noun();
+  document.getElementById('sec-note').textContent = entriesKey()==='regions'
+    ? n+' region'+(n===1?'':'s')+' \u00b7 '+rows().reduce((a,r)=>a+(r.zones||[]).length,0)+' zones'
+    : n+' shape'+(n===1?'':'s');
+
+  document.getElementById('scoped-text').innerHTML = noteHTML();
+
+  document.getElementById('rt-head').innerHTML =
+    '<tr>'+f.map(k=>`<th class="${colClass(k)}">${k}</th>`).join('')+'<th class="col-act"></th></tr>';
+
+  document.getElementById('rt-body').innerHTML =
+    rows().map((r,i)=>rowHTML(r,i,f)).join('') ||
+    `<tr><td colspan="${f.length+1}"><div class="zone-none">No ${entriesKey()}. Add one below.</div></td></tr>`;
+}
+
+function noteHTML(){
+  if(entriesKey()==='regions'){
+    return spec.zones_are_region_scoped
+      ? 'Zones on this cloud are <b>numbered per region</b> &mdash; <code>1</code> in one region is unrelated to <code>1</code> in another, so the same number may repeat across rows.'
+      : 'Zone identifiers on this cloud are <b>globally unique</b>. Reusing one across two regions is rejected on save &mdash; it would make the zone&nbsp;&rarr;&nbsp;region lookup pick one at random.';
+  }
+  if(!listFields().length){
+    return 'This cloud&rsquo;s Exadata resource has <b>no database or storage server-type input</b> &mdash; it reports them as computed values only. Shapes here drive the shape dropdown and the generator default.';
+  }
+  return 'Server models are offered per shape in the infrastructure card. <b>server_types_required</b> marks the pair required on the card &mdash; AWS documents both as mandatory for <code>Exadata.X11M</code>. New cards start on <code>'+(spec.default_shape||'&mdash;')+'</code>.';
+}
+
+// Labels are prose and need the width; codes and status do not.
+function colClass(k){
+  if(k==='zones'||listFields().indexOf(k)>=0) return 'col-zones';
+  if(k==='status') return 'col-status';
+  if(boolFields().indexOf(k)>=0) return 'col-status';
+  return k.endsWith('label') ? 'col-wide' : 'col-code';
+}
+
+function rowHTML(r,i,f){
+  const cells=f.map(k=>{
+    if(listFields().indexOf(k)>=0) return `<td class="col-zones">${chipsHTML(r,i,k)}</td>`;
+    if(boolFields().indexOf(k)>=0) return `<td class="col-status"><input type="checkbox" ${r[k]?'checked':''}
+        onchange="setBool(${i},'${k}',this.checked)"></td>`;
+    if(k==='status') return `<td class="col-status"><select class="status-${r.status||'live'}" onchange="setField(${i},'status',this.value)">
+        <option value="live"${r.status!=='planned'?' selected':''}>live</option>
+        <option value="planned"${r.status==='planned'?' selected':''}>planned</option>
+      </select></td>`;
+    const v=r[k];
+    // null is meaningful for oci_region: unmapped, falls back to the default.
+    const shown=(v===null||v===undefined)?'':v;
+    const ph=(v===null)?'null \u2014 falls back to default':k;
+    return `<td class="${colClass(k)}"><input class="${shown===''?'blank':''}" value="${escAttr(shown)}" placeholder="${escAttr(ph)}"
+              oninput="setField(${i},'${k}',this.value)"></td>`;
+  }).join('');
+  return `<tr>${cells}<td class="col-act"><button class="btn btn-ghost btn-sm" title="Remove ${noun()}"
+            onclick="removeEntry(${i})" style="padding:3px 8px">&times;</button></td></tr>`;
+}
+
+function chipsHTML(r,i,key){
+  const items=r[key]||[];
+  const chips=items.map((z,zi)=>
+    `<span class="zchip">${escHTML(z)}<button title="Remove" onclick="removeItem(${i},'${key}',${zi})">&times;</button></span>`).join('');
+  const hint = key==='zones' ? 'none \u2014 a planned region' : 'none \u2014 provider default only';
+  return `<div class="zone-chips">${chips}
+    <input class="zone-add" placeholder="+ ${key==='zones'?'zone':'model'}" onkeydown="itemKey(event,${i},'${key}')" onblur="itemAdd(event,${i},'${key}')">
+    ${items.length?'':'<span class="zone-none">'+hint+'</span>'}</div>`;
+}
+
+function escHTML(s){ return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escAttr(s){ return escHTML(s).replace(/"/g,'&quot;'); }
+
+function setField(i,key,value){
+  // An emptied oci_region means "unmapped", which the catalogue spells null.
+  if(value==='' && (key==='oci_region')) rows()[i][key]=null;
+  else rows()[i][key]=value;
+  markDirty();
+}
+function setBool(i,key,value){ rows()[i][key]=!!value; markDirty(); }
+
+function itemKey(e,i,key){ if(e.key==='Enter'){ e.preventDefault(); itemAdd(e,i,key); } }
+function itemAdd(e,i,key){
+  const v=(e.target.value||'').trim();
+  if(!v) return;
+  rows()[i][key]=(rows()[i][key]||[]).concat([v]);
+  e.target.value='';
+  markDirty(); render();
+}
+function removeItem(i,key,zi){ rows()[i][key].splice(zi,1); markDirty(); render(); }
+
+function addEntry(){
+  const blank={};
+  fields().forEach(k=>{
+    if(listFields().indexOf(k)>=0) blank[k]=[];
+    else if(boolFields().indexOf(k)>=0) blank[k]=false;
+    else if(k==='status') blank[k]='live';
+    else if(k==='oci_region') blank[k]=null;
+    else blank[k]='';
+  });
+  rows().push(blank);
+  markDirty(); render();
+  // Focus the identifying column of the row just added.
+  const inputs=document.querySelectorAll('#rt-body tr:last-child input');
+  if(inputs.length) inputs[0].focus();
+}
+function removeEntry(i){
+  const r=rows()[i];
+  const name=r[fields()[0]]||'(unnamed)';
+  if(!confirm('Remove '+noun()+' "'+name+'"? Anything already generated that names it keeps working; the dropdowns stop offering it.')) return;
+  rows().splice(i,1);
+  markDirty(); render();
+}
+
+async function saveCloud(){
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true; showError('');
+  try{
+    const res=await fetch('/api/'+currentCat+'/'+current,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({doc})});
+    const d=await res.json();
+    if(!res.ok){
+      // The server ran the loader's own validation, so this is exactly what
+      // would have broken at startup. Nothing was written.
+      showError(d.error||'save rejected');
+      toast('Not saved \u2014 see the error above', false);
+      return;
+    }
+    doc=d.doc; clearDirty(); render();
+    toast('Saved '+current+' \u2014 '+rows().length+' '+entriesKey());
+  }catch(e){
+    showError('could not reach the server: '+e.message);
+    toast('Not saved', false);
+  }finally{ btn.disabled=false; }
+}
+
+window.addEventListener('beforeunload', e=>{ if(dirty){ e.preventDefault(); e.returnValue=''; } });
+loadCloud(current);
+</script>
+</body>
+</html>

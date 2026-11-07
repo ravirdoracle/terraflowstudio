@@ -1,0 +1,70 @@
+terraform {
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      # The first release with the Exascale resources: 7.19.0 fails validate
+      # with "Invalid resource type".
+      version = ">= 7.20.0"
+    }
+  }
+}
+
+# Exascale VM Cluster — VMs on Oracle-managed Exascale infrastructure, storing
+# databases in an Exascale Database Storage Vault. There is no Exadata
+# Infrastructure to provision, and no zone input: the cluster runs in its vault's.
+resource "google_oracle_database_exadb_vm_cluster" "this" {
+  exadb_vm_cluster_id = var.exadb_vm_cluster_id
+  display_name        = var.display_name != null && var.display_name != "" ? var.display_name : var.exadb_vm_cluster_id
+  location            = var.location
+  project             = var.project
+  odb_network         = var.odb_network
+  odb_subnet          = var.odb_subnet
+  backup_odb_subnet   = var.backup_odb_subnet
+  deletion_protection = var.deletion_protection
+  labels              = var.labels
+
+  properties {
+    exascale_db_storage_vault      = var.exascale_db_storage_vault
+    grid_image_id                  = var.grid_image_id
+    shape_attribute                = var.shape_attribute
+    node_count                     = var.node_count
+    enabled_ecpu_count_per_node    = var.enabled_ecpu_count_per_node
+    additional_ecpu_count_per_node = var.additional_ecpu_count_per_node
+    hostname_prefix                = var.hostname_prefix
+    cluster_name                   = var.cluster_name
+    license_model                  = var.license_model
+    ssh_public_keys                = var.ssh_public_keys
+    scan_listener_port_tcp         = var.scan_listener_port_tcp
+
+    vm_file_system_storage {
+      size_in_gbs_per_node = var.vm_file_system_size_gbs_per_node
+    }
+
+    data_collection_options {
+      is_diagnostics_events_enabled = var.dco_diagnostics
+      is_health_monitoring_enabled  = var.dco_health
+      is_incident_logs_enabled      = var.dco_incident_logs
+    }
+
+    dynamic "time_zone" {
+      for_each = var.time_zone != null && var.time_zone != "" ? [1] : []
+      content { id = var.time_zone }
+    }
+  }
+
+  timeouts {
+    create = "3h"
+    update = "3h"
+    delete = "3h"
+  }
+
+  lifecycle {
+    # Drift-prone only. Oracle's sample also ignores the ECPU counts and the
+    # file system size, so scaling done in the console is not reverted; they
+    # are deliberately not ignored here, so a resize in terraform.auto.tfvars
+    # still plans. Scale through tfvars, or the next apply reverts the console.
+    ignore_changes = [
+      properties[0].ssh_public_keys,
+    ]
+  }
+}

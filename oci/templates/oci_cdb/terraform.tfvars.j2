@@ -1,0 +1,14 @@
+# db_home_id is auto-wired from module.{{ dbhome_ref }}.db_home_id in root main.tf.
+# admin_password is sensitive — NEVER set here.
+#   export TF_VAR_{{ module_name }}_admin_password="YourPassword123#"
+db_name        = "{{ db_name }}"
+character_set  = "{{ character_set }}"
+ncharacter_set = "{{ ncharacter_set }}"
+{% if pdb_name %}
+pdb_name       = "{{ pdb_name }}"
+{% endif %}
+auto_backup_enabled = {{ auto_backup_enabled }}
+{% if auto_backup_enabled %}
+auto_backup_window      = "{{ auto_backup_window }}"
+recovery_window_in_days = {{ recovery_window_in_days }}
+{% endif %}

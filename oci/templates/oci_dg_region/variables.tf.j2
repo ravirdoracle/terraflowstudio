@@ -1,0 +1,62 @@
+variable "prefix" {
+  description = "Name prefix for all resources in this region module"
+  type        = string
+}
+
+variable "compartment_id" {
+  description = "OCI compartment OCID"
+  type        = string
+  sensitive   = true
+}
+
+variable "hub_cidr" {
+  description = "CIDR for the Hub (transit) VCN, e.g. 10.15.0.0/24"
+  type        = string
+}
+
+variable "cluster_vcn_id" {
+  description = "OCID of the existing VM Cluster VCN"
+  type        = string
+}
+
+variable "cluster_nsg_id" {
+  description = "OCID of the VM Cluster Network Security Group"
+  type        = string
+}
+
+variable "cluster_route_table_id" {
+  description = "OCID of the VM Cluster VCN default route table — must be imported before apply"
+  type        = string
+}
+
+variable "local_client_cidr" {
+  description = "CIDR of this region's client subnet, e.g. 10.10.1.0/24"
+  type        = string
+}
+
+variable "remote_client_cidr" {
+  description = "CIDR of the remote (peer) region's client subnet, e.g. 10.30.1.0/24"
+  type        = string
+}
+{% if extra_pairs %}
+
+variable "extra_spokes" {
+  description = "Additional cluster VCNs sharing this hub, keyed by pair name"
+  type = map(object({
+    cluster_vcn_id         = string
+    cluster_nsg_id         = string
+    cluster_route_table_id = string
+    local_client_cidr      = string
+    remote_client_cidr     = string
+    # Pre-existing rules of the cluster VCN's default route table, kept when
+    # Terraform manages it. Unused when route tables are managed by hand.
+    existing_route_rules = optional(list(object({
+      destination       = string
+      destination_type  = optional(string, "CIDR_BLOCK")
+      network_entity_id = string
+      description       = optional(string)
+    })), [])
+  }))
+  default = {}
+}
+{% endif %}

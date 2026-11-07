@@ -1,0 +1,47 @@
+variable "role_name" {
+  description = "Name of the IAM role the VM cluster assumes."
+  type        = string
+}
+
+variable "oidc_provider_arn" {
+  description = "ARN of the IAM OIDC provider for the OCI identity domain."
+  type        = string
+}
+
+variable "oidc_provider_host" {
+  description = "Issuer host of that provider, without https:// — the prefix of its condition keys."
+  type        = string
+}
+
+variable "vm_cluster_arn" {
+  description = "ARN of the Exadata VM cluster to associate the role with."
+  type        = string
+}
+
+variable "vm_cluster_ocid" {
+  description = "OCID of the same VM cluster — the rpst_id claim of its identity-domain token."
+  type        = string
+}
+
+variable "isolate_role_to_cluster" {
+  description = "Restrict the trust policy to this cluster's OCID (the rpst_id claim)."
+  type        = bool
+  default     = true
+}
+
+variable "audience" {
+  description = "Audience (aud claim) the identity domain's tokens carry. Empty adds no aud condition."
+  type        = string
+  default     = ""
+}
+
+variable "kms_key_arn" {
+  description = "ARN of the KMS key the role may use."
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags for the IAM role."
+  type        = map(string)
+  default     = {}
+}

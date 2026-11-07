@@ -1,0 +1,187 @@
+variable "odb_network_id" {
+  description = "ODB Network ID — auto-wired from module.aws_odb_network in root."
+  type        = string
+}
+
+variable "display_name" {
+  description = "User-friendly name for the database."
+  type        = string
+}
+
+variable "db_name" {
+  description = "Database name — starts with a letter, alphanumeric only, max 30 characters."
+  type        = string
+  validation {
+    condition     = can(regex("^[A-Za-z][A-Za-z0-9]{0,29}$", var.db_name))
+    error_message = "db_name must start with a letter and contain at most 30 alphanumeric characters."
+  }
+}
+
+variable "db_workload" {
+  description = "OLTP (transaction processing), LH (lakehouse), AJD (JSON) or APEX."
+  type        = string
+  default     = "OLTP"
+  validation {
+    condition     = contains(["OLTP", "LH", "AJD", "APEX"], var.db_workload)
+    error_message = "db_workload must be OLTP, LH, AJD or APEX."
+  }
+}
+
+variable "license_model" {
+  type    = string
+  default = "LICENSE_INCLUDED"
+  validation {
+    condition     = contains(["LICENSE_INCLUDED", "BRING_YOUR_OWN_LICENSE"], var.license_model)
+    error_message = "Must be LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE."
+  }
+}
+
+variable "compute_count" {
+  description = "ECPUs allocated, 0.1-512. Fractional values are allowed."
+  type        = number
+  default     = 2
+}
+
+variable "data_storage_size_in_tbs" {
+  description = "Data storage in TB — a whole number, 1-384."
+  type        = number
+  default     = 1
+}
+
+# ── Optional + Computed: null adopts the service's value ──────────────────────
+
+variable "database_edition" {
+  description = "STANDARD_EDITION or ENTERPRISE_EDITION. Applies to BRING_YOUR_OWN_LICENSE."
+  type        = string
+  default     = null
+}
+
+variable "db_version" {
+  description = "Oracle Database version, e.g. 19c or 23ai."
+  type        = string
+  default     = null
+}
+
+variable "is_auto_scaling_enabled" {
+  type    = bool
+  default = null
+}
+
+variable "is_auto_scaling_for_storage_enabled" {
+  type    = bool
+  default = null
+}
+
+variable "backup_retention_period_in_days" {
+  type    = number
+  default = null
+}
+
+variable "autonomous_maintenance_schedule_type" {
+  description = "EARLY applies patches a week ahead of REGULAR."
+  type        = string
+  default     = null
+}
+
+variable "is_mtls_connection_required" {
+  type    = bool
+  default = null
+}
+
+variable "private_endpoint_label" {
+  type    = string
+  default = null
+}
+
+variable "private_endpoint_ip" {
+  description = "Must fall inside the ODB Network's client subnet. Null lets the service pick one."
+  type        = string
+  default     = null
+}
+
+variable "allowlisted_ips" {
+  type    = list(string)
+  default = []
+}
+
+variable "character_set" {
+  description = "Changing this replaces the database."
+  type        = string
+  default     = null
+}
+
+variable "ncharacter_set" {
+  description = "Changing this replaces the database."
+  type        = string
+  default     = null
+}
+
+variable "encryption_key_provider" {
+  description = "ORACLE_MANAGED or AWS_KMS. AWS_KMS needs kms_key_id."
+  type        = string
+  default     = null
+}
+
+variable "kms_key_id" {
+  description = "ARN of the AWS KMS key, when encryption_key_provider is AWS_KMS."
+  type        = string
+  default     = null
+}
+
+variable "customer_contacts" {
+  description = "Email addresses OCI notifies about this database."
+  type        = list(string)
+  default     = []
+}
+
+# ── ADMIN password ────────────────────────────────────────────────────────────
+
+variable "admin_password_source" {
+  description = "write_only (admin_password_wo) or secrets_manager (AWS Secrets Manager)."
+  type        = string
+  default     = "write_only"
+  validation {
+    condition     = contains(["write_only", "secrets_manager"], var.admin_password_source)
+    error_message = "admin_password_source must be write_only or secrets_manager."
+  }
+}
+
+# Ephemeral: never written to a plan file or state. Passed to a write-only
+# argument, which is the only place an ephemeral value may go.
+variable "admin_password_wo" {
+  description = "ADMIN password, 12-30 characters. Used when admin_password_source is write_only."
+  type        = string
+  default     = null
+  sensitive   = true
+  ephemeral   = true
+}
+
+variable "admin_password_wo_version" {
+  description = "Bump together with the password to rotate it."
+  type        = number
+  default     = 1
+}
+
+variable "secret_arn" {
+  description = "Secrets Manager secret holding the ADMIN password."
+  type        = string
+  default     = null
+}
+
+variable "secret_iam_role_arn" {
+  description = "Customer-managed IAM role OCI assumes to read the secret."
+  type        = string
+  default     = null
+}
+
+variable "secret_external_id_type" {
+  description = "OCI identifier used as the external ID: database_ocid, compartment_ocid or tenant_ocid."
+  type        = string
+  default     = "compartment_ocid"
+}
+
+variable "tags" {
+  description = "Tags to assign to the resource."
+  type        = map(string)
+  default     = { "ManagedBy" = "Terraform" }
+}

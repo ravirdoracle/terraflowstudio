@@ -1,0 +1,19 @@
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.9.0" }
+  }
+}
+
+# Oracle Resource Anchor — anchors OCI resources into this Azure resource group.
+# Must exist before Exadata infrastructure / VM clusters are provisioned.
+# location and linked_compartment_id are assigned by the service (computed).
+resource "azurerm_oracle_resource_anchor" "this" {
+  name                = var.name
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
+
+  timeouts {
+    create = "60m"
+    delete = "60m"
+  }
+}

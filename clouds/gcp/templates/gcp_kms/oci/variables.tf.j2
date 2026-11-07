@@ -1,0 +1,69 @@
+variable "oci_auth" {
+  description = "OCI provider authentication. SecurityToken is a federated session from `oci session authenticate`; APIKey uses an API signing key from the profile."
+  type        = string
+  default     = "SecurityToken"
+}
+
+variable "oci_config_profile" {
+  description = "Profile in ~/.oci/config."
+  type        = string
+  default     = "FEDERATED_TF"
+}
+
+variable "oci_multicloud_region" {
+  description = "OCI multicloud region paired with the GCP KMS location."
+  type        = string
+}
+
+variable "oci_home_region" {
+  description = "Tenancy home region - where IAM policies are written."
+  type        = string
+}
+
+variable "oci_compartment_ocid" {
+  description = "Compartment holding the ExaDB-D Cloud VM Cluster; the key-ring registration is created here."
+  type        = string
+}
+
+variable "oci_gcp_identity_connector_ocid" {
+  description = "OCID of the VM cluster's active GCP Identity Connector."
+  type        = string
+  validation {
+    # Some OCI API references describe oracle_db_connector_id as a compartment
+    # OCID; the service resolves it as the connector and fails with "Unknown
+    # resource Entity of type DBGcpConnector" when given a compartment.
+    condition     = !startswith(var.oci_gcp_identity_connector_ocid, "ocid1.compartment.") && !startswith(var.oci_gcp_identity_connector_ocid, "ocid1.tenancy.")
+    error_message = "oci_gcp_identity_connector_ocid must be the GCP Identity Connector's OCID, not a compartment or tenancy OCID."
+  }
+}
+
+variable "gcp_key_ring_id" {
+  description = "Relative key-ring name, projects/<project>/locations/<location>/keyRings/<name> - the gcp_kms_key_ring_id output of ../gcp."
+  type        = string
+  validation {
+    condition     = can(regex("^projects/[^/]+/locations/[^/]+/keyRings/[^/]+$", var.gcp_key_ring_id))
+    error_message = "gcp_key_ring_id must be the relative name projects/<project>/locations/<location>/keyRings/<name>, without the https:// prefix."
+  }
+}
+
+variable "gcp_kms_location" {
+  description = "Cloud KMS location of the key ring."
+  type        = string
+}
+
+variable "oci_gcp_key_ring_display_name" {
+  description = "Display name of the OCI registration."
+  type        = string
+}
+
+variable "create_cluster_gcp_key_policy" {
+  description = "Create the policy letting Cloud VM Clusters read GCP keys. Leave false when the compartment already has one."
+  type        = bool
+  default     = false
+}
+
+variable "oci_gcp_key_policy_name" {
+  description = "Name of that policy, when created."
+  type        = string
+  default     = "exadb-read-gcp-kms-keys"
+}

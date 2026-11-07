@@ -1,0 +1,16 @@
+output "infra_id" {
+  description = "Exadata infrastructure ID."
+  value       = aws_odb_cloud_exadata_infrastructure.this.id
+}
+output "infra_arn" {
+  description = "Exadata infrastructure ARN."
+  value       = aws_odb_cloud_exadata_infrastructure.this.arn
+}
+output "shape" {
+  description = "Shape of the infrastructure."
+  value       = aws_odb_cloud_exadata_infrastructure.this.shape
+}
+output "compute_count" {
+  description = "Number of compute nodes."
+  value       = aws_odb_cloud_exadata_infrastructure.this.compute_count
+}

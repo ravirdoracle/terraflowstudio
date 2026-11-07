@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraflow Studio — OCI Database</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;--line2:#c8c4bc;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--orange2:#ff6b2b;--o-dim:rgba(232,80,10,0.08);--o-dim2:rgba(232,80,10,0.18);
+  --green:#1a7a4a;--red:#c0392b;--r-dim:rgba(192,57,43,0.09);
+  --blue:#1a56a0;--purple:#6b3fa0;
+  --gcp:#4285F4;--gcp-dim:rgba(66,133,244,0.10);--gcp-dim2:rgba(66,133,244,0.18);
+  --accent:var(--orange);--accent2:var(--orange2);--a-dim:var(--o-dim);--a-dim2:var(--o-dim2);
+  --radius:6px;--radius-lg:10px;
+  --shadow-sm:0 1px 0 rgba(255,255,255,0.85) inset,0 2px 6px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+  --shadow:0 1px 0 rgba(255,255,255,0.65) inset,0 4px 16px rgba(0,0,0,0.11),0 2px 4px rgba(0,0,0,0.07);
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+}
+body.oci-db{--accent:#1B6FAB;--accent2:#2e8fd4;--a-dim:rgba(27,111,171,0.08);--a-dim2:rgba(27,111,171,0.18);background:linear-gradient(150deg,#eff4f8 0%,#dde8f0 100%);}
+body.oci-db .cfn-btn{display:none;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:linear-gradient(150deg,#f4f2ee 0%,#e8e5dc 100%);color:var(--ink);font-family:var(--font-b);height:100vh;line-height:1.5;overflow:hidden;display:flex;flex-direction:column;}
+header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,0.45);}
+.logo{display:flex;align-items:baseline;gap:14px;cursor:pointer;color:inherit;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:var(--white);line-height:1;}
+.logo-name .ac{color:var(--accent2);}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.provider-badge{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--a-dim2);color:var(--accent2);border:1px solid;border-color:var(--accent2);border-radius:4px;padding:3px 10px;opacity:.8;}
+.cloud-sw{display:flex;background:#111;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden;flex-shrink:0;}
+.csw-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;cursor:pointer;color:#555;border:none;background:transparent;transition:all .15s;white-space:nowrap;text-decoration:none;display:flex;align-items:center;}
+.csw-btn.sel-oci{color:#2e8fd4;background:rgba(27,111,171,.15);}
+.csw-btn:hover:not(.sel-oci){color:#999;}
+.tool-sw{display:flex;background:#111;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden;flex-shrink:0;}
+.tsw-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;cursor:pointer;color:#555;border:none;background:transparent;transition:all .15s;white-space:nowrap;}
+.tsw-btn.sel-tf{color:#7b42bc;background:rgba(123,66,188,.15);}
+.tsw-btn.sel-tofu{color:#f5a623;background:rgba(245,166,35,.15);}
+.tsw-btn:hover:not(.sel-tf):not(.sel-tofu){color:#999;}
+.cust-bar{background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:44px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.llm-bar{background:#000000;border-bottom:2px solid #4e4840;padding:0 28px;height:40px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.llm-bar-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#999;white-space:nowrap;flex-shrink:0;}
+.llm-bar-input{flex:1;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#eee;font-family:var(--font-m);font-size:11px;padding:5px 12px;outline:none;transition:border-color .15s;min-width:0;}
+.llm-bar-input:focus{border-color:#555;}.llm-bar-input::placeholder{color:#444;}
+.llm-bar-btn{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:28px;border-radius:var(--radius);cursor:pointer;border:1.5px solid;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.llm-bar-btn.send{background:rgba(123,66,188,.15);border-color:#7b42bc;color:#b080e0;}
+.llm-bar-btn.send:hover{background:#7b42bc;color:#fff;}
+.llm-bar-btn.send:disabled{opacity:.35;cursor:not-allowed;}
+.llm-prov{font-family:var(--font-m);font-size:9px;color:#888;letter-spacing:.04em;flex-shrink:0;white-space:nowrap;}
+.llm-prov.ok{color:#2a7a4a;}.llm-prov.err{color:#7a2a2a;}
+.llm-reply{font-family:var(--font-m);font-size:10px;color:#aaa;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cust-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#C9A227;white-space:nowrap;}
+.cust-input{font-family:var(--font-b);font-size:13px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:var(--white);padding:5px 12px;min-width:220px;outline:none;transition:border-color .15s;}
+.cust-input:focus{border-color:var(--accent2);}
+.cust-input::placeholder{color:#444;}
+.cust-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;cursor:pointer;border:1.5px solid;border-radius:var(--radius);transition:all .15s;white-space:nowrap;}
+.cust-btn.save{background:rgba(74,175,121,0.12);border-color:#4aaf79;color:#4aaf79;}
+.cust-btn.save:hover{background:rgba(74,175,121,0.22);}
+.cust-btn.save.saved{background:rgba(74,175,121,0.25);color:#6dd4a0;}
+.cust-btn.load{background:rgba(90,156,255,0.10);border-color:#5a9cff;color:#5a9cff;}
+.cust-btn.load:hover{background:rgba(90,156,255,0.20);}
+.cust-btn.del{background:rgba(192,57,43,0.10);border-color:#c0392b;color:#c0392b;}
+.cust-btn.del:disabled,.cust-btn.test:disabled{opacity:.35;cursor:not-allowed;}
+.cust-btn.test{background:rgba(180,100,255,0.12);border-color:#b464ff;color:#b464ff;}
+.cust-sep{width:1px;height:22px;background:#5a5248;flex-shrink:0;}
+.cust-select{font-family:var(--font-b);font-size:12px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#ccc;padding:5px 10px;cursor:pointer;outline:none;}
+.save-toast{font-family:var(--font-m);font-size:11px;color:#4aaf79;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;}
+.save-toast.show{opacity:1;}
+.backend-pill{font-family:var(--font-m);font-size:9px;color:#777;letter-spacing:.04em;margin-left:auto;white-space:nowrap;}
+.nav-panel{background:linear-gradient(180deg,#f5f4f0 0%,#eceae4 100%);border-right:1px solid var(--line2);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;z-index:5;box-shadow:2px 0 10px rgba(0,0,0,0.07);scrollbar-width:thin;}
+.nav-cloud-head{padding:13px 14px 10px;border-bottom:1px solid var(--line);margin-bottom:2px;display:flex;align-items:center;gap:8px;}
+.nav-cloud-label{font-family:var(--font-d);font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+.nav-section-label{font-family:var(--font-d);font-weight:700;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink4);padding:10px 14px 5px;}
+.tgroup{display:none;flex-direction:column;width:100%;}.tgroup.show{display:flex;}
+.tab{position:relative;padding:12px 14px 12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;border-left:4px solid transparent;transition:background .18s,border-color .18s;user-select:none;}
+.tab:hover{background:var(--off2);}
+.tab-num{font-family:var(--font-d);font-weight:800;font-size:12px;color:var(--ink4);background:var(--white);border:1.5px solid var(--line2);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;box-shadow:var(--shadow-sm);}
+.tab-label{font-family:var(--font-b);font-weight:500;font-size:13.5px;color:var(--ink3);transition:color .18s;line-height:1.3;word-break:break-word;flex:1;}
+.tab.active{background:linear-gradient(90deg,var(--a-dim) 0%,transparent 100%);border-left-color:var(--accent);}
+.tab.active .tab-label{color:var(--ink);font-weight:600;}
+.tab.active .tab-num{background:var(--accent);border-color:var(--accent);color:var(--white);box-shadow:0 2px 8px var(--a-dim2);}
+.app{display:grid;grid-template-columns:var(--nav-width,220px) 1fr 6px var(--rhs-width,500px);flex:1;min-height:0;overflow:hidden;}
+.resizer{cursor:col-resize;background:var(--line2);flex-shrink:0;transition:background .12s;position:relative;z-index:10;}
+.resizer::after{content:'';position:absolute;inset:-4px 0;}
+.resizer:hover,.resizer.dragging{background:var(--accent);}
+.form-panel{overflow-y:auto;padding:28px 28px 40px;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line2) transparent;}
+.form-panel::-webkit-scrollbar{width:4px;}
+.form-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
+.page{display:none;}.page.active{display:block;}
+.page-hero{margin-bottom:20px;padding-bottom:18px;border-bottom:2px solid transparent;border-image:linear-gradient(90deg,var(--ink) 0%,var(--line) 100%) 1;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+.page-resource-name{font-family:var(--font-d);font-weight:800;line-height:1;letter-spacing:-0.01em;color:var(--ink);}
+.page-resource-name em{font-style:normal;color:var(--accent);}
+.page-doc-link{font-family:var(--font-m);font-size:10px;color:var(--ink3);text-decoration:none;border:1px solid var(--line2);border-radius:var(--radius);padding:4px 9px;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.page-doc-link:hover{border-color:var(--accent);color:var(--accent);}
+.module-path-row{display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,#f8f7f3 0%,#eeecea 100%);border:1px solid rgba(210,207,200,0.8);border-top-color:rgba(255,255,255,0.9);border-radius:var(--radius-lg);padding:9px 14px;margin-bottom:20px;font-family:var(--font-m);font-size:11px;color:var(--ink3);box-shadow:var(--shadow-sm);}
+.mp-dir{color:var(--blue);}
+.module-name-field{background:transparent;border:none;outline:none;font-family:var(--font-m);font-size:11px;color:var(--accent);font-weight:500;width:160px;}
+.section{margin-bottom:22px;}
+.section-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.section-title{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,var(--line2) 0%,transparent 100%);}
+.section-head.clickable{cursor:pointer;user-select:none;border-radius:var(--radius);padding:2px 4px;margin:-2px -4px;transition:background .15s;}
+.section-head.clickable:hover{background:var(--off2);}
+.opt-chevron{font-size:9px;color:var(--ink4);transition:transform .2s;flex-shrink:0;margin-left:2px;}
+.section.collapsed .opt-chevron{transform:rotate(-90deg);}
+.section.collapsed>.section-head{margin-bottom:0;}
+.section.collapsed>*:not(.section-head){display:none;}
+.badge-req{font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--red);background:var(--r-dim);border:1px solid rgba(192,57,43,.2);border-radius:4px;padding:1px 6px;}
+.badge-opt{font-family:var(--font-d);font-weight:600;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);background:var(--off2);border:1px solid var(--line2);border-radius:4px;padding:1px 6px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{margin-bottom:12px;}.field:last-child{margin-bottom:0;}
+.field-lbl{display:flex;align-items:center;gap:5px;font-family:var(--font-m);font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:4px;}
+.req-star{color:var(--red);}
+.field-hint{font-size:10.5px;color:var(--ink3);margin-bottom:4px;line-height:1.5;}
+.field.invalid input,.field.invalid select{border-color:var(--red)!important;}
+.field.invalid .field-lbl{color:var(--red);}
+input[type=text],input[type=number],select{width:100%;background:#fefefe;border:1.5px solid var(--line2);border-radius:var(--radius);color:var(--ink);font-family:var(--font-m);font-size:11.5px;padding:7px 10px;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;box-shadow:inset 0 2px 4px rgba(0,0,0,0.055);}
+input:focus,select:focus{border-color:var(--accent);box-shadow:inset 0 1px 3px rgba(0,0,0,0.03),0 0 0 3px var(--a-dim2);}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888480' d='M5 7L1 3h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;}
+.tog-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.tog-sw{position:relative;width:38px;height:22px;cursor:pointer;flex-shrink:0;}
+.tog-sw input{display:none;}
+.tog-track{position:absolute;inset:0;border-radius:11px;background:var(--off2);border:1.5px solid var(--line2);transition:all .2s;}
+.tog-sw input:checked~.tog-track{background:var(--a-dim2);border-color:var(--accent);}
+.tog-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--ink4);transition:transform .2s,background .2s;}
+.tog-sw input:checked~.tog-thumb{transform:translateX(16px);background:var(--accent);}
+.tog-lbl{font-family:var(--font-m);font-size:12px;color:var(--ink2);min-width:52px;}
+.notice{display:flex;gap:8px;align-items:flex-start;background:#f0f6fb;border:1.5px solid rgba(27,111,171,.25);border-radius:var(--radius);padding:8px 12px;font-size:11px;color:#1a4a70;margin-bottom:16px;line-height:1.55;}
+.notice code{font-family:var(--font-m);font-size:10px;background:rgba(27,111,171,.1);padding:1px 4px;border-radius:3px;}
+.vbtn{width:100%;margin-top:12px;background:linear-gradient(180deg,#2c2a27 0%,#1a1916 100%);border:none;border-radius:var(--radius);color:var(--white);font-family:var(--font-d);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:12px;cursor:pointer;transition:background .15s;box-shadow:0 4px 14px rgba(0,0,0,0.28);}
+.vbtn:hover{background:linear-gradient(180deg,var(--accent2) 0%,var(--accent) 100%);}
+.output-panel{background:var(--white);display:flex;flex-direction:column;overflow:hidden;min-height:0;border-left:1px solid var(--line2);}
+.out-layout{display:flex;flex:1;overflow:hidden;}
+.file-tree{width:230px;border-right:1px solid var(--line2);background:linear-gradient(180deg,#f3f2ee 0%,#ebe9e3 100%);flex-shrink:0;overflow-y:auto;padding:12px 0;}
+.ft-section{padding:0 12px 6px;font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink4);margin-top:6px;}
+.ft-dir{padding:3px 12px;font-family:var(--font-m);font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:5px;}
+.ft-dir::before{content:'📁';font-size:11px;}
+.ft-file{padding:4px 26px;font-family:var(--font-m);font-size:10.5px;color:var(--ink2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.ft-file:hover{background:var(--off2);color:var(--ink);}
+.ft-file.active{background:var(--a-dim);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+.editor-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.editor-header{padding:10px 16px;border-bottom:1px solid var(--line2);background:linear-gradient(180deg,#f8f7f3 0%,#efede7 100%);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);}
+.editor-filepath{font-family:var(--font-m);font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:4px;}
+.editor-filepath .ep-dir{color:var(--blue);}
+.editor-filepath .ep-file{color:var(--ink);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(26,122,74,.2);animation:blink 2.5s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.editor-actions{display:flex;gap:6px;}
+.icon-btn{background:linear-gradient(180deg,#ffffff 0%,#f4f3ef 100%);border:1px solid rgba(210,207,200,0.9);border-radius:var(--radius);font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:var(--shadow-sm);}
+.icon-btn:hover{background:linear-gradient(180deg,#2c2a27 0%,var(--ink) 100%);color:var(--white);border-color:transparent;}
+.icon-btn.green{border-color:rgba(26,122,74,.4);color:var(--green);}
+.icon-btn.green:hover{background:var(--green);color:var(--white);}
+.icon-btn.copied{background:var(--green);color:var(--white);}
+.icon-btn.muted{opacity:.4;cursor:not-allowed;}
+.icon-btn.muted:hover{background:var(--white);color:var(--ink2);}
+pre.code-editor{flex:1;min-height:80px;overflow-y:auto;padding:18px 20px;font-family:var(--font-m);font-size:12px;line-height:1.85;color:var(--ink2);white-space:pre;scrollbar-width:thin;scrollbar-color:var(--line2) transparent;}
+.explain-panel{flex-shrink:0;max-height:45%;border-top:2px solid var(--line2);background:linear-gradient(180deg,#fafaf7 0%,#f5f4f0 100%);display:flex;flex-direction:column;overflow:hidden;}
+.explain-ph{padding:8px 16px;border-bottom:1px solid var(--line2);background:linear-gradient(180deg,#f3f2ee 0%,#ece9e2 100%);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.explain-ph-title{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.explain-ph-file{font-family:var(--font-m);font-size:10px;color:var(--ink3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.explain-body{flex:1;overflow-y:auto;padding:14px 18px;font-family:var(--font-b);font-size:12.5px;line-height:1.75;color:var(--ink2);white-space:pre-wrap;scrollbar-width:thin;}
+.inst-list{display:flex;flex-direction:column;gap:12px;}
+.inst-card{background:linear-gradient(180deg,#ffffff 0%,#fafaf7 100%);border:1px solid rgba(210,207,200,0.8);border-top-color:rgba(255,255,255,0.95);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;}
+.inst-card.open .inst-body{display:block;}
+.inst-card-head{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:linear-gradient(180deg,#f8f7f3 0%,#efede7 100%);border-bottom:1px solid transparent;}
+.inst-card.open .inst-card-head{border-bottom-color:var(--line2);}
+.inst-card-head:hover{background:linear-gradient(180deg,#f3f1ec 0%,#e8e5dc 100%);}
+.inst-num{font-family:var(--font-d);font-weight:800;font-size:11px;color:var(--white);background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 100%);border-radius:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px var(--a-dim2);}
+.inst-modname{font-family:var(--font-m);font-size:10px;color:var(--accent);background:var(--a-dim);border:1px solid var(--a-dim2);border-radius:3px;padding:1px 6px;flex-shrink:0;}
+.inst-chevron{font-size:10px;color:var(--ink4);transition:transform .2s;flex-shrink:0;}
+.inst-card.open .inst-chevron{transform:rotate(180deg);}
+.inst-rm{background:none;border:1px solid rgba(192,57,43,.25);border-radius:4px;color:var(--red);font-size:11px;padding:2px 8px;cursor:pointer;flex-shrink:0;transition:all .15s;font-family:var(--font-d);font-weight:700;letter-spacing:.04em;}
+.inst-rm:hover{background:var(--r-dim);}
+.inst-body{display:none;padding:18px 18px 12px;}
+.drag-handle{cursor:grab;color:var(--ink4);font-size:13px;flex-shrink:0;user-select:none;padding:0 4px 0 0;opacity:.6;}
+.inst-card.drag-over-top{border-top:3px solid var(--accent) !important;}
+.inst-card.drag-over-bottom{border-bottom:3px solid var(--accent) !important;}
+.inst-add-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.inst-add-btn{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,var(--a-dim) 0%,rgba(27,111,171,0.04) 100%);border:1.5px solid var(--a-dim2);border-radius:var(--radius);color:var(--accent);font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;cursor:pointer;transition:all .15s;}
+.inst-add-btn:hover{background:linear-gradient(180deg,var(--accent2) 0%,var(--accent) 100%);color:var(--white);}
+.inst-count-lbl{font-family:var(--font-m);font-size:10px;color:var(--ink3);}
+.hkw{color:var(--red);font-weight:500;}.hres{color:#854F0B;font-weight:500;}.hstr{color:var(--green);}.hnum{color:#534AB7;}.hbol{color:#854F0B;font-weight:500;}.href{color:var(--green);font-style:italic;}.hvar{color:#534AB7;font-style:italic;}.htype{color:var(--blue);}.hcmt{color:var(--ink4);font-style:italic;}
+.ai-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:24px;}
+.ai-modal-overlay.open{display:flex;}
+.ai-modal{background:#1e1d1a;border:1px solid #383530;border-radius:12px;width:100%;max-width:900px;height:70vh;min-height:420px;min-width:520px;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.85);overflow:hidden;}
+.ai-modal-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #2e2c28;flex-shrink:0;background:#252320;}
+.ai-modal-title{font-family:var(--font-d);font-weight:800;font-size:16px;color:#f0ede8;flex:1;}
+.ai-modal-close{background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1;padding:0 4px;}
+.ai-modal-close:hover{color:#fff;}
+.ai-modal-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:13px;min-height:0;}
+.ai-paste-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#aaa;margin-bottom:6px;}
+.ai-textarea{width:100%;background:#141310;border:1.5px solid #383530;border-radius:var(--radius);color:#ddd;font-family:var(--font-m);font-size:11.5px;padding:10px 14px;outline:none;resize:vertical;min-height:110px;line-height:1.7;}
+.ai-run-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:0 24px;height:34px;border-radius:var(--radius);cursor:pointer;border:1.5px solid #7b42bc;background:rgba(123,66,188,.2);color:#c090f0;transition:all .15s;align-self:flex-start;}
+.ai-run-btn:hover{background:#7b42bc;color:#fff;}
+.ai-result{display:none;flex-direction:column;gap:11px;}.ai-result.visible{display:flex;}
+.ai-root-cause{background:rgba(192,57,43,.1);border:1px solid rgba(240,128,112,.28);border-radius:var(--radius);padding:13px 17px;}
+.ai-root-cause-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#f08070;margin-bottom:6px;}
+.ai-root-cause-text{font-family:var(--font-b);font-size:14px;color:#f0ede8;line-height:1.6;}
+.ai-explanation{font-family:var(--font-b);font-size:13px;color:#bbb;line-height:1.7;}
+.ai-steps-list{display:flex;flex-direction:column;gap:8px;}
+.ai-step-row{display:flex;align-items:flex-start;gap:12px;background:#141310;border:1px solid #2a2826;border-radius:5px;padding:10px 14px;}
+.ai-step-num{font-family:var(--font-d);font-weight:800;font-size:14px;color:#a060e0;flex-shrink:0;width:20px;}
+.ai-step-text{font-family:var(--font-m);font-size:12px;color:#ddd;line-height:1.6;flex:1;}
+.ai-err-box{background:rgba(192,57,43,.12);border:1px solid rgba(240,128,112,.3);border-radius:var(--radius);padding:11px 15px;font-family:var(--font-m);font-size:11.5px;color:#f08070;}
+.ai-spinner{display:inline-block;width:13px;height:13px;border:2px solid #383530;border-top-color:#9060d0;border-radius:50%;animation:ai-spin .7s linear infinite;vertical-align:middle;margin-right:7px;}
+@keyframes ai-spin{to{transform:rotate(360deg);}}
+</style>
+<script src="{{ url_for('static', filename='panel-resizer.js') }}" defer></script>
+</head>
+<body class="oci-db">
+<header>
+  <a class="logo" href="/" style="text-decoration:none">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span><span style="font-size:10px;font-weight:400;color:#C9A227;margin-left:8px;font-family:var(--font-m);letter-spacing:.04em">v5.6</span></div>
+    <div class="logo-sub" style="color:#C9A227">Oracle AI DB@Cloud · Terraform Generator</div>
+  </a>
+  <div class="header-right">
+    <div class="cloud-sw">
+      <a class="csw-btn" href="/aws">AWS</a>
+      <a class="csw-btn" href="/gcp">GCP</a>
+      <a class="csw-btn" href="/azure">Azure</a>
+      <a class="csw-btn" href="/dg">OCI DG</a>
+      <a class="csw-btn sel-oci" href="/oci">OCI DB</a>
+    </div>
+    <div class="tool-sw">
+      <button class="tsw-btn sel-tf" id="btn-tf"   onclick="switchTool('terraform')"  title="Terraform">⬡ Terraform</button>
+      <button class="tsw-btn"         id="btn-tofu" onclick="switchTool('opentofu')"   title="OpenTofu">⬡ OpenTofu</button>
+    </div>
+    <span class="provider-badge">oracle/oci ≥ 6.0.0</span>
+  </div>
+</header>
+
+<div class="cust-bar">
+  <span class="cust-label">Customer</span>
+  <input class="cust-input" type="text" id="cust-name" placeholder="Enter customer name…" oninput="onCustInput()">
+  <button class="cust-btn save" id="save-btn" onclick="saveConfig()" disabled>💾 Save</button>
+  <button class="cust-btn load" id="load-btn" onclick="loadConfig()">📂 Load</button>
+  <button class="cust-btn del"  id="del-btn"  onclick="deleteConfig()" disabled>🗑 Delete</button>
+  <button class="cust-btn test" id="test-btn" onclick="runCustomerTests()" disabled>🧪 Test</button>
+  <div class="cust-sep"></div>
+  <select class="cust-select" id="cust-select" onchange="onCustSelect()">
+    <option value="">— saved customers —</option>
+  </select>
+  <span class="save-toast" id="save-toast"></span>
+  <span class="backend-pill" id="backend-pill"></span>
+</div>
+
+<div class="llm-bar">
+  <span class="llm-bar-label">✦ AI</span>
+  <input class="llm-bar-input" type="text" id="llm-input"
+    placeholder="Describe what you want… e.g. 'ORCL 19c CDB with MYPDB on vmcluster odb_vmcluster'"
+    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
+  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
+  <span class="llm-reply" id="llm-reply"></span>
+  <span class="llm-prov" id="llm-prov-badge">checking…</span>
+  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
+  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
+</div>
+
+<!-- AI Troubleshoot Modal -->
+<div class="ai-modal-overlay" id="ai-troubleshoot-overlay" onclick="if(event.target===this)closeAiTool('troubleshoot')">
+  <div class="ai-modal">
+    <div class="ai-modal-head">
+      <span style="font-size:17px">🔧</span>
+      <span class="ai-modal-title">Terraform Error Troubleshooter</span>
+      <button class="ai-modal-close" onclick="closeAiTool('troubleshoot')">✕</button>
+    </div>
+    <div class="ai-modal-body">
+      <div>
+        <div class="ai-paste-label">Paste your terraform error</div>
+        <textarea class="ai-textarea" id="ai-error-input" placeholder="Paste the full terraform error output here…"></textarea>
+      </div>
+      <button class="ai-run-btn" id="ai-error-btn" onclick="runTroubleshooter()">Diagnose Error</button>
+      <div class="ai-result" id="ai-error-result">
+        <div class="ai-root-cause">
+          <div class="ai-root-cause-label">Root Cause</div>
+          <div class="ai-root-cause-text" id="ai-error-root"></div>
+        </div>
+        <div class="ai-explanation" id="ai-error-explanation"></div>
+        <div>
+          <div style="font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#aaa;margin-bottom:7px;">Fix Steps</div>
+          <div class="ai-steps-list" id="ai-error-steps"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<div class="nav-panel">
+  <div class="nav-cloud-head">
+    <span class="nav-cloud-label">OCI Database</span>
+  </div>
+  <div class="nav-section-label">Resources</div>
+  <div class="tgroup show" id="oci-tabs">
+    <div class="tab active" onclick="switchTab(0)"><span class="tab-num">A</span><span class="tab-label">DB Home · CDB · PDB</span></div>
+  </div>
+</div>
+
+<div class="form-panel">
+
+<div class="page active" id="oci-page-0">
+  <div class="page-hero">
+    <div>
+      <div class="page-resource-name" style="font-size:20px;line-height:1.2">DB Home · CDB · <em>PDB</em></div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--ink3);margin-top:4px">oracle/oci — oci_database_db_home → oci_database_database → oci_database_pluggable_database</div>
+    </div>
+    <a class="page-doc-link" href="https://docs.oracle.com/en-us/iaas/Content/database/concepts/exadbxs-overview.htm" target="_blank">docs ↗</a>
+  </div>
+  <div class="notice"><span style="font-size:13px;flex-shrink:0">ℹ</span> Uses the <strong>oracle/oci</strong> provider. Each entry generates 3 standalone module directories: <code>&lt;name&gt;_dbhome</code>, <code>&lt;name&gt;_cdb</code>, and optionally <code>&lt;name&gt;_pdb</code>. Enter the VM Cluster module name or OCID from your existing cloud deployment. Set <code>TF_VAR_&lt;name&gt;_cdb_admin_password</code> before applying.</div>
+  <div id="oci-db-list" class="inst-list"></div>
+  <div class="inst-add-row">
+    <button class="inst-add-btn" onclick="addOciDb()">＋ Add DB Home / CDB / PDB</button>
+    <span class="inst-count-lbl" id="oci-db-count"></span>
+  </div>
+  <button class="vbtn" style="margin-top:14px" onclick="vgen()">Validate &amp; Generate All</button>
+</div>
+
+</div><!-- /form-panel -->
+
+<div class="resizer" id="panel-resizer" title="Drag to resize"></div>
+
+<div class="output-panel">
+  <div class="out-layout">
+    <div class="file-tree" id="file-tree">
+      <div id="ft-modules-section"></div>
+    </div>
+    <div class="editor-pane">
+      <div class="editor-header">
+        <div class="editor-filepath"><span class="live-dot"></span><span id="ep-path"></span></div>
+        <div class="editor-actions">
+          <button class="icon-btn green" onclick="dlZip()">⬇ Download ZIP</button>
+          <button class="icon-btn" onclick="loadZip()" title="Load a Terraflow ZIP">⬆ Load ZIP</button>
+          <input type="file" id="load-zip-input" accept=".zip" style="display:none" onchange="onLoadZipFile(this)">
+          <button class="icon-btn muted" id="gh-push-btn" onclick="pushToGithub()" title="Set GITHUB_TOKEN in .env">⬆ Push to Git</button>
+          <span id="gh-status-badge" style="font-family:var(--font-m);font-size:9px;color:#444;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis"></span>
+          <button class="icon-btn" id="copybtn" onclick="copyFile()">⎘ Copy</button>
+          <button class="icon-btn" id="explain-btn" onclick="explainCurrentFile()">✦ Explain</button>
+        </div>
+      </div>
+      <pre class="code-editor" id="code-out"><span style="color:var(--ink4);font-style:italic"># Fill in the form — output appears here in real time.</span></pre>
+      <div id="explain-panel" class="explain-panel" style="display:none">
+        <div class="explain-ph">
+          <span class="explain-ph-title">✦ AI Explanation</span>
+          <span id="explain-file-label" class="explain-ph-file"></span>
+          <button class="icon-btn" onclick="closeExplain()" style="padding:2px 8px;flex-shrink:0">✕ Close</button>
+        </div>
+        <div id="explain-body" class="explain-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<script>
+const cloud = 'oci';
+let ociDbs = [];
+let iacTool = 'terraform';
+let activeFile = 'oci_dbhome:oci_database:main';
+let rtimer;
+
+// ── Default factory ───────────────────────────────────────────────────────────
+function defOciDb(i) {
+  return {
+    module_name: i===0 ? 'oci_database' : `oci_database_${i+1}`,
+    vmcluster_ref: '', db_home_display_name: 'dbhome', db_version: '19.0.0.0',
+    db_name: 'MYDB', character_set: 'AL32UTF8', ncharacter_set: 'AL16UTF16',
+    pdb_name: 'MYPDB', db_unique_name: '', sid_prefix: '', create_pdb: true,
+    auto_backup_enabled: false, auto_backup_window: 'SLOT_TWO', recovery_window_in_days: 7,
+  };
+}
+
+function addOciDb() { ociDbs.push(defOciDb(ociDbs.length)); renderOciDbs(); refresh(); }
+
+// ── Read ──────────────────────────────────────────────────────────────────────
+function readOciDb(i) {
+  const p = `od${i}_`;
+  ociDbs[i] = {...ociDbs[i],
+    module_name:            fv(`${p}mn`) || ociDbs[i].module_name,
+    vmcluster_ref:          fv(`${p}vcref`),
+    db_home_display_name:   fv(`${p}hdn`),
+    db_version:             fv(`${p}dbv`) || '19.0.0.0',
+    db_name:                fv(`${p}dbn`),
+    pdb_name:               fv(`${p}pdb`),
+    db_unique_name:         fv(`${p}dun`),
+    sid_prefix:             fv(`${p}sid`),
+    character_set:          fv(`${p}cs`)  || 'AL32UTF8',
+    ncharacter_set:         fv(`${p}ncs`) || 'AL16UTF16',
+    create_pdb:             fcb(`${p}cpdb`),
+    auto_backup_enabled:    fcb(`${p}bak`),
+    auto_backup_window:     fv(`${p}bakw`) || 'SLOT_TWO',
+    recovery_window_in_days: parseInt(fv(`${p}bakr`)) || 7,
+  };
+}
+
+// ── Card HTML ─────────────────────────────────────────────────────────────────
+function ociDbCardHTML(d, i) {
+  const p = `od${i}_`, open = (_cardOpen[`od-card-${i}`]??i===0) ? 'open' : '';
+  return `<div class="inst-card ${open}" id="od-card-${i}" draggable="true" ondragstart="onCardDragStart(event,ociDbs,${i},renderOciDbs,'od-card-')" ondragover="onCardDragOver(event,ociDbs,${i})" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,ociDbs,${i},renderOciDbs,'od-card-')" ondragend="onCardDragEnd(event)">
+  <div class="inst-card-head" onclick="toggleCard('od-card-${i}')">
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
+    <span class="inst-num">${i+1}</span>
+    <span class="inst-modname">${d.module_name}</span>
+    <span class="inst-chevron">▼</span>
+    ${ociDbs.length>1?`<button class="inst-rm" onclick="event.stopPropagation();removeInst(ociDbs,${i},renderOciDbs)">Remove</button>`:''}
+  </div>
+  <div class="inst-body">
+    <div class="module-path-row"><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" style="width:180px" oninput="readOciDb(${i});refresh()"><span style="color:var(--ink4)">_dbhome · _cdb · _pdb</span></div>
+    <div class="section"><div class="section-head"><div class="section-title">VM Cluster Reference</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="notice" style="margin-bottom:8px"><span style="font-size:12px;flex-shrink:0">✓</span> Enter the VM Cluster module name from your cloud deployment (e.g. <code>odb_vmcluster</code>) or an OCID. This becomes <code>var.vm_cluster_ocid</code>.</div>
+      <div class="field"><div class="field-lbl">VM Cluster module name / OCID <span class="req-star">*</span></div><input type="text" id="${p}vcref" value="${d.vmcluster_ref||''}" placeholder="odb_vmcluster  or  ocid1.vmcluster.oc1.." oninput="readOciDb(${i});refresh()"></div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">DB Home</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">display_name</div><input type="text" id="${p}hdn" value="${d.db_home_display_name||''}" placeholder="dbhome" oninput="readOciDb(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">db_version <span class="req-star">*</span></div><input type="text" id="${p}dbv" value="${d.db_version||'19.0.0.0'}" placeholder="19.0.0.0" oninput="readOciDb(${i});refresh()"></div>
+      </div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Container Database (CDB)</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="notice" style="margin-bottom:8px"><span style="font-size:12px;flex-shrink:0">🔒</span> Set admin password: <code>export TF_VAR_${d.module_name}_cdb_admin_password="..."</code></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">db_name <span class="req-star">*</span></div><div class="field-hint">Max 8 chars, starts with letter</div><input type="text" id="${p}dbn" value="${d.db_name||''}" placeholder="MYDB" maxlength="8" oninput="readOciDb(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">db_unique_name</div><input type="text" id="${p}dun" value="${d.db_unique_name||''}" placeholder="optional" oninput="readOciDb(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">character_set</div><select id="${p}cs" onchange="readOciDb(${i});refresh()"><option value="AL32UTF8"${(d.character_set||'AL32UTF8')==='AL32UTF8'?' selected':''}>AL32UTF8</option><option value="WE8ISO8859P1"${d.character_set==='WE8ISO8859P1'?' selected':''}>WE8ISO8859P1</option><option value="WE8MSWIN1252"${d.character_set==='WE8MSWIN1252'?' selected':''}>WE8MSWIN1252</option></select></div>
+        <div class="field"><div class="field-lbl">ncharacter_set</div><select id="${p}ncs" onchange="readOciDb(${i});refresh()"><option value="AL16UTF16"${(d.ncharacter_set||'AL16UTF16')==='AL16UTF16'?' selected':''}>AL16UTF16</option><option value="UTF8"${d.ncharacter_set==='UTF8'?' selected':''}>UTF8</option></select></div>
+      </div>
+      <div class="field"><div class="field-lbl">sid_prefix</div><input type="text" id="${p}sid" value="${d.sid_prefix||''}" placeholder="optional" oninput="readOciDb(${i});refresh()"></div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Pluggable Database (PDB)</div><span class="badge-opt">optional</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">Create PDB</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}cpdb" ${d.create_pdb?'checked':''} onchange="readOciDb(${i});refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.create_pdb?'yes':'no'}</span></div></div>
+        <div class="field"><div class="field-lbl">pdb_name</div><input type="text" id="${p}pdb" value="${d.pdb_name||''}" placeholder="MYPDB" oninput="readOciDb(${i});refresh()"></div>
+      </div>
+    </div>
+    <div class="section collapsed"><div class="section-head clickable" onclick="toggleOptSection(this)"><div class="section-title">Backup</div><span class="badge-opt">optional</span><div class="section-line"></div><span class="opt-chevron">▼</span></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">auto_backup_enabled</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}bak" ${d.auto_backup_enabled?'checked':''} onchange="readOciDb(${i});refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.auto_backup_enabled?'true':'false'}</span></div></div>
+        <div class="field"><div class="field-lbl">auto_backup_window</div><select id="${p}bakw" onchange="readOciDb(${i});refresh()"><option value="SLOT_TWO"${(d.auto_backup_window||'SLOT_TWO')==='SLOT_TWO'?' selected':''}>SLOT_TWO (02:00–04:00)</option><option value="SLOT_ONE"${d.auto_backup_window==='SLOT_ONE'?' selected':''}>SLOT_ONE</option><option value="SLOT_THREE"${d.auto_backup_window==='SLOT_THREE'?' selected':''}>SLOT_THREE</option><option value="SLOT_FOUR"${d.auto_backup_window==='SLOT_FOUR'?' selected':''}>SLOT_FOUR</option></select></div>
+      </div>
+      <div class="field"><div class="field-lbl">recovery_window_in_days</div><input type="number" id="${p}bakr" value="${d.recovery_window_in_days||7}" min="1" max="60" oninput="readOciDb(${i});refresh()"></div>
+    </div>
+  </div>
+</div>`;
+}
+
+function _safeRender(id, html) { const el=document.getElementById(id); if(el) el.innerHTML=html; }
+function renderOciDbs() {
+  _safeRender('oci-db-list', ociDbs.map((d,i) => ociDbCardHTML(d,i)).join(''));
+  const ct = document.getElementById('oci-db-count');
+  if (ct) ct.textContent = ociDbs.length > 1 ? `${ociDbs.length} instances` : '';
+  updateTree();
+}
+
+// ── Card toggle & drag ────────────────────────────────────────────────────────
+const _cardOpen = {};
+function toggleCard(id) { const el=document.getElementById(id); if(!el) return; el.classList.toggle('open'); _cardOpen[id]=el.classList.contains('open'); }
+function toggleOptSection(h) { h.closest('.section').classList.toggle('collapsed'); }
+let _dragSrc = null;
+function onCardDragStart(e,arr,i,rf,prefix){ if(!e.target.closest('.drag-handle')){e.preventDefault();return;} _dragSrc={arr,i,rf,prefix}; e.dataTransfer.effectAllowed='move'; e.dataTransfer.setData('text/plain',String(i)); e.currentTarget.classList.add('dragging'); }
+function onCardDragOver(e,arr,i){ e.preventDefault(); if(!_dragSrc) return; document.querySelectorAll('.inst-card').forEach(c=>c.classList.remove('drag-over-top','drag-over-bottom')); if(_dragSrc.i!==i) e.currentTarget.classList.add(i>_dragSrc.i?'drag-over-bottom':'drag-over-top'); }
+function onCardDragLeave(e){ e.currentTarget.classList.remove('drag-over-top','drag-over-bottom'); }
+function onCardDrop(e,arr,i,rf){ e.preventDefault(); if(!_dragSrc||_dragSrc.i===i) return; const [m]=arr.splice(_dragSrc.i,1); arr.splice(i,0,m); rf(); refresh(); }
+function onCardDragEnd(e){ document.querySelectorAll('.inst-card').forEach(c=>c.classList.remove('dragging','drag-over-top','drag-over-bottom')); _dragSrc=null; }
+function removeInst(arr,i,rf){ arr.splice(i,1); rf(); refresh(); }
+
+// ── Accessors ─────────────────────────────────────────────────────────────────
+function fv(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+function fcb(id){ const e=document.getElementById(id); return e?e.checked:false; }
+
+// ── Tab / build / config ──────────────────────────────────────────────────────
+function switchTab(i) { updateTree(); renderEditor(); }
+
+function buildPayload() {
+  ociDbs.forEach((d,i) => readOciDb(i));
+  return { cloud, iac_tool: iacTool, customer_name: getCustName(), oci_databases: ociDbs };
+}
+
+function applyConfig(doc) {
+  const cust = document.getElementById('cust-name');
+  if (cust && doc.customer_name) cust.value = doc.customer_name;
+  const raw = doc.oci_databases || doc.aws_oci_databases || doc.gcp_oci_databases || [];
+  if (raw.length) ociDbs = raw.map((d,i) => ({...defOciDb(i),...d}));
+  activeFile = null;  // reset so updateTree auto-selects the first available file
+  renderAll();
+  renderEditor();
+}
+
+function renderAll() { renderOciDbs(); updateTree(); }
+
+// ── File tree ─────────────────────────────────────────────────────────────────
+function updateTree() {
+  const sec = document.getElementById('ft-modules-section');
+  if (!sec) return;
+  let h = '';
+  ociDbs.forEach(db => {
+    const base = db.module_name;
+    const mh = base + '_dbhome', mc = base + '_cdb', mp = base + '_pdb';
+    // DB Home
+    h += '<div class="ft-section" style="margin-top:6px">' + base + '</div>';
+    h += '<div class="ft-dir">' + mh + '/</div>';
+    [['dbhome:main','main.tf','📄'],['dbhome:variables','variables.tf','📋'],['dbhome:outputs','outputs.tf','📤'],['dbhome:tfvars','terraform.tfvars','⚙']].forEach(([kt,f,ic]) => {
+      const fk = 'oci:' + base + ':' + kt;
+      h += '<div class="ft-file '+(activeFile===fk?'active':'')+'" onclick="selFile(\''+fk+'\')"><span>'+ic+'</span>'+f+'</div>';
+    });
+    // CDB
+    h += '<div class="ft-dir">' + mc + '/</div>';
+    [['cdb:main','main.tf','📄'],['cdb:variables','variables.tf','📋'],['cdb:outputs','outputs.tf','📤'],['cdb:tfvars','terraform.tfvars','⚙']].forEach(([kt,f,ic]) => {
+      const fk = 'oci:' + base + ':' + kt;
+      h += '<div class="ft-file '+(activeFile===fk?'active':'')+'" onclick="selFile(\''+fk+'\')"><span>'+ic+'</span>'+f+'</div>';
+    });
+    // PDB (only if create_pdb)
+    if (db.create_pdb && db.pdb_name) {
+      h += '<div class="ft-dir">' + mp + '/</div>';
+      [['pdb:main','main.tf','📄'],['pdb:variables','variables.tf','📋'],['pdb:outputs','outputs.tf','📤'],['pdb:tfvars','terraform.tfvars','⚙']].forEach(([kt,f,ic]) => {
+        const fk = 'oci:' + base + ':' + kt;
+        h += '<div class="ft-file '+(activeFile===fk?'active':'')+'" onclick="selFile(\''+fk+'\')"><span>'+ic+'</span>'+f+'</div>';
+      });
+    }
+  });
+  if (!h) h = '<div style="padding:18px 14px;font-family:var(--font-m);font-size:10px;color:var(--ink4);font-style:italic">Fill in the form to see files</div>';
+  sec.innerHTML = h;
+}
+
+// ── File key helpers ──────────────────────────────────────────────────────────
+// key format: oci:{base}:{tier}:{file_type}
+// tier: dbhome | cdb | pdb
+// file_type: main | variables | outputs | tfvars
+function fkToPath(k) {
+  const m = k.match(/^oci:([^:]+):(dbhome|cdb|pdb):(main|variables|outputs|tfvars)$/);
+  if (!m) return k;
+  const [,base,tier,ft] = m;
+  const f = ft==='tfvars'?'terraform.tfvars':ft+'.tf';
+  return '<span class="ep-dir">'+base+'_'+tier+'/</span><span class="ep-file">'+f+'</span>';
+}
+function fkToApiPath(k) {
+  const m = k.match(/^oci:([^:]+):(dbhome|cdb|pdb):(main|variables|outputs|tfvars)$/);
+  if (!m) return k;
+  const [,base,tier,ft] = m;
+  const f = ft==='tfvars'?'terraform.tfvars':ft+'.tf';
+  return base+'_'+tier+'/'+f;
+}
+
+async function fetchFile(fk) {
+  const p = buildPayload(); p.file_key = fkToApiPath(fk);
+  try {
+    const r = await fetch('/api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d = await r.json(); return d.error ? '# Error:\n# '+d.error : d.content||'';
+  } catch(e) { return '# Network error: '+e.message; }
+}
+async function renderEditor() {
+  document.getElementById('ep-path').innerHTML = fkToPath(activeFile);
+  document.getElementById('code-out').innerHTML = '<span style="color:var(--ink4);font-style:italic"># Generating…</span>';
+  const c = await fetchFile(activeFile);
+  document.getElementById('code-out').innerHTML = hl(c);
+}
+function selFile(k) { activeFile=k; updateTree(); renderEditor(); }
+function refresh() {
+  document.querySelectorAll('.inst-body .field.invalid').forEach(f=>f.classList.remove('invalid'));
+  clearTimeout(rtimer); rtimer=setTimeout(()=>{updateTree();renderEditor();},300);
+}
+
+// Spans are emitted as sentinel markers and only turned into real <span> tags at
+// the very end — emitting tags inline made later rules match their own markup
+// (class="hcmt" hit the string rule and printed literal `hcmt"` into the output).
+const _HS = '\\u0001', _HE = '\\u0002', _HC = '\\u0003';
+function _mk(cls, txt){ return _HS + cls + _HE + txt + _HC; }
+function _spans(s){
+  return s.replace(/\\u0001([a-z]+)\\u0002/g, '<span class="$1">').replace(/\\u0003/g, '</span>');
+}
+
+function hl(code) {
+  return _spans(code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^(#[^\n]*)/gm,(m,c)=>_mk('hcmt',c))
+    .replace(/\b(resource|module|output|variable|terraform|provider|required_providers|required_version|depends_on|source|version|description|type|default|value|sensitive)\b(?=[^(])/g,(m,k)=>_mk('hkw',k))
+    .replace(/\b(string|number|bool|list|map|any|null)\b/g,(m,t)=>_mk('htype',t))
+    .replace(/var\.([a-z_][a-z0-9_.]*)/g,(m,v)=>_mk('hvar','var.'+v))
+    .replace(/module\.([a-z_][a-z0-9_.]*)/g,(m,v)=>_mk('href','module.'+v))
+    .replace(/=\s*"([^"\\u0001-\\u0003]+)"/g,(m,v)=>'= '+_mk('hstr','"'+v+'"'))
+    .replace(/=\s*(true|false)\b/g,(m,b)=>'= '+_mk('hbol',b))
+    .replace(/=\s*(-?\d+\.?\d*)\b/g,(m,n)=>'= '+_mk('hnum',n)));
+}
+
+function switchTool(t) {
+  iacTool=t;
+  document.getElementById('btn-tf').className='tsw-btn'+(t==='terraform'?' sel-tf':'');
+  document.getElementById('btn-tofu').className='tsw-btn'+(t==='opentofu'?' sel-tofu':'');
+  refresh();
+}
+
+async function vgen() {
+  const p = buildPayload();
+  try {
+    const r = await fetch('/api/validate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+    const d = await r.json();
+    if (!d.valid) { showToast((d.errors&&Object.keys(d.errors).length?JSON.stringify(d.errors):'Validation errors'), true); return; }
+    showToast('Valid — generating…');
+  } catch(e) { showToast('Error: '+e.message, true); return; }
+  if (ociDbs.length) activeFile = 'oci:'+ociDbs[0].module_name+':dbhome:main';
+  updateTree(); renderEditor();
+}
+
+async function explainCurrentFile() {
+  const btn=document.getElementById('explain-btn'), panel=document.getElementById('explain-panel');
+  const body=document.getElementById('explain-body'), lbl=document.getElementById('explain-file-label');
+  const path=document.getElementById('ep-path').innerText||'';
+  if(panel.style.display!=='none'&&lbl.textContent===path){closeExplain();return;}
+  btn.textContent='⟳ …'; btn.disabled=true; lbl.textContent=path;
+  body.innerHTML='<span style="color:var(--ink4);font-style:italic">Generating explanation…</span>';
+  panel.style.display='flex';
+  const rawCode=await fetchFile(activeFile);
+  try {
+    const r=await fetch('/api/llm/explain',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:rawCode,filename:path})});
+    const d=await r.json();
+    if(d.error) body.innerHTML='<span style="color:var(--red)">Error: '+d.error+'</span>';
+    else body.textContent=d.explanation;
+  } catch(e){body.innerHTML='<span style="color:var(--red)">'+e.message+'</span>';}
+  finally{btn.textContent='✦ Explain';btn.disabled=false;}
+}
+function closeExplain(){document.getElementById('explain-panel').style.display='none';}
+
+async function dlZip(){
+  const p=buildPayload();
+  const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  const b=await r.blob(); const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  const cust=getCustName().replace(/[^a-z0-9_-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+  const tool=iacTool==='opentofu'?'-tofu':'';
+  a.download='terraflow-studio-oci'+(cust?'-'+cust:'')+tool+'.zip'; a.click();
+}
+function loadZip(){document.getElementById('load-zip-input').click();}
+async function onLoadZipFile(inp){
+  const file=inp.files[0]; if(!file) return; inp.value='';
+  const fd=new FormData(); fd.append('file',file);
+  try{const r=await fetch('/api/load-zip',{method:'POST',body:fd}); const doc=await r.json();
+    if(doc.error){showToast(doc.error,true);return;}
+    const cld=doc.cloud||cloud;
+    if(cld!==cloud&&cld!=='aws'&&cld!=='gcp'){showToast(`ZIP is for ${cld.toUpperCase()} — open that page`,true);return;}
+    applyConfig(doc); showToast('ZIP loaded ✓');
+  }catch(e){showToast('Load failed: '+e.message,true);}
+}
+function copyFile(){const text=document.getElementById('code-out').innerText; navigator.clipboard.writeText(text).then(()=>{const btn=document.getElementById('copybtn');btn.classList.add('copied');btn.textContent='✓ Copied!';setTimeout(()=>{btn.classList.remove('copied');btn.textContent='⎘ Copy';},2000);});}
+
+function getCustName(){return(document.getElementById('cust-name').value||'').trim();}
+function onCustInput(){const n=getCustName();document.getElementById('save-btn').disabled=!n;updateDelBtn();updateTestBtn();}
+function updateDelBtn(){const name=getCustName(),sel=document.getElementById('cust-select');const hasMatch=Array.from(sel.options).some(o=>!o.value?false:o.dataset.name===name&&o.value.split('|')[1]===cloud);document.getElementById('del-btn').disabled=!hasMatch;}
+function updateTestBtn(){const b=document.getElementById('test-btn');if(b) b.disabled=!getCustName();}
+function onCustSelect(){const sel=document.getElementById('cust-select'),val=sel.value;if(!val)return;const[slug,cld]=val.split('|');const name=sel.options[sel.selectedIndex].dataset.name||slug;document.getElementById('cust-name').value=name;if(cld&&cld!==cloud&&cld!=='aws'&&cld!=='gcp'){showToast(`Config is for ${cld.toUpperCase()} — open that page`,true);return;}loadConfigFor(name,cld||cloud);}
+async function saveConfig(){const name=getCustName();if(!name){showToast('Enter a customer name first',true);return;}try{const r=await fetch('/api/config/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...buildPayload(),customer:name})});const d=await r.json();if(d.error){showToast('Save failed: '+d.error,true);return;}showToast('Saved ✓');const btn=document.getElementById('save-btn');btn.classList.add('saved');setTimeout(()=>btn.classList.remove('saved'),2000);await refreshCustomerList();}catch(e){showToast('Save error: '+e.message,true);}}
+async function deleteConfig(){const name=getCustName();if(!name)return;if(!confirm(`Delete config for "${name}" (OCI)?`))return;try{const r=await fetch(`/api/config/delete/${encodeURIComponent(name)}/${cloud}`,{method:'DELETE'});const d=await r.json();if(!d.ok){showToast('Nothing to delete',true);return;}showToast(`Deleted "${name}" ✓`);await refreshCustomerList();}catch(e){showToast('Delete error: '+e.message,true);}}
+async function loadConfig(){const name=getCustName();if(!name){showToast('Enter a customer name first',true);return;}await loadConfigFor(name,cloud);}
+async function loadConfigFor(name,cld){try{const r=await fetch(`/api/config/load/${encodeURIComponent(name)}/${cld}`);if(r.status===404){showToast('No saved config found',true);return;}const doc=await r.json();if(doc.error){showToast('Load failed: '+doc.error,true);return;}applyConfig(doc);showToast('Loaded ✓');}catch(e){showToast('Load error: '+e.message,true);}}
+function showToast(msg,isError=false){if(!isError){const el=document.getElementById('save-toast');if(el){el.textContent=msg;el.style.color='#4aaf79';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);return;}}let t=document.getElementById('vgen-toast');if(!t){t=document.createElement('div');t.id='vgen-toast';t.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--ink);color:var(--white);font-family:var(--font-m);font-size:12px;padding:10px 16px;border-radius:8px;max-width:360px;white-space:pre-wrap;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:opacity .3s;';document.body.appendChild(t);}t.style.background=isError?'var(--red)':'var(--ink)';t.textContent=msg;t.style.opacity='1';clearTimeout(t._timer);t._timer=setTimeout(()=>{t.style.opacity='0';},isError?5000:2500);}
+async function refreshCustomerList(){try{const r=await fetch('/api/config/list');const list=await r.json();const sel=document.getElementById('cust-select'),prev=sel.value;sel.innerHTML='<option value="">— saved customers —</option>';list.forEach(c=>{const opt=document.createElement('option');const cld=c.clouds.includes(cloud)?cloud:(c.clouds.includes('aws')?'aws':c.clouds.includes('gcp')?'gcp':c.clouds[0]||cloud);opt.value=`${c.slug}|${cld}`;opt.dataset.name=c.customer;opt.textContent=c.clouds.includes(cloud)?c.customer:`${c.customer} [${c.clouds.join('/')}]`;if(!c.clouds.includes(cloud))opt.style.color='#999';if(opt.value===prev)opt.selected=true;sel.appendChild(opt);});updateDelBtn();}catch(e){}}
+async function initStorage(){try{const r=await fetch('/api/config/backend');const d=await r.json();document.getElementById('backend-pill').textContent=d.backend.startsWith('couchdb')?'🛢 CouchDB':'📁 File';}catch(e){}await refreshCustomerList();}
+async function runCustomerTests(){if(!getCustName()){showToast('Enter a customer name first',true);return;}showToast('Test via /api/test — check browser console',false);}
+
+function openAiTool(tool){document.getElementById('ai-'+tool+'-overlay').classList.add('open');}
+function closeAiTool(tool){document.getElementById('ai-'+tool+'-overlay').classList.remove('open');}
+async function runTroubleshooter(){const text=document.getElementById('ai-error-input').value.trim();if(!text){alert('Paste your terraform error first.');return;}const btn=document.getElementById('ai-error-btn');btn.disabled=true;btn.innerHTML='<span class="ai-spinner"></span>Diagnosing…';document.getElementById('ai-error-result').classList.remove('visible');try{const r=await fetch('/api/ai/troubleshoot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({error_text:text,cloud})});const d=await r.json();if(d.error){document.getElementById('ai-error-result').innerHTML=`<div class="ai-err-box">Error: ${esc(d.error)}</div>`;document.getElementById('ai-error-result').classList.add('visible');return;}document.getElementById('ai-error-root').textContent=d.root_cause||'';document.getElementById('ai-error-explanation').textContent=d.explanation||'';const sl=document.getElementById('ai-error-steps');sl.innerHTML='';(d.fix_steps||[]).forEach((s,i)=>{sl.innerHTML+=`<div class="ai-step-row"><span class="ai-step-num">${i+1}</span><span class="ai-step-text">${esc(s)}</span></div>`;});document.getElementById('ai-error-result').classList.add('visible');}catch(e){document.getElementById('ai-error-result').innerHTML=`<div class="ai-err-box">Network error: ${esc(e.message)}</div>`;document.getElementById('ai-error-result').classList.add('visible');}finally{btn.disabled=false;btn.textContent='Diagnose Error';}}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function initLlmBar(){try{const r=await fetch('/api/llm/info'),d=await r.json();const badge=document.getElementById('llm-prov-badge');if(d.configured){badge.textContent=`${d.provider} · ${d.model}`;badge.className='llm-prov ok';}else{badge.textContent='LLM not configured';badge.className='llm-prov err';document.getElementById('llm-send-btn').disabled=true;}}catch(e){const b=document.getElementById('llm-prov-badge');if(b)b.textContent='unavailable';}}
+async function sendLlmPrompt(){const inp=document.getElementById('llm-input'),reply=document.getElementById('llm-reply'),btn=document.getElementById('llm-send-btn');const prompt=inp.value.trim();if(!prompt)return;btn.disabled=true;btn.textContent='…';reply.textContent='Thinking…';reply.style.color='#555';try{const r=await fetch('/api/llm/fill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,cloud,current:buildPayload()})});const d=await r.json();if(d.error){reply.textContent='✗ '+d.error;reply.style.color='#c0392b';}else{if(d.payload&&Object.keys(d.payload).length)applyConfig(d.payload);reply.textContent='✓ '+(d.explanation||'Done');reply.style.color='#1a7a4a';inp.value='';}}catch(e){reply.textContent='✗ '+e.message;reply.style.color='#c0392b';}finally{btn.disabled=false;btn.textContent='Ask';}}
+async function initGithub(){try{const r=await fetch('/api/github/info'),d=await r.json();const btn=document.getElementById('gh-push-btn'),badge=document.getElementById('gh-status-badge');if(d.configured){btn.dataset.configured='true';btn.classList.remove('muted');btn.classList.add('green');badge.textContent=`${d.repo} / ${d.branch}`;badge.style.color='#2a7a4a';}}catch(e){}}
+async function pushToGithub(){const btn=document.getElementById('gh-push-btn'),badge=document.getElementById('gh-status-badge');if(btn.dataset.configured!=='true'){badge.textContent='✗ Not configured';badge.style.color='#c0392b';return;}const prev=btn.textContent;btn.disabled=true;btn.textContent='↑ Pushing…';const payload=buildPayload();try{const r=await fetch('/api/github/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(d.error){badge.textContent='✗ '+d.error;badge.style.color='#c0392b';}else{badge.textContent=`✓ ${d.pushed?.length||0} files pushed`;badge.style.color='#1a7a4a';}}catch(e){badge.textContent='✗ Network error';badge.style.color='#c0392b';}finally{btn.disabled=false;btn.textContent=prev;}}
+
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+initStorage();
+ociDbs.push(defOciDb(0));
+renderAll();
+renderEditor();
+initLlmBar();
+initGithub();
+</script>
+</body>
+</html>

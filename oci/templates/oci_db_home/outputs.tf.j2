@@ -1,0 +1,12 @@
+output "db_home_id" {
+  description = "OCID of the Database Home."
+  value       = oci_database_db_home.this.id
+}
+output "db_home_name" {
+  description = "Display name of the Database Home."
+  value       = oci_database_db_home.this.display_name
+}
+output "db_version" {
+  description = "Oracle DB version."
+  value       = oci_database_db_home.this.db_version
+}

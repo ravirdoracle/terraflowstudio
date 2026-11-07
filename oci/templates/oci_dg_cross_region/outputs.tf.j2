@@ -1,0 +1,34 @@
+output "primary_lpg_id" {
+  description = "OCID of the Primary Local Peering Gateway (in Hub VCN)"
+  value       = oci_core_local_peering_gateway.primary_hub_lpg.id
+}
+
+output "standby_lpg_id" {
+  description = "OCID of the Standby Local Peering Gateway (in Hub VCN)"
+  value       = oci_core_local_peering_gateway.standby_hub_lpg.id
+}
+
+output "primary_rpc_id" {
+  description = "OCID of the Primary Remote Peering Connection"
+  value       = oci_core_remote_peering_connection.primary_rpc.id
+}
+
+output "standby_rpc_id" {
+  description = "OCID of the Standby Remote Peering Connection"
+  value       = oci_core_remote_peering_connection.standby_rpc.id
+}
+
+output "primary_rpc_peering_status" {
+  description = "Peering status of the Primary RPC (should become PEERED after apply)"
+  value       = oci_core_remote_peering_connection.primary_rpc.peering_status
+}
+
+output "primary_hub_vcn_id" {
+  description = "OCID of the Primary Hub VCN"
+  value       = oci_core_vcn.primary_hub.id
+}
+
+output "standby_hub_vcn_id" {
+  description = "OCID of the Standby Hub VCN"
+  value       = oci_core_vcn.standby_hub.id
+}

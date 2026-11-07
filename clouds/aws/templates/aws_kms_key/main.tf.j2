@@ -1,0 +1,56 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = ">= 6.61.0"
+    }
+  }
+}
+
+# Symmetric ENCRYPT_DECRYPT key — the only kind TDE can use. This key wraps every
+# database master key that points at it: once it is deleted, those databases
+# cannot open. The deletion window is the only way back (CancelKeyDeletion).
+resource "aws_kms_key" "this" {
+  description              = var.description
+  key_usage                = "ENCRYPT_DECRYPT"
+  customer_master_key_spec = "SYMMETRIC_DEFAULT"
+  deletion_window_in_days  = var.deletion_window_in_days
+  multi_region             = var.multi_region
+  enable_key_rotation      = var.enable_key_rotation
+
+  # The AWS default policy: the account controls the key, and IAM policies grant
+  # access to it. The cluster roles get DescribeKey/Encrypt/Decrypt that way, from
+  # their own policy (modules/cluster-access) — naming them here as well would
+  # make every key depend on every role that depends on it.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableIAMUserPermissions"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:aws:iam::${var.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
+
+  tags = var.tags
+
+  # Destroying it schedules deletion of the key every database master key on it
+  # is wrapped by. Moving those databases off it is a deliberate step; this
+  # makes Terraform refuse until the block is removed. Same guard as the
+  # db-at-* clusters.
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_kms_alias" "this" {
+  name          = var.alias
+  target_key_id = aws_kms_key.this.key_id
+
+  # The alias is how people find the key; a replacement would point it at a
+  # new one.
+  lifecycle {
+    prevent_destroy = true
+  }
+}

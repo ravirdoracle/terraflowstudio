@@ -1,0 +1,35 @@
+#
+# odb_network_id is auto-wired from module.{{ mn0 }}.network_id in root main.tf.
+# Override below only if referencing a network from a different stack.
+
+display_name = "{{ display_name }}"
+{% if odb_network_id and not odb_network_id_is_ref %}
+odb_network_id  = "{{ odb_network_id }}"
+{% else %}
+# odb_network_id  = module.{{ mn0 }}.network_id
+{% endif %}
+{% if peer_network_id and not peer_network_id_is_ref %}
+peer_network_id = "{{ peer_network_id }}"
+{% else %}
+# peer_network_id = "vpc-xxxxxxxxxxxxxxxxx"
+{% endif %}
+{% if region %}
+region          = "{{ region }}"
+{% else %}
+# region          = "us-west-2"
+{% endif %}
+
+# peer_network_cidrs is update-only — uncomment and re-apply AFTER the resource is created.
+{% if cidrs %}
+# peer_network_cidrs = toset([{{ cidrs | map("tojson") | join(", ") }}])
+{% else %}
+# peer_network_cidrs = toset([])
+{% endif %}
+
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "ManagedBy" = "Terraform"
+{% endfor %}
+}

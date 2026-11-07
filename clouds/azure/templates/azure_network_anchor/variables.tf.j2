@@ -1,0 +1,80 @@
+variable "resource_group_name" {
+  type = string
+}
+variable "location" {
+  type = string
+}
+variable "name" {
+  type        = string
+  description = "Network Anchor name: 3-24 letters, digits or hyphens."
+  validation {
+    condition     = can(regex("^[A-Za-z0-9-]{3,24}$", var.name))
+    error_message = "name must be 3-24 characters: letters, digits or hyphens."
+  }
+}
+variable "resource_anchor_id" {
+  type        = string
+  description = "Azure resource ID of the Oracle Resource Anchor (maps to an OCI compartment)."
+  validation {
+    condition     = can(regex("(?i)/providers/Oracle\\.Database/resourceAnchors/[^/]+$", var.resource_anchor_id))
+    error_message = "resource_anchor_id must be the Azure resource ID of an Oracle.Database/resourceAnchors resource."
+  }
+}
+variable "virtual_network_name" {
+  type        = string
+  description = "VNet that receives the Network Anchor's delegated subnet."
+}
+variable "subnet_name" {
+  type = string
+}
+variable "subnet_address_prefix" {
+  type        = string
+  description = "CIDR of the Network Anchor's own delegated subnet."
+}
+variable "zone" {
+  type        = string
+  default     = null
+  description = "Availability zone, or null to leave it to the service."
+}
+variable "oci_vcn_dns_label" {
+  type        = string
+  default     = null
+  description = "DNS label of the OCI VCN built behind the anchor. Optional when DNS is configured."
+}
+variable "oci_backup_cidr_block" {
+  type        = string
+  default     = null
+  description = "OCI backup subnet CIDR."
+}
+variable "dns_zone_sync_enabled" {
+  type        = bool
+  default     = null
+  description = "Replicate the databases' private DNS zones from OCI to Azure."
+}
+variable "dns_listening_endpoint_enabled" {
+  type        = bool
+  default     = null
+  description = "Create an OCI DNS listening endpoint that Azure can query for database FQDNs."
+}
+variable "dns_listening_allowed_cidrs" {
+  type        = list(string)
+  default     = []
+  description = "CIDRs allowed to query the listening endpoint."
+}
+variable "dns_forwarding_endpoint_enabled" {
+  type        = bool
+  default     = null
+  description = "Create an OCI DNS forwarding endpoint so databases can resolve Azure private FQDNs."
+}
+variable "dns_forwarding_rules" {
+  type = list(object({
+    domain_names          = list(string)
+    forwarding_ip_address = string
+  }))
+  default     = []
+  description = "Domains forwarded to an Azure DNS inbound endpoint."
+}
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

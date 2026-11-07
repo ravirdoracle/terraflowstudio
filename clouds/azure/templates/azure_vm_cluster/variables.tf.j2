@@ -1,0 +1,141 @@
+variable "resource_group_name" {
+  type    = string
+  default = "{{ resource_group_name }}"
+}
+variable "location" {
+  type    = string
+  default = "{{ location }}"
+}
+variable "name" {
+  type    = string
+  default = "{{ name }}"
+}
+variable "display_name" {
+  type    = string
+  default = "{{ display_name }}"
+}
+variable "cloud_exadata_infrastructure_id" {
+  type    = string
+  default = "{{ cloud_exadata_infrastructure_id }}"
+}
+variable "subnet_id" {
+  type    = string
+  default = "{{ subnet_id }}"
+}
+variable "virtual_network_id" {
+  type    = string
+  default = "{{ virtual_network_id }}"
+}
+variable "hostname" {
+  type    = string
+  default = "{{ hostname }}"
+}
+variable "cpu_core_count" {
+  type    = number
+  default = {{ cpu_core_count }}
+}
+variable "data_storage_size_in_tbs" {
+  type    = number
+  default = {{ data_storage_size_in_tbs }}
+}
+variable "db_node_storage_size_in_gbs" {
+  type    = number
+  default = {{ db_node_storage_size_in_gbs }}
+}
+variable "memory_size_in_gbs" {
+  type    = number
+  default = {{ memory_size_in_gbs }}
+}
+variable "ssh_public_keys" {
+  type    = list(string)
+  default = {{ ssh_public_keys_tf }}
+}
+variable "gi_version" {
+  type    = string
+  default = "{{ gi_version }}"
+}
+variable "license_model" {
+  type    = string
+  default = "{{ license_model }}"
+}
+variable "cluster_name" {
+  type    = string
+  default = "{{ cluster_name }}"
+}
+variable "domain" {
+  type    = string
+  default = "{{ domain }}"
+}
+variable "backup_subnet_cidr" {
+  type        = string
+  description = "Backup subnet CIDR. Changing this replaces the VM cluster. Must not overlap the VNet address space."
+  default     = "{{ backup_subnet_cidr }}"
+
+  validation {
+    condition     = can(cidrhost(var.backup_subnet_cidr, 0))
+    error_message = "backup_subnet_cidr must be a valid CIDR block, e.g. 192.168.252.0/22."
+  }
+}
+variable "data_storage_percentage" {
+  type    = number
+  default = {{ data_storage_percentage }}
+}
+variable "time_zone" {
+  type    = string
+  default = "{{ time_zone }}"
+}
+variable "scan_listener_port_tcp" {
+  type    = number
+  default = {{ scan_listener_port_tcp }}
+}
+variable "scan_listener_port_tcp_ssl" {
+  type    = number
+{% if scan_listener_port_tcp_ssl %}
+  default = {{ scan_listener_port_tcp_ssl }}
+{% else %}
+  default = null
+{% endif %}
+}
+variable "system_version" {
+  type    = string
+  default = "{{ system_version }}"
+}
+variable "zone_id" {
+  type    = string
+  default = "{{ zone_id }}"
+}
+variable "db_servers" {
+  type    = list(string)
+  default = {{ db_servers_tf }}
+}
+variable "local_backup_enabled" {
+  type    = bool
+  default = {{ local_backup_enabled }}
+}
+variable "sparse_diskgroup_enabled" {
+  type    = bool
+  default = {{ sparse_diskgroup_enabled }}
+}
+variable "file_system_configuration" {
+  type = list(object({
+    mount_point = optional(string)
+    size_in_gb  = optional(number)
+  }))
+  default = {{ file_system_configuration_tf }}
+}
+variable "dco_diagnostics_events_enabled" {
+  type    = bool
+  default = {{ dco_diagnostics_events_enabled }}
+}
+variable "dco_health_monitoring_enabled" {
+  type    = bool
+  default = {{ dco_health_monitoring_enabled }}
+}
+variable "dco_incident_logs_enabled" {
+  type    = bool
+  default = {{ dco_incident_logs_enabled }}
+}
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

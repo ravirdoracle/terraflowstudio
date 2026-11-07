@@ -1,0 +1,50 @@
+variable "odb_network_id" {
+  description = "The ID of the ODB Network. Must start with a letter, max 63 chars."
+  type        = string
+}
+
+variable "location" {
+  description = "GCP region where the ODB Network is hosted (e.g. us-east4)."
+  type        = string
+}
+
+variable "network" {
+  description = "VPC network self-link. Format: projects/{project}/global/networks/{name}"
+  type        = string
+}
+
+variable "project" {
+  description = "GCP project ID. Defaults to provider project if null."
+  type        = string
+  default     = null
+}
+
+variable "gcp_oracle_zone" {
+  description = "Oracle zone within the GCP region (e.g. us-east4-b-r1)."
+  type        = string
+  default     = null
+}
+
+variable "client_subnet_id" {
+  description = "ID for the client subnet. Max 63 chars, lowercase letters/numbers/hyphens."
+  type        = string
+}
+
+variable "client_cidr_range" {
+  description = "CIDR for the client subnet. RFC1918, /27 minimum, /22 maximum."
+  type        = string
+}
+
+# No backup_subnet_id / backup_cidr_range: an Autonomous Database never uses a
+# backup subnet. Use the gcp-odb-network module for a network that also has to
+# serve Exadata VM Clusters.
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "labels" {
+  type    = map(string)
+  default = {}
+}

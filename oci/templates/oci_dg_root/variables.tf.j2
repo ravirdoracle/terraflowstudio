@@ -1,0 +1,132 @@
+variable "prefix" {
+  description = "Name prefix for all resources"
+  type        = string
+  default     = "{{ prefix }}"
+}
+
+variable "compartment_id" {
+  description = "OCI compartment OCID"
+  type        = string
+{% if compartment_id %}
+  default     = "{{ compartment_id }}"
+{% endif %}
+  sensitive   = true
+}
+
+variable "primary_region" {
+  description = "OCI region for the primary site, e.g. us-ashburn-1"
+  type        = string
+  default     = "{{ primary_oci_region }}"
+}
+
+variable "dr_region" {
+  description = "OCI region for the DR site, e.g. us-phoenix-1"
+  type        = string
+  default     = "{{ standby_oci_region }}"
+}
+
+variable "primary_vcn_id" {
+  description = "OCID of the existing primary VM Cluster VCN"
+  type        = string
+{% if primary_vcn_id %}
+  default     = "{{ primary_vcn_id }}"
+{% endif %}
+}
+
+variable "primary_nsg_id" {
+  description = "OCID of the primary VM Cluster NSG"
+  type        = string
+{% if primary_nsg_id %}
+  default     = "{{ primary_nsg_id }}"
+{% endif %}
+}
+
+variable "primary_client_cidr" {
+  description = "CIDR of the primary client subnet"
+  type        = string
+  default     = "{{ primary_client_cidr }}"
+}
+
+variable "primary_route_table_id" {
+  description = "OCID of the primary VCN default route table — import before apply"
+  type        = string
+{% if primary_route_table_id %}
+  default     = "{{ primary_route_table_id }}"
+{% endif %}
+}
+
+variable "primary_hub_cidr" {
+  description = "CIDR for the primary Hub VCN, e.g. 10.15.0.0/24"
+  type        = string
+  default     = "{{ primary_hub_cidr }}"
+}
+
+variable "dr_vcn_id" {
+  description = "OCID of the existing DR VM Cluster VCN"
+  type        = string
+{% if standby_vcn_id %}
+  default     = "{{ standby_vcn_id }}"
+{% endif %}
+}
+
+variable "dr_nsg_id" {
+  description = "OCID of the DR VM Cluster NSG"
+  type        = string
+{% if standby_nsg_id %}
+  default     = "{{ standby_nsg_id }}"
+{% endif %}
+}
+
+variable "dr_client_cidr" {
+  description = "CIDR of the DR client subnet"
+  type        = string
+  default     = "{{ standby_client_cidr }}"
+}
+
+variable "dr_route_table_id" {
+  description = "OCID of the DR VCN default route table — import before apply"
+  type        = string
+{% if standby_route_table_id %}
+  default     = "{{ standby_route_table_id }}"
+{% endif %}
+}
+
+variable "dr_hub_cidr" {
+  description = "CIDR for the DR Hub VCN, e.g. 10.16.0.0/24"
+  type        = string
+  default     = "{{ standby_hub_cidr }}"
+}
+{% if extra_pairs %}
+
+variable "additional_pairs" {
+  description = "More primary/DR cluster VCN pairs on the same hub VCNs, DRGs and RPC. Each pair routes only to its own peer."
+  type = map(object({
+    primary_vcn_id         = string
+    primary_nsg_id         = string
+    primary_client_cidr    = string
+    primary_route_table_id = optional(string, "")
+    dr_vcn_id              = string
+    dr_nsg_id              = string
+    dr_client_cidr         = string
+    dr_route_table_id      = optional(string, "")
+    # Only read when route tables are Terraform-managed: the default route
+    # table's rules before import (terraform state show), kept alongside the
+    # Data Guard rule. Empty means the table keeps the Data Guard rule alone.
+    primary_existing_route_rules = optional(list(object({
+      destination       = string
+      destination_type  = optional(string, "CIDR_BLOCK")
+      network_entity_id = string
+      description       = optional(string)
+    })), [])
+    dr_existing_route_rules = optional(list(object({
+      destination       = string
+      destination_type  = optional(string, "CIDR_BLOCK")
+      network_entity_id = string
+      description       = optional(string)
+    })), [])
+  }))
+  # Each pair adds an LPG to each hub VCN; OCI allows 10 per VCN by default,
+  # i.e. the first pair plus 9 here unless the limit has been raised.
+  default = {}
+}
+{% endif %}

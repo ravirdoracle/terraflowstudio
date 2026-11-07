@@ -1,0 +1,41 @@
+terraform {
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      # The first release with the Exascale resources: 7.19.0 fails validate
+      # with "Invalid resource type".
+      version = ">= 7.20.0"
+    }
+  }
+}
+
+# Exascale Database Storage Vault — the shared database storage an Exascale VM
+# Cluster runs on. Several clusters can use one vault.
+resource "google_oracle_database_exascale_db_storage_vault" "this" {
+  exascale_db_storage_vault_id = var.exascale_db_storage_vault_id
+  display_name                 = var.display_name != null && var.display_name != "" ? var.display_name : var.exascale_db_storage_vault_id
+  location                     = var.location
+  project                      = var.project
+  gcp_oracle_zone              = var.gcp_oracle_zone != "" ? var.gcp_oracle_zone : null
+  deletion_protection          = var.deletion_protection
+  labels                       = var.labels
+
+  properties {
+    additional_flash_cache_percent = var.additional_flash_cache_percent
+
+    exascale_db_storage_details {
+      total_size_gbs = var.total_size_gbs
+    }
+
+    dynamic "time_zone" {
+      for_each = var.time_zone != null && var.time_zone != "" ? [1] : []
+      content { id = var.time_zone }
+    }
+  }
+
+  timeouts {
+    create = "3h"
+    update = "3h"
+    delete = "3h"
+  }
+}

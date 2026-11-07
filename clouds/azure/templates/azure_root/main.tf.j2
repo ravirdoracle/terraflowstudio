@@ -1,0 +1,201 @@
+# AI DB@Azure: VNets → Exadata Infras → VM Clusters
+# Toolchain: {{ 'OpenTofu' if iac_tool == 'opentofu' else 'Terraform' }}
+
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = ">= 4.9.0"
+    }
+{% if network_anchors %}
+    # Network Anchor: no azurerm resource exists for it yet.
+    azapi = {
+      source  = "azure/azapi"
+      version = ">= {{ azapi_floor }}"
+    }
+{% endif %}
+  }
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = var.subscription_id
+}
+{% if network_anchors %}
+
+provider "azapi" {
+  subscription_id = var.subscription_id
+}
+{% endif %}
+
+{% for anc in anchors %}
+# ── Oracle Resource Anchor: {{ anc.module_name }} ─────────────────────────────
+module "{{ anc.module_name }}" {
+  source              = "./modules/{{ anc.module_name }}"
+  resource_group_name = var.resource_group_name
+  name                = var.{{ anc.module_name }}_name
+  tags                = var.tags
+}
+
+{% endfor %}
+{% for net in vnets %}
+# ── VNet + Delegated Subnet: {{ net.module_name }} ─────────────────────────────
+module "{{ net.module_name }}" {
+  source                = "./modules/{{ net.module_name }}"
+  resource_group_name   = var.resource_group_name
+  location              = var.location
+  vnet_name             = var.{{ net.module_name }}_vnet_name
+  address_space         = var.{{ net.module_name }}_address_space
+  subnet_name           = var.{{ net.module_name }}_subnet_name
+  subnet_address_prefix = var.{{ net.module_name }}_subnet_address_prefix
+  tags                  = var.tags
+}
+
+{% endfor %}
+{% for na in network_anchors %}
+# ── Oracle Network Anchor: {{ na.module_name }} ───────────────────────────────
+# The network bridge to OCI, on a delegated subnet of its own.
+module "{{ na.module_name }}" {
+  source                          = "./modules/{{ na.module_name }}"
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
+  name                            = var.{{ na.module_name }}.name
+{% if na.resource_anchor_ref %}
+  resource_anchor_id              = module.{{ na.resource_anchor_ref }}.resource_anchor_id
+{% else %}
+  resource_anchor_id              = var.{{ na.module_name }}.resource_anchor_id
+{% endif %}
+{% if na.vnet_ref %}
+  virtual_network_name            = module.{{ na.vnet_ref }}.vnet_name
+{% else %}
+  virtual_network_name            = var.{{ na.module_name }}.virtual_network_name
+{% endif %}
+  subnet_name                     = var.{{ na.module_name }}.subnet_name
+  subnet_address_prefix           = var.{{ na.module_name }}.subnet_address_prefix
+  zone                            = var.{{ na.module_name }}.zone
+  oci_vcn_dns_label               = var.{{ na.module_name }}.oci_vcn_dns_label
+  oci_backup_cidr_block           = var.{{ na.module_name }}.oci_backup_cidr_block
+  dns_zone_sync_enabled           = var.{{ na.module_name }}.dns_zone_sync_enabled
+  dns_listening_endpoint_enabled  = var.{{ na.module_name }}.dns_listening_endpoint_enabled
+  dns_listening_allowed_cidrs     = var.{{ na.module_name }}.dns_listening_allowed_cidrs
+  dns_forwarding_endpoint_enabled = var.{{ na.module_name }}.dns_forwarding_endpoint_enabled
+  dns_forwarding_rules            = var.{{ na.module_name }}.dns_forwarding_rules
+  tags                            = var.tags
+}
+
+{% endfor %}
+{% for inf in infras %}
+# ── Exadata Infrastructure: {{ inf.module_name }} ─────────────────────────────
+{% set w = 20 if (inf.database_server_type or inf.storage_server_type) else 19 %}
+module "{{ inf.module_name }}" {
+  {{ "source".ljust(w) }} = "./modules/{{ inf.module_name }}"
+  {{ "resource_group_name".ljust(w) }} = var.resource_group_name
+  {{ "location".ljust(w) }} = var.location
+  {{ "name".ljust(w) }} = var.{{ inf.module_name }}_name
+  {{ "display_name".ljust(w) }} = var.{{ inf.module_name }}_display_name
+  {{ "shape".ljust(w) }} = var.{{ inf.module_name }}_shape
+{% if inf.database_server_type %}
+  {{ "database_server_type".ljust(w) }} = var.{{ inf.module_name }}_database_server_type
+{% endif %}
+{% if inf.storage_server_type %}
+  {{ "storage_server_type".ljust(w) }} = var.{{ inf.module_name }}_storage_server_type
+{% endif %}
+  {{ "compute_count".ljust(w) }} = var.{{ inf.module_name }}_compute_count
+  {{ "storage_count".ljust(w) }} = var.{{ inf.module_name }}_storage_count
+  {{ "zone".ljust(w) }} = var.{{ inf.module_name }}_zone
+  {{ "tags".ljust(w) }} = var.tags
+}
+
+{% endfor %}
+{% for cl in clusters %}
+# ── VM Cluster: {{ cl.module_name }} ──────────────────────────────────────────
+module "{{ cl.module_name }}" {
+  source                          = "./modules/{{ cl.module_name }}"
+  resource_group_name             = var.resource_group_name
+  location                        = var.location
+  name                            = var.{{ cl.module_name }}_name
+  display_name                    = var.{{ cl.module_name }}_display_name
+  hostname                        = var.{{ cl.module_name }}_hostname
+  cpu_core_count                  = var.{{ cl.module_name }}_cpu_core_count
+  data_storage_size_in_tbs        = var.{{ cl.module_name }}_data_storage_size_in_tbs
+  memory_size_in_gbs              = var.{{ cl.module_name }}_memory_size_in_gbs
+  db_node_storage_size_in_gbs     = var.{{ cl.module_name }}_db_node_storage_size_in_gbs
+  gi_version                      = var.{{ cl.module_name }}_gi_version
+  license_model                   = var.{{ cl.module_name }}_license_model
+  ssh_public_keys                 = var.{{ cl.module_name }}_ssh_public_keys
+  local_backup_enabled            = var.{{ cl.module_name }}_local_backup_enabled
+  sparse_diskgroup_enabled        = var.{{ cl.module_name }}_sparse_diskgroup_enabled
+  cluster_name                    = var.{{ cl.module_name }}_cluster_name
+  time_zone                       = var.{{ cl.module_name }}_time_zone
+  scan_listener_port_tcp          = var.{{ cl.module_name }}_scan_listener_port_tcp
+  cloud_exadata_infrastructure_id = module.{{ cl.infra_ref }}.infra_id
+  subnet_id                       = module.{{ cl.vnet_ref }}.subnet_id
+  virtual_network_id              = module.{{ cl.vnet_ref }}.vnet_id
+  tags                            = var.tags
+
+  depends_on = [module.{{ cl.infra_ref }}, module.{{ cl.vnet_ref }}]
+}
+
+{% endfor %}
+{% for adb in adbs %}
+# ── Autonomous Database Serverless: {{ adb.module_name }} ─────────────────────
+# Serverless has no Exadata Infrastructure under it — Oracle runs the fleet.
+# It attaches to the same Oracle-delegated subnet the VM clusters use.
+module "{{ adb.module_name }}" {
+  source                           = "./modules/{{ adb.module_name }}"
+  resource_group_name              = var.resource_group_name
+  location                         = var.location
+  name                             = var.{{ adb.module_name }}_name
+  display_name                     = var.{{ adb.module_name }}_display_name
+  db_workload                      = var.{{ adb.module_name }}_db_workload
+  db_version                       = var.{{ adb.module_name }}_db_version
+  license_model                    = var.{{ adb.module_name }}_license_model
+  compute_model                    = var.{{ adb.module_name }}_compute_model
+  compute_count                    = var.{{ adb.module_name }}_compute_count
+  data_storage_size_in_tbs         = var.{{ adb.module_name }}_data_storage_size_in_tbs
+  auto_scaling_enabled             = var.{{ adb.module_name }}_auto_scaling_enabled
+  auto_scaling_for_storage_enabled = var.{{ adb.module_name }}_auto_scaling_for_storage_enabled
+  backup_retention_period_in_days  = var.{{ adb.module_name }}_backup_retention_period_in_days
+  character_set                    = var.{{ adb.module_name }}_character_set
+  national_character_set           = var.{{ adb.module_name }}_national_character_set
+  mtls_connection_required         = var.{{ adb.module_name }}_mtls_connection_required
+  allowed_ips                      = var.{{ adb.module_name }}_allowed_ips
+  customer_contacts                = var.{{ adb.module_name }}_customer_contacts
+  admin_password                   = var.{{ adb.module_name }}_admin_password
+{% if adb.vnet_ref %}
+  subnet_id                        = module.{{ adb.vnet_ref }}.subnet_id
+  virtual_network_id               = module.{{ adb.vnet_ref }}.vnet_id
+{% endif %}
+  tags                             = var.tags
+{% if adb.vnet_ref %}
+
+  depends_on = [module.{{ adb.vnet_ref }}]
+{% endif %}
+}
+
+{% endfor %}
+# ── Outputs ────────────────────────────────────────────────────────────────────
+{% for anc in anchors %}
+output "{{ anc.module_name }}_resource_anchor_id" { value = module.{{ anc.module_name }}.resource_anchor_id }
+output "{{ anc.module_name }}_linked_compartment_id" { value = module.{{ anc.module_name }}.linked_compartment_id }
+{% endfor %}
+{% for na in network_anchors %}
+output "{{ na.module_name }}_network_anchor_id" { value = module.{{ na.module_name }}.network_anchor_id }
+output "{{ na.module_name }}_oci_vcn_id" { value = module.{{ na.module_name }}.oci_vcn_id }
+{% endfor %}
+{% for net in vnets %}
+output "{{ net.module_name }}_vnet_id" { value = module.{{ net.module_name }}.vnet_id }
+output "{{ net.module_name }}_subnet_id" { value = module.{{ net.module_name }}.subnet_id }
+{% endfor %}
+{% for inf in infras %}
+output "{{ inf.module_name }}_infra_id" { value = module.{{ inf.module_name }}.infra_id }
+output "{{ inf.module_name }}_infra_name" { value = module.{{ inf.module_name }}.infra_name }
+{% endfor %}
+{% for cl in clusters %}
+output "{{ cl.module_name }}_cluster_id" { value = module.{{ cl.module_name }}.cluster_id }
+output "{{ cl.module_name }}_ocid" { value = module.{{ cl.module_name }}.ocid }
+{% endfor %}
+{% for adb in adbs %}
+output "{{ adb.module_name }}_autonomous_database_id" { value = module.{{ adb.module_name }}.autonomous_database_id }
+{% endfor %}

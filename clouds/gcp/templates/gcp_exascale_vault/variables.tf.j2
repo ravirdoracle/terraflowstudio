@@ -1,0 +1,52 @@
+variable "exascale_db_storage_vault_id" {
+  description = "Vault ID: 1-63 lowercase letters, digits or hyphens; starts with a letter."
+  type        = string
+}
+
+variable "display_name" {
+  type    = string
+  default = null
+}
+
+variable "location" {
+  description = "GCP region (e.g. us-east4)."
+  type        = string
+}
+
+variable "project" {
+  description = "GCP project ID. Defaults to provider project if null."
+  type        = string
+  default     = null
+}
+
+variable "gcp_oracle_zone" {
+  description = "GCP Oracle zone (e.g. us-east4-a-r1). Exascale VM Clusters on this vault run in it."
+  type        = string
+  default     = ""
+}
+
+variable "total_size_gbs" {
+  description = "Database storage capacity: 300 to 100,000 GB."
+  type        = number
+}
+
+variable "additional_flash_cache_percent" {
+  description = "Smart flash and memory cache, 34 to 300 percent of the storage capacity. Null for none."
+  type        = number
+  default     = null
+}
+
+variable "time_zone" {
+  type    = string
+  default = null
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "labels" {
+  type    = map(string)
+  default = {}
+}

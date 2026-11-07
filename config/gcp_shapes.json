@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Oracle AI Database@GCP Exadata shape catalogue. Single source of truth for the",
+    "shape dropdown on the GCP page and the generator's default shape.",
+    "",
+    "Edit this file, or use /regions, to add a shape — no code change needed. A bad",
+    "edit is rejected on save, so the file on disk is never left in a state that",
+    "would empty the dropdown.",
+    "",
+    "Fields per entry:",
+    "  shape   properties.shape on google_oracle_database_cloud_exadata_infrastructure.",
+    "  label   Human name shown in the dropdown.",
+    "  status  live | planned. Planned shapes are shown greyed out.",
+    "",
+    "No database_server_types / storage_server_types here: the GCP resource has no",
+    "such input. It exposes db_server_version and storage_server_version, but both",
+    "are computed outputs, not values you choose. That is why the editor shows no",
+    "server-type columns for GCP."
+  ],
+  "default_shape": "Exadata.X9M",
+  "shapes": [
+    { "shape": "Exadata.X9M",  "label": "Exadata X9M",  "status": "live" },
+    { "shape": "Exadata.X10M", "label": "Exadata X10M", "status": "live" },
+    { "shape": "Exadata.X11M", "label": "Exadata X11M", "status": "live" }
+  ]
+}

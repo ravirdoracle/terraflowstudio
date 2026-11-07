@@ -1,0 +1,14 @@
+---
+
+## Customer-managed TDE keys (Google Cloud KMS)
+
+Generated as standalone Terraform roots under `kms/`, applied **after** the VM
+cluster exists — each with its own credentials and state, outside this root.
+Follow `kms/<name>/README.md`: `gcp/` first, then `oci/`, then enable
+**GCP CMEK** on the VM cluster in the OCI console.
+
+| Key | VM cluster | Key ring / key | Location | OCI multicloud region |
+|---|---|---|---|---|
+{% for k in kms %}
+| `{{ k.module_name }}` | `{{ k.cluster_ref or '—' }}` | `{{ k.gcp_key_ring_name }}` / `{{ k.gcp_crypto_key_name }}` | `{{ k.gcp_kms_location }}` | `{{ k.oci_multicloud_region }}` |
+{% endfor %}

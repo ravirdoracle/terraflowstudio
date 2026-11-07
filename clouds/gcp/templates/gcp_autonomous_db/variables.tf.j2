@@ -1,0 +1,178 @@
+variable "autonomous_database_id" {
+  description = "Immutable unique ID. Lowercase letters, digits and hyphens; max 63 chars."
+  type        = string
+}
+
+variable "location" {
+  description = "GCP region (e.g. us-east4). ADB is regional — it takes no Oracle zone."
+  type        = string
+}
+
+variable "project" {
+  description = "GCP project ID. Defaults to the provider project if null."
+  type        = string
+  default     = null
+}
+
+variable "database" {
+  description = "Oracle database name — starts with a letter, max 30 alphanumeric chars."
+  type        = string
+}
+
+variable "display_name" {
+  description = "Name shown in the console. Falls back to autonomous_database_id."
+  type        = string
+  default     = null
+}
+
+# No default: the password must never be written into a generated file. Supply
+# it at apply time from the root's gcp_adb_admin_passwords map, or from a secret
+# store. 12-30 chars, upper + lower + digit, no double quote, cannot contain the
+# word "admin".
+variable "admin_password" {
+  description = "ADMIN user password."
+  type        = string
+  sensitive   = true
+}
+
+# ── Network ───────────────────────────────────────────────────────────────────
+# Auto-wired in the root from the ODB Network module. ADB uses the client
+# subnet; the backup subnet is for Exadata VM Clusters only.
+variable "odb_network" {
+  description = "ODB Network name (the ODB network module's odb_network_name output)."
+  type        = string
+}
+
+variable "odb_subnet" {
+  description = "Client ODB Subnet name (the ODB network module's client_subnet_name output)."
+  type        = string
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "labels" {
+  type    = map(string)
+  default = {}
+}
+
+# ── properties ────────────────────────────────────────────────────────────────
+
+variable "db_workload" {
+  description = "OLTP (transaction processing), DW (data warehouse), AJD (JSON) or APEX."
+  type        = string
+  default     = "OLTP"
+  validation {
+    condition     = contains(["OLTP", "DW", "AJD", "APEX"], var.db_workload)
+    error_message = "db_workload must be OLTP, DW, AJD or APEX."
+  }
+}
+
+variable "license_type" {
+  type    = string
+  default = "LICENSE_INCLUDED"
+  validation {
+    condition     = contains(["LICENSE_INCLUDED", "BRING_YOUR_OWN_LICENSE"], var.license_type)
+    error_message = "Must be LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE."
+  }
+}
+
+variable "db_edition" {
+  type    = string
+  default = "ENTERPRISE_EDITION"
+  validation {
+    condition     = contains(["STANDARD_EDITION", "ENTERPRISE_EDITION"], var.db_edition)
+    error_message = "Must be STANDARD_EDITION or ENTERPRISE_EDITION."
+  }
+}
+
+variable "db_version" {
+  description = "Autonomous Database version, e.g. 19c or 23ai."
+  type        = string
+  default     = "23ai"
+}
+
+variable "compute_count" {
+  description = "ECPUs allocated. Minimum 2; fractional values allowed."
+  type        = number
+  default     = 2
+}
+
+variable "data_storage_size_gb" {
+  description = "Storage in GB."
+  type        = number
+  default     = 120
+}
+
+variable "is_auto_scaling_enabled" {
+  description = "Let the database scale compute up to 3x the base count on demand."
+  type        = bool
+  default     = true
+}
+
+variable "is_storage_auto_scaling_enabled" {
+  description = "Let storage grow beyond the reserved size on demand."
+  type        = bool
+  default     = false
+}
+
+variable "backup_retention_period_days" {
+  description = "Automatic backup retention, 1-60 days."
+  type        = number
+  default     = 60
+}
+
+variable "maintenance_schedule_type" {
+  description = "EARLY applies patches a week ahead of REGULAR."
+  type        = string
+  default     = "REGULAR"
+  validation {
+    condition     = contains(["EARLY", "REGULAR"], var.maintenance_schedule_type)
+    error_message = "Must be EARLY or REGULAR."
+  }
+}
+
+variable "character_set" {
+  type    = string
+  default = "AL32UTF8"
+}
+
+variable "n_character_set" {
+  type    = string
+  default = "AL16UTF16"
+}
+
+variable "operations_insights_state" {
+  type    = string
+  default = "NOT_ENABLED"
+  validation {
+    condition     = contains(["ENABLED", "NOT_ENABLED"], var.operations_insights_state)
+    error_message = "Must be ENABLED or NOT_ENABLED."
+  }
+}
+
+variable "mtls_connection_required" {
+  description = "Require mutual TLS. Set false to allow TLS-only connections."
+  type        = bool
+  default     = true
+}
+
+variable "private_endpoint_label" {
+  description = "Hostname prefix for the private endpoint. Empty means Oracle picks one."
+  type        = string
+  default     = ""
+}
+
+variable "private_endpoint_ip" {
+  description = "Private endpoint IP — must sit inside the client subnet CIDR. Empty means Oracle picks one."
+  type        = string
+  default     = ""
+}
+
+variable "customer_contacts" {
+  description = "Email addresses Oracle notifies about this database."
+  type        = list(string)
+  default     = []
+}

@@ -1,0 +1,71 @@
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 6.42.0" }
+  }
+}
+
+resource "aws_odb_cloud_autonomous_vm_cluster" "this" {
+  display_name                          = var.display_name
+  autonomous_data_storage_size_in_tbs   = var.autonomous_data_storage_size_in_tbs
+  cpu_core_count_per_node               = var.cpu_core_count_per_node
+  memory_per_oracle_compute_unit_in_gbs = var.memory_per_oracle_compute_unit_in_gbs
+  total_container_databases             = var.total_container_databases
+  scan_listener_port_non_tls            = var.scan_listener_port_non_tls
+  scan_listener_port_tls                = var.scan_listener_port_tls
+
+  # The provider accepts the id pair OR the arn pair and rejects a config that
+  # sets both — a null value still counts as set, so the unused pair is omitted
+  # from the configuration entirely rather than assigned null. That is why the
+  # arn variant lives in its own module directory instead of a conditional here.
+{% if use_arn_pair %}
+  # ARN pair — infra/network live in a different account or stack.
+  cloud_exadata_infrastructure_arn = var.cloud_exadata_infrastructure_arn
+  odb_network_arn                  = var.odb_network_arn
+{% else %}
+  cloud_exadata_infrastructure_id = var.cloud_exadata_infrastructure_id
+  odb_network_id                  = var.odb_network_id
+{% endif %}
+
+  # Required argument — always set, even when the manual list is still empty.
+  # Wired from the root: discovered via data.aws_odb_db_servers, or the list
+  # supplied by hand.
+  db_servers = var.db_servers
+
+  license_model              = var.license_model
+  is_mtls_enabled_vm_cluster = var.is_mtls_enabled_vm_cluster
+
+  description = var.description != "" ? var.description : null
+  time_zone   = var.time_zone != "" ? var.time_zone : null
+
+  # aws_odb_cloud_autonomous_vm_cluster accepts only preference + the schedule
+  # fields here. patching_mode / is_custom_action_timeout_enabled /
+  # custom_action_timeout_in_mins exist on the Exadata Infrastructure's
+  # maintenance_window, not this one.
+  maintenance_window {
+    preference         = var.mw_preference
+    days_of_week       = length(var.mw_days_of_week) > 0 ? [for d in var.mw_days_of_week : { name = d }] : null
+    months             = length(var.mw_months) > 0 ? [for m in var.mw_months : { name = m }] : null
+    hours_of_day       = length(var.mw_hours_of_day) > 0 ? var.mw_hours_of_day : null
+    weeks_of_month     = length(var.mw_weeks_of_month) > 0 ? var.mw_weeks_of_month : null
+    lead_time_in_weeks = var.mw_lead_time_in_weeks > 0 ? var.mw_lead_time_in_weeks : null
+  }
+
+  tags = var.tags
+
+  # ODB operations run for hours: an ODB network ~4 h, a VM cluster 4-6 h.
+  timeouts {
+    create = "12h"
+    update = "2h"
+    delete = "8h"
+  }
+
+  # Rebuilding this takes hours and can take dependent resources with it, so a
+  # destroy - or a change that would force replacement - is refused until this
+  # line is removed.
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes = [
+      db_servers,
+    ]
+  }
+}

@@ -1,0 +1,81 @@
+display_name          = "{{ display_name }}"
+shape                 = "{{ shape }}"
+compute_count         = {{ compute_count }}
+storage_count         = {{ storage_count }}
+availability_zone_id  = "{{ availability_zone_id }}"
+{% if availability_zone %}
+availability_zone     = "{{ availability_zone }}"
+{% else %}
+# availability_zone     = "us-west-2c"
+{% endif %}
+{% if region %}
+region                = "{{ region }}"
+{% else %}
+# region                = "us-west-2"
+{% endif %}
+{% if database_server_type %}
+database_server_type  = "{{ database_server_type }}"
+{% else %}
+# database_server_type  = "X11M"
+{% endif %}
+{% if storage_server_type %}
+storage_server_type   = "{{ storage_server_type }}"
+{% else %}
+# storage_server_type   = "X11M-HC"
+{% endif %}
+
+customer_contacts = [
+{% for c in customer_contacts %}
+  { email = "{{ c }}" },
+{% else %}
+  # { email = "admin@example.com" },
+{% endfor %}
+]
+
+maintenance_window = {
+  preference                       = "{{ mw_preference }}"
+  patching_mode                    = "{{ mw_patching_mode }}"
+  is_custom_action_timeout_enabled = {{ mw_is_custom_action_timeout_enabled }}
+  custom_action_timeout_in_mins    = {{ mw_custom_action_timeout_in_mins }}
+{% if mw_lead_time_in_weeks %}
+  lead_time_in_weeks = {{ mw_lead_time_in_weeks }}
+{% else %}
+  lead_time_in_weeks = null
+{% endif %}
+{% if mw_days_of_week %}
+  days_of_week = [
+{% for d in mw_days_of_week %}
+    { name = "{{ d }}" },
+{% endfor %}
+  ]
+{% else %}
+  days_of_week = null  # e.g. [{ name = "MONDAY" }, { name = "TUESDAY" }]
+{% endif %}
+{% if mw_months %}
+  months = [
+{% for m in mw_months %}
+    { name = "{{ m }}" },
+{% endfor %}
+  ]
+{% else %}
+  months = null  # e.g. [{ name = "JANUARY" }, { name = "APRIL" }]
+{% endif %}
+{% if mw_hours_of_day %}
+  hours_of_day   = [{{ mw_hours_of_day | join(", ") }}]
+{% else %}
+  hours_of_day   = null  # e.g. [0, 4, 8, 12, 16, 20]
+{% endif %}
+{% if mw_weeks_of_month %}
+  weeks_of_month = [{{ mw_weeks_of_month | join(", ") }}]
+{% else %}
+  weeks_of_month = null  # e.g. [1, 2, 3, 4]
+{% endif %}
+}
+
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "ManagedBy" = "Terraform"
+{% endfor %}
+}

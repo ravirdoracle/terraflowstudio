@@ -1,0 +1,31 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Acme AI DB@Azure" id="terraflow">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <object label='&lt;b&gt;VNet&lt;/b&gt;&lt;br&gt;azure_vnet&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;vnet_name: odb-vnet&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;address_space: 10.20.0.0/16&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;subnet_name: odb-subnet&lt;/span&gt;' tf_type="azure_vnet" provider="azure" module_name="azure_vnet" vnet_name="odb-vnet" address_space="10.20.0.0/16" subnet_name="odb-subnet" subnet_address_prefix="10.20.1.0/24" id="n1">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E5F1FB;strokeColor=#0078D4;fontColor=#004578;" vertex="1" parent="1">
+            <mxGeometry x="40" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <object label='&lt;b&gt;Exadata Infra&lt;/b&gt;&lt;br&gt;azure_exainfra&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;shape: Exadata.X11M&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;compute_count: 2&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;storage_count: 3&lt;/span&gt;' tf_type="azure_exadata_infra" provider="oci" module_name="azure_exainfra" shape="Exadata.X11M" compute_count="2" storage_count="3" zone="1" id="n2">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBE9E7;strokeColor=#C74634;fontColor=#7A1B12;" vertex="1" parent="1">
+            <mxGeometry x="400" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <object label='&lt;b&gt;VM Cluster&lt;/b&gt;&lt;br&gt;azure_vmcluster&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;cpu_core_count: 4&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;gi_version: 19.0.0.0&lt;/span&gt;&lt;br&gt;&lt;span style="font-size:9px;color:#888"&gt;memory_size_in_gbs: 60&lt;/span&gt;' tf_type="azure_vm_cluster" provider="oci" module_name="azure_vmcluster" cpu_core_count="4" gi_version="19.0.0.0" memory_size_in_gbs="60" id="n3">
+          <mxCell style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FBE9E7;strokeColor=#C74634;fontColor=#7A1B12;" vertex="1" parent="1">
+            <mxGeometry x="760" y="40" width="220" height="90" as="geometry"/>
+          </mxCell>
+        </object>
+        <mxCell id="e1" value="runs on" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#8A8A8A;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="n3" target="n2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="attached to" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#8A8A8A;fontColor=#555555;fontSize=10;" edge="1" parent="1" source="n3" target="n1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

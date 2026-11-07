@@ -1,0 +1,29 @@
+variable "display_name" {
+  type = string
+}
+
+variable "odb_network_id" {
+  description = "ID of the source ODB network — wired from the ODB network module in the root."
+  type        = string
+}
+
+variable "peer_network_id" {
+  description = "ID of the peer VPC."
+  type        = string
+}
+
+variable "region" {
+  type    = string
+  default = ""
+}
+
+variable "peer_network_cidrs" {
+  description = "CIDRs to allow through the peering — update-only, add after initial create."
+  type        = set(string)
+  default     = []
+}
+
+variable "tags" {
+  type    = map(string)
+  default = { "ManagedBy" = "Terraform" }
+}

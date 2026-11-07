@@ -1,0 +1,15 @@
+variable "container_database_id" {
+  description = "OCID of the parent CDB. Auto-wired from module.{{ cdb_ref }}.cdb_id."
+  type        = string
+  default     = ""
+}
+variable "pdb_name" {
+  description = "PDB name (max 30 chars, differs from CDB name)."
+  type        = string
+  default     = "{{ pdb_name }}"
+}
+variable "pdb_admin_password" {
+  description = "PDB admin password. Set via: export TF_VAR_{{ module_name }}_pdb_admin_password=..."
+  type        = string
+  sensitive   = true
+}

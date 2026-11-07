@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraflow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;--line2:#c8c4bc;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--orange2:#ff6b2b;--o-dim:rgba(232,80,10,0.08);--o-dim2:rgba(232,80,10,0.18);
+  --green:#1a7a4a;--red:#c0392b;
+  --blue:#1a56a0;
+  --gcp:#4285F4;--gcp-dim:rgba(66,133,244,0.10);--gcp-dim2:rgba(66,133,244,0.18);
+  --radius:6px;--radius-lg:10px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.07);--shadow:0 2px 8px rgba(0,0,0,0.09);
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--off);color:var(--ink);font-family:var(--font-b);min-height:100vh;line-height:1.5;display:flex;flex-direction:column;}
+header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{display:flex;align-items:baseline;gap:14px;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:var(--white);line-height:1;}
+.logo-name .ac{color:#ff6b2b;}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.pill{font-family:var(--font-m);font-size:10px;border:1px solid #333;border-radius:4px;padding:2px 8px;color:#666;}
+.pill strong{color:#4caf7d;font-weight:500;}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 28px;}
+.hero{text-align:center;margin-bottom:56px;}
+.hero-title{font-family:var(--font-d);font-weight:800;font-size:52px;line-height:1;color:var(--ink);letter-spacing:-0.02em;margin-bottom:10px;}
+.hero-sub{font-family:var(--font-m);font-size:13px;color:var(--ink3);letter-spacing:.04em;}
+.cards{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:18px;max-width:1600px;width:100%;}
+.product-card{display:flex;flex-direction:column;background:var(--white);border:2px solid var(--line2);border-radius:var(--radius-lg);padding:36px 32px 28px;box-shadow:var(--shadow);text-decoration:none;transition:all .2s;cursor:pointer;}
+.product-card:hover{transform:translateY(-3px);box-shadow:0 8px 32px rgba(0,0,0,0.12);}
+.product-card.aws{border-top:4px solid #e8500a;}
+.product-card.aws:hover{border-color:#e8500a;}
+.product-card.gcp{border-top:4px solid #4285F4;}
+.product-card.gcp:hover{border-color:#4285F4;}
+.product-card.azure{border-top:4px solid #1B7F4F;}
+.product-card.azure:hover{border-color:#1B7F4F;}
+.card-badge{display:inline-block;font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:3px 10px;border-radius:4px;margin-bottom:16px;}
+.card-badge.aws{background:rgba(232,80,10,.1);color:#e8500a;border:1px solid rgba(232,80,10,.2);}
+.card-badge.gcp{background:rgba(66,133,244,.1);color:#4285F4;border:1px solid rgba(66,133,244,.2);}
+.card-badge.azure{background:rgba(27,127,79,.1);color:#1B7F4F;border:1px solid rgba(27,127,79,.2);}
+.card-name{font-family:var(--font-d);font-weight:800;font-size:28px;color:var(--ink);line-height:1.1;margin-bottom:10px;}
+.card-name em{font-style:normal;}
+.card-name.aws em{color:#e8500a;}
+.card-name.gcp em{color:#4285F4;}
+.card-name.azure em{color:#1B7F4F;}
+.card-desc{font-family:var(--font-b);font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:20px;flex:1;}
+.card-provider{font-family:var(--font-m);font-size:10px;color:var(--ink4);letter-spacing:.04em;margin-bottom:20px;}
+.card-resources{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:24px;}
+.card-res-tag{font-family:var(--font-m);font-size:9px;background:var(--off2);border:1px solid var(--line2);border-radius:3px;padding:2px 7px;color:var(--ink3);}
+.card-cta{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-d);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;padding:10px 22px;border-radius:var(--radius);border:none;cursor:pointer;transition:all .15s;}
+.card-cta.aws{background:#e8500a;color:var(--white);}
+.card-cta.aws:hover{background:#c84208;}
+.card-cta.gcp{background:#4285F4;color:var(--white);}
+.card-cta.gcp:hover{background:#2a6ed4;}
+.card-cta.azure{background:#1B7F4F;color:var(--white);}
+.card-cta.azure:hover{background:#155f3a;}
+.product-card.oci{border-top:4px solid #c74634;}
+.product-card.oci:hover{border-color:#c74634;}
+.card-badge.oci{background:rgba(199,70,52,.1);color:#c74634;border:1px solid rgba(199,70,52,.2);}
+.card-name.oci em{color:#c74634;}
+.card-cta.oci{background:#c74634;color:var(--white);}
+.card-cta.oci:hover{background:#a83828;}
+.footer{padding:20px 28px;text-align:center;font-family:var(--font-m);font-size:10px;color:var(--ink4);}
+.config-strip{max-width:1060px;width:100%;margin-top:16px;}
+.config-card{display:flex;align-items:center;justify-content:space-between;background:var(--white);border:1.5px solid var(--line2);border-radius:var(--radius-lg);padding:18px 28px;box-shadow:var(--shadow-sm);text-decoration:none;transition:all .2s;gap:20px;}
+.config-card:hover{box-shadow:var(--shadow);border-color:#aaa;transform:translateY(-1px);}
+.config-card-left{display:flex;align-items:center;gap:14px;}
+.config-icon{font-size:22px;line-height:1;}
+.config-text{}
+.config-title{font-family:var(--font-d);font-weight:800;font-size:17px;color:var(--ink);letter-spacing:.01em;}
+.config-desc{font-family:var(--font-b);font-size:12px;color:var(--ink3);margin-top:1px;}
+.config-cta{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.07em;text-transform:uppercase;padding:8px 20px;border-radius:var(--radius);background:#1a1916;border:1.5px solid #1a1916;color:#fff;white-space:nowrap;transition:all .15s;}
+.config-card:hover .config-cta{background:#333;border-color:#333;}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span><span style="font-size:10px;font-weight:400;color:#C9A227;margin-left:8px;font-family:var(--font-m);letter-spacing:.04em">v5.6</span></div>
+    <div class="logo-sub" style="color:#C9A227">Oracle AI DB@Cloud · Terraform Generator</div>
+  </div>
+  <span class="pill">Choose your cloud platform below</span>
+</header>
+
+<main class="main">
+  <div class="hero">
+    <div class="hero-title">Choose your cloud</div>
+    <div class="hero-sub">Generate modular Terraform / OpenTofu for Oracle AI Database@Cloud</div>
+  </div>
+
+  <div class="cards">
+    <a class="product-card aws" href="/aws">
+      <span class="card-badge aws">AWS</span>
+      <div class="card-name aws">Oracle AI Database<em>@AWS</em></div>
+      <div class="card-desc">Generate Terraform for Oracle AI Database@AWS — ODB networks, Exadata infrastructure, VM clusters, Autonomous VM clusters, peering connections, and OCI DB Home / CDB / PDB modules.</div>
+      <div class="card-provider">hashicorp/aws &nbsp;≥&nbsp; 6.42.0</div>
+      <div class="card-resources">
+        <span class="card-res-tag">aws_odb_network</span>
+        <span class="card-res-tag">aws_odb_cloud_exadata_infrastructure</span>
+        <span class="card-res-tag">aws_odb_cloud_vm_cluster</span>
+        <span class="card-res-tag">aws_odb_cloud_autonomous_vm_cluster</span>
+        <span class="card-res-tag">aws_odb_network_peering_connection</span>
+        <span class="card-res-tag">oci_database_db_home</span>
+      </div>
+      <span class="card-cta aws">Open AI DB@AWS &rarr;</span>
+    </a>
+
+    <a class="product-card gcp" href="/gcp">
+      <span class="card-badge gcp">GCP</span>
+      <div class="card-name gcp">Oracle AI Database<em>@GCP</em></div>
+      <div class="card-desc">Generate Terraform for Oracle AI Database@GCP — ODB networks with client and backup subnets, Exadata infrastructure, and ExaDB VM clusters running on Google Cloud.</div>
+      <div class="card-provider">hashicorp/google &nbsp;≥&nbsp; 7.5.0</div>
+      <div class="card-resources">
+        <span class="card-res-tag">google_oracle_database_odb_network</span>
+        <span class="card-res-tag">google_oracle_database_odb_subnet</span>
+        <span class="card-res-tag">google_oracle_database_cloud_exadata_infrastructure</span>
+        <span class="card-res-tag">google_oracle_database_exadb_vm_cluster</span>
+      </div>
+      <span class="card-cta gcp">Open AI DB@GCP &rarr;</span>
+    </a>
+
+    <a class="product-card azure" href="/azure">
+      <span class="card-badge azure">Azure</span>
+      <div class="card-name azure">Oracle AI Database<em>@Azure</em></div>
+      <div class="card-desc">Generate Terraform for Oracle AI Database@Azure — virtual networks with Oracle-delegated subnets, Exadata infrastructure, and VM clusters running on Microsoft Azure.</div>
+      <div class="card-provider">hashicorp/azurerm &nbsp;≥&nbsp; 4.9.0</div>
+      <div class="card-resources">
+        <span class="card-res-tag">azurerm_virtual_network</span>
+        <span class="card-res-tag">azurerm_subnet (Oracle delegated)</span>
+        <span class="card-res-tag">azurerm_oracle_exadata_infrastructure</span>
+        <span class="card-res-tag">azurerm_oracle_cloud_vm_cluster</span>
+      </div>
+      <span class="card-cta azure">Open AI DB@Azure &rarr;</span>
+    </a>
+
+    <a class="product-card oci" href="/dg">
+      <span class="card-badge oci">OCI</span>
+      <div class="card-name oci">Oracle <em>Data Guard</em></div>
+      <div class="card-desc">Generate Terraform for OCI Data Guard networking — Multi-AZ (same region) and Cross-Region with Hub VCNs, LPGs, DRGs, and Remote Peering Connections.</div>
+      <div class="card-provider">oracle/oci &nbsp;≥&nbsp; 6.0.0</div>
+      <div class="card-resources">
+        <span class="card-res-tag">oci_core_vcn</span>
+        <span class="card-res-tag">oci_core_drg</span>
+        <span class="card-res-tag">oci_core_local_peering_gateway</span>
+        <span class="card-res-tag">oci_core_remote_peering_connection</span>
+      </div>
+      <span class="card-cta oci">Open Data Guard &rarr;</span>
+    </a>
+
+    <a class="product-card oci" href="/oci" style="border-top-color:#1B6FAB;">
+      <span class="card-badge oci" style="color:#1B6FAB;background:rgba(27,111,171,.1);border-color:rgba(27,111,171,.2);">OCI</span>
+      <div class="card-name oci" style="--c:#1B6FAB">Oracle <em style="color:#1B6FAB">DB Home</em></div>
+      <div class="card-desc">Generate Terraform for OCI Database Home, Container Database (CDB), and Pluggable Database (PDB) — works with any cloud Exadata deployment. Enter your VM Cluster reference.</div>
+      <div class="card-provider">oracle/oci &nbsp;≥&nbsp; 6.0.0</div>
+      <div class="card-resources">
+        <span class="card-res-tag">oci_database_db_home</span>
+        <span class="card-res-tag">oci_database_database</span>
+        <span class="card-res-tag">oci_database_pluggable_database</span>
+      </div>
+      <span class="card-cta" style="background:#1B6FAB;color:#fff;">Open OCI DB &rarr;</span>
+    </a>
+  </div>
+
+  <div class="config-strip">
+    <a class="config-card" href="/hub" style="margin-bottom:10px;">
+      <div class="config-card-left">
+        <span class="config-icon" style="color:#e8500a;">&#128172;</span>
+        <div class="config-text">
+          <div class="config-title">Oracle DB Info Hub</div>
+          <div class="config-desc">Ask natural language questions about Oracle AI DB@AWS, AI DB@Azure, and AI DB@GCP — networking, Terraform, constraints, and provisioning</div>
+        </div>
+      </div>
+      <span class="config-cta" style="background:#e8500a;border-color:#e8500a;color:#fff;">Ask a Question →</span>
+    </a>
+    <a class="config-card" href="/rag" style="margin-bottom:10px;">
+      <div class="config-card-left">
+        <span class="config-icon" style="color:#1a7a4a;">&#128218;</span>
+        <div class="config-text">
+          <div class="config-title">RAG Knowledge Base</div>
+          <div class="config-desc">Upload and manage markdown docs that improve LLM fill accuracy — view index stats, search chunks, and rebuild the index</div>
+        </div>
+      </div>
+      <span class="config-cta" style="background:#1a7a4a;border-color:#1a7a4a;color:#fff;">Manage Docs →</span>
+    </a>
+    <a class="config-card" href="/cidr">
+      <div class="config-card-left">
+        <span class="config-icon" style="color:#4285F4;">&#9675;</span>
+        <div class="config-text">
+          <div class="config-title">CIDR Planner</div>
+          <div class="config-desc">Calculate IP requirements for ExaCS clusters, suggest non-overlapping CIDRs, and validate existing subnets — AWS, GCP, and Azure</div>
+        </div>
+      </div>
+      <span class="config-cta" style="background:#4285F4;border-color:#4285F4;color:#fff;">Plan CIDRs →</span>
+    </a>
+    <a class="config-card" href="/regions" style="margin-bottom:10px;">
+      <div class="config-card-left">
+        <span class="config-icon" style="color:#8250df;">&#127758;</span>
+        <div class="config-text">
+          <div class="config-title">Region &amp; Zone Catalogues</div>
+          <div class="config-desc">Add or remove regions and availability zones for AWS, Azure and GCP &mdash; the one source behind every region dropdown and the paired OCI region</div>
+        </div>
+      </div>
+      <span class="config-cta" style="background:#8250df;border-color:#8250df;color:#fff;">Edit Catalogues &rarr;</span>
+    </a>
+    <a class="config-card" href="/config" style="margin-top:10px;">
+      <div class="config-card-left">
+        <span class="config-icon">&#9881;</span>
+        <div class="config-text">
+          <div class="config-title">Application Configuration</div>
+          <div class="config-desc">LLM provider, API keys, GitHub integration, CouchDB, RAG embeddings, Terraform CLI paths</div>
+        </div>
+      </div>
+      <span class="config-cta">Configure →</span>
+    </a>
+  </div>
+</main>
+
+<footer class="footer">Terraflow Studio &mdash; Oracle AI DB@Cloud Terraform Generator</footer>
+</body>
+</html>

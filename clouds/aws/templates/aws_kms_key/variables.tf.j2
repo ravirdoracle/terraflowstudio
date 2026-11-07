@@ -1,0 +1,38 @@
+variable "alias" {
+  description = "Alias for the key, including the alias/ prefix."
+  type        = string
+}
+
+variable "description" {
+  description = "Key description."
+  type        = string
+}
+
+variable "deletion_window_in_days" {
+  description = "Days a deleted key stays recoverable (7-30)."
+  type        = number
+  default     = 30
+}
+
+variable "multi_region" {
+  description = "Create a multi-Region primary key — needed for cross-region Data Guard or restore."
+  type        = bool
+  default     = false
+}
+
+variable "enable_key_rotation" {
+  description = "Yearly automatic rotation of the key material. Separate from TDE master key rotation, which happens in OCI."
+  type        = bool
+  default     = false
+}
+
+variable "account_id" {
+  description = "AWS account that owns the key."
+  type        = string
+}
+
+variable "tags" {
+  description = "Tags for the key."
+  type        = map(string)
+  default     = {}
+}

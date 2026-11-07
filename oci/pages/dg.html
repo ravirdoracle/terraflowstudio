@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraflow Studio — Data Guard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;--line2:#c8c4bc;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--orange2:#ff6b2b;--o-dim:rgba(232,80,10,0.08);--o-dim2:rgba(232,80,10,0.18);
+  --green:#1a7a4a;--red:#c0392b;--r-dim:rgba(192,57,43,0.09);
+  --blue:#1a56a0;--purple:#6b3fa0;
+  --gcp:#4285F4;--gcp-dim:rgba(66,133,244,0.10);--gcp-dim2:rgba(66,133,244,0.18);
+  --accent:var(--orange);--accent2:var(--orange2);--a-dim:var(--o-dim);--a-dim2:var(--o-dim2);
+  --radius:6px;--radius-lg:10px;
+  --shadow-sm:0 1px 0 rgba(255,255,255,0.85) inset,0 2px 6px rgba(0,0,0,0.08),0 1px 2px rgba(0,0,0,0.05);
+  --shadow:0 1px 0 rgba(255,255,255,0.65) inset,0 4px 16px rgba(0,0,0,0.11),0 2px 4px rgba(0,0,0,0.07);
+  --shadow-lifted:0 1px 0 rgba(255,255,255,0.7) inset,0 8px 28px rgba(0,0,0,0.14),0 3px 8px rgba(0,0,0,0.09);
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+}
+body.dg{--accent:#c74634;--accent2:#e05640;--a-dim:rgba(199,70,52,0.08);--a-dim2:rgba(199,70,52,0.18);background:linear-gradient(150deg,#f5f0ef 0%,#ede2df 100%);}
+body.dg .cfn-btn{display:none;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:linear-gradient(150deg,#f4f2ee 0%,#e8e5dc 100%);color:var(--ink);font-family:var(--font-b);height:100vh;line-height:1.5;overflow:hidden;display:flex;flex-direction:column;}
+header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:300;box-shadow:0 2px 16px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.04) inset;}
+.logo{display:flex;align-items:baseline;gap:14px;cursor:pointer;color:inherit;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:var(--white);line-height:1;}
+.logo-name .ac{color:var(--accent2);}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.header-right{display:flex;align-items:center;gap:10px;}
+.pill{font-family:var(--font-m);font-size:10px;border:1px solid #333;border-radius:4px;padding:2px 8px;color:#666;}
+.pill strong{color:#4caf7d;font-weight:500;}
+.provider-badge{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;background:var(--a-dim2);color:var(--accent2);border:1px solid;border-color:var(--accent2);border-radius:4px;padding:3px 10px;opacity:.8;}
+.cloud-sw{display:flex;background:#111;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden;flex-shrink:0;}
+.csw-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;cursor:pointer;color:#555;border:none;background:transparent;transition:all .15s;white-space:nowrap;text-decoration:none;display:flex;align-items:center;}
+.csw-btn.sel-dg{color:#e05640;background:rgba(199,70,52,.15);}
+.csw-btn:hover:not(.sel-dg){color:#999;}
+.tool-sw{display:flex;background:#111;border:1px solid #2a2a2a;border-radius:6px;overflow:hidden;flex-shrink:0;}
+.tsw-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;cursor:pointer;color:#555;border:none;background:transparent;transition:all .15s;white-space:nowrap;}
+.tsw-btn.sel-tf{color:#7b42bc;background:rgba(123,66,188,.15);}
+.tsw-btn.sel-tofu{color:#f5a623;background:rgba(245,166,35,.15);}
+.tsw-btn:hover:not(.sel-tf):not(.sel-tofu){color:#999;}
+.cust-bar{background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:44px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+.llm-bar{background:#000000;border-bottom:2px solid #4e4840;padding:0 28px;height:40px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.llm-bar-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#999;white-space:nowrap;flex-shrink:0;}
+.llm-bar-input{flex:1;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#eee;font-family:var(--font-m);font-size:11px;padding:5px 12px;outline:none;transition:border-color .15s;min-width:0;}
+.llm-bar-input:focus{border-color:#555;}.llm-bar-input::placeholder{color:#444;}
+.llm-bar-btn{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:28px;border-radius:var(--radius);cursor:pointer;border:1.5px solid;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.llm-bar-btn.send{background:rgba(123,66,188,.15);border-color:#7b42bc;color:#b080e0;}
+.llm-bar-btn.send:hover{background:#7b42bc;color:#fff;}
+.llm-bar-btn.send:disabled{opacity:.35;cursor:not-allowed;}
+.llm-prov{font-family:var(--font-m);font-size:9px;color:#888;letter-spacing:.04em;flex-shrink:0;white-space:nowrap;}
+.llm-prov.ok{color:#2a7a4a;}.llm-prov.err{color:#7a2a2a;}
+.llm-reply{font-family:var(--font-m);font-size:10px;color:#aaa;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cust-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#C9A227;white-space:nowrap;}
+.cust-input{font-family:var(--font-b);font-size:13px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:var(--white);padding:5px 12px;min-width:220px;outline:none;transition:border-color .15s;}
+.cust-input:focus{border-color:var(--accent2);}
+.cust-input::placeholder{color:#444;}
+.cust-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:5px 14px;cursor:pointer;border:1.5px solid;border-radius:var(--radius);transition:all .15s;white-space:nowrap;}
+.cust-btn.save{background:rgba(74,175,121,0.12);border-color:#4aaf79;color:#4aaf79;}
+.cust-btn.save:hover{background:rgba(74,175,121,0.22);}
+.cust-btn.save.saved{background:rgba(74,175,121,0.25);color:#6dd4a0;}
+.cust-btn.load{background:rgba(90,156,255,0.10);border-color:#5a9cff;color:#5a9cff;}
+.cust-btn.load:hover{background:rgba(90,156,255,0.20);}
+.cust-btn.del{background:rgba(192,57,43,0.10);border-color:#c0392b;color:#c0392b;}
+.cust-btn.del:hover{background:rgba(192,57,43,0.22);}
+.cust-btn.del:disabled,.cust-btn.test:disabled{opacity:.35;cursor:not-allowed;}
+.cust-btn.test{background:rgba(180,100,255,0.12);border-color:#b464ff;color:#b464ff;}
+.cust-btn.test:hover{background:rgba(180,100,255,0.22);}
+.cust-sep{width:1px;height:22px;background:#5a5248;flex-shrink:0;}
+.cust-select{font-family:var(--font-b);font-size:12px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#ccc;padding:5px 10px;cursor:pointer;outline:none;}
+.save-toast{font-family:var(--font-m);font-size:11px;color:#4aaf79;white-space:nowrap;opacity:0;transition:opacity .3s;pointer-events:none;}
+.save-toast.show{opacity:1;}
+.backend-pill{font-family:var(--font-m);font-size:9px;color:#777;letter-spacing:.04em;margin-left:auto;white-space:nowrap;}
+.test-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;align-items:center;justify-content:center;}
+.test-modal-overlay.open{display:flex;}
+.test-modal{background:var(--white);border-radius:var(--radius-lg);box-shadow:0 8px 48px rgba(0,0,0,0.3);width:min(720px,95vw);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;}
+.test-modal-head{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);flex-shrink:0;}
+.test-modal-title{font-family:var(--font-d);font-weight:800;font-size:14px;color:var(--ink);flex:1;}
+.test-modal-sub{font-family:var(--font-m);font-size:11px;color:var(--ink3);}
+.test-modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink3);padding:0 4px;line-height:1;}
+.test-modal-body{overflow-y:auto;padding:16px 20px;flex:1;}
+.test-progress{height:4px;background:var(--line);border-radius:2px;margin-bottom:16px;overflow:hidden;}
+.test-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width .3s;width:0%;}
+.test-tab-bar{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px;flex-shrink:0;padding:0 20px;}
+.test-tab{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:8px 14px;cursor:pointer;color:var(--ink3);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;}
+.test-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.test-group{margin-bottom:12px;}
+.test-group-name{font-family:var(--font-d);font-weight:700;font-size:11px;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px;padding:4px 0;border-bottom:1px solid var(--line);}
+.test-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--off2);font-size:12px;}
+.test-row:last-child{border-bottom:none;}
+.test-icon{font-size:13px;flex-shrink:0;line-height:1.4;}
+.test-name{font-family:var(--font-m);color:var(--ink2);flex:1;}
+.test-err{font-family:var(--font-m);font-size:11px;color:var(--red);margin-top:3px;background:var(--r-dim);padding:4px 8px;border-radius:4px;white-space:pre-wrap;}
+.test-running{color:var(--ink3);font-style:italic;}
+.test-summary{display:flex;gap:16px;margin-bottom:16px;padding:12px 16px;background:var(--off);border-radius:var(--radius);border:1px solid var(--line);}
+.test-stat{text-align:center;}
+.test-stat-num{font-family:var(--font-d);font-weight:800;font-size:22px;line-height:1;}
+.test-stat-lbl{font-family:var(--font-m);font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+.test-stat.pass .test-stat-num{color:var(--green);}
+.test-stat.fail .test-stat-num{color:var(--red);}
+.test-stat.skip .test-stat-num{color:var(--ink3);}
+.test-stat.warn .test-stat-num{color:#d4a017;}
+.test-warn-row .test-icon{color:#d4a017;}
+.nav-panel{background:linear-gradient(180deg,#f5f4f0 0%,#eceae4 100%);border-right:1px solid var(--line2);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;z-index:5;box-shadow:2px 0 10px rgba(0,0,0,0.07);scrollbar-width:thin;scrollbar-color:var(--line2) transparent;}
+.nav-panel::-webkit-scrollbar{width:3px;}
+.nav-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:2px;}
+.nav-cloud-head{padding:13px 14px 10px;border-bottom:1px solid var(--line);margin-bottom:2px;display:flex;align-items:center;gap:8px;}
+.nav-cloud-label{font-family:var(--font-d);font-weight:800;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);}
+.nav-section-label{font-family:var(--font-d);font-weight:700;font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink4);padding:10px 14px 5px;}
+.tgroup{display:none;flex-direction:column;width:100%;}.tgroup.show{display:flex;}
+.tab{position:relative;padding:12px 14px 12px 13px;display:flex;align-items:center;gap:11px;cursor:pointer;border-left:4px solid transparent;transition:background .18s,border-color .18s;user-select:none;}
+.tab:hover{background:var(--off2);}
+.tab-num{font-family:var(--font-d);font-weight:800;font-size:12px;color:var(--ink4);background:var(--white);border:1.5px solid var(--line2);border-radius:5px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;transition:all .18s;flex-shrink:0;box-shadow:var(--shadow-sm);}
+.tab-label{font-family:var(--font-b);font-weight:500;font-size:13.5px;color:var(--ink3);transition:color .18s;line-height:1.3;word-break:break-word;flex:1;}
+.tab:hover .tab-label{color:var(--ink2);}
+.tab:hover .tab-num{color:var(--ink2);}
+.tab.active{background:linear-gradient(90deg,var(--a-dim) 0%,transparent 100%);border-left-color:var(--accent);}
+.tab.active .tab-label{color:var(--ink);font-weight:600;}
+.tab.active .tab-num{background:var(--accent);border-color:var(--accent);color:var(--white);box-shadow:0 2px 8px var(--a-dim2);}
+.app{display:grid;grid-template-columns:var(--nav-width,220px) 1fr 6px var(--rhs-width,500px);flex:1;min-height:0;overflow:hidden;}
+.resizer{cursor:col-resize;background:var(--line2);flex-shrink:0;transition:background .12s;position:relative;z-index:10;}
+.resizer::after{content:'';position:absolute;inset:-4px 0;}
+.resizer:hover,.resizer.dragging{background:var(--accent);}
+.form-panel{overflow-y:auto;padding:28px 28px 40px;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line2) transparent;}
+.form-panel::-webkit-scrollbar{width:4px;}
+.form-panel::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
+.page{display:none;}.page.active{display:block;}
+.page-hero{margin-bottom:20px;padding-bottom:18px;border-bottom:2px solid transparent;border-image:linear-gradient(90deg,var(--ink) 0%,var(--line) 100%) 1;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;}
+.page-resource-name{font-family:var(--font-d);font-weight:800;line-height:1;letter-spacing:-0.01em;color:var(--ink);}
+.page-resource-name em{font-style:normal;color:var(--accent);}
+.page-doc-link{font-family:var(--font-m);font-size:10px;color:var(--ink3);text-decoration:none;border:1px solid var(--line2);border-radius:var(--radius);padding:4px 9px;white-space:nowrap;flex-shrink:0;transition:all .15s;}
+.page-doc-link:hover{border-color:var(--accent);color:var(--accent);}
+.module-path-row{display:flex;align-items:center;gap:8px;background:linear-gradient(180deg,#f8f7f3 0%,#eeecea 100%);border:1px solid rgba(210,207,200,0.8);border-top-color:rgba(255,255,255,0.9);border-radius:var(--radius-lg);padding:9px 14px;margin-bottom:20px;font-family:var(--font-m);font-size:11px;color:var(--ink3);box-shadow:var(--shadow-sm);}
+.mp-dir{color:var(--blue);}
+.module-name-field{background:transparent;border:none;outline:none;font-family:var(--font-m);font-size:11px;color:var(--accent);font-weight:500;width:160px;}
+.section{margin-bottom:22px;}
+.section-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.section-title{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);}
+.section-line{flex:1;height:1px;background:linear-gradient(90deg,var(--line2) 0%,transparent 100%);}
+.section-head.clickable{cursor:pointer;user-select:none;border-radius:var(--radius);padding:2px 4px;margin:-2px -4px;transition:background .15s;}
+.section-head.clickable:hover{background:var(--off2);}
+.section-head.clickable:hover .section-title{color:var(--ink);}
+.opt-chevron{font-size:9px;color:var(--ink4);transition:transform .2s;flex-shrink:0;margin-left:2px;}
+.section.collapsed .opt-chevron{transform:rotate(-90deg);}
+.section.collapsed>.section-head{margin-bottom:0;}
+.section.collapsed>*:not(.section-head){display:none;}
+.badge-req{font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--red);background:var(--r-dim);border:1px solid rgba(192,57,43,.2);border-radius:4px;padding:1px 6px;}
+.badge-opt{font-family:var(--font-d);font-weight:600;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);background:var(--off2);border:1px solid var(--line2);border-radius:4px;padding:1px 6px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.field{margin-bottom:12px;}.field:last-child{margin-bottom:0;}
+.field-lbl{display:flex;align-items:center;gap:5px;font-family:var(--font-m);font-size:11px;font-weight:500;color:var(--ink2);margin-bottom:4px;}
+.req-star{color:var(--red);}
+.field-hint{font-size:10.5px;color:var(--ink3);margin-bottom:4px;line-height:1.5;}
+.field.invalid input,.field.invalid select{border-color:var(--red)!important;}
+.field.invalid .field-lbl{color:var(--red);}
+input[type=text],input[type=number],select{width:100%;background:#fefefe;border:1.5px solid var(--line2);border-radius:var(--radius);color:var(--ink);font-family:var(--font-m);font-size:11.5px;padding:7px 10px;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;box-shadow:inset 0 2px 4px rgba(0,0,0,0.055);}
+input:focus,select:focus{border-color:var(--accent);box-shadow:inset 0 1px 3px rgba(0,0,0,0.03),0 0 0 3px var(--a-dim2);}
+select{cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888480' d='M5 7L1 3h8z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;}
+.tog-row{display:flex;align-items:center;gap:10px;margin-top:4px;}
+.tog-sw{position:relative;width:38px;height:22px;cursor:pointer;flex-shrink:0;}
+.tog-sw input{display:none;}
+.tog-track{position:absolute;inset:0;border-radius:11px;background:var(--off2);border:1.5px solid var(--line2);transition:all .2s;}
+.tog-sw input:checked~.tog-track{background:var(--a-dim2);border-color:var(--accent);}
+.tog-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--ink4);transition:transform .2s,background .2s;}
+.tog-sw input:checked~.tog-thumb{transform:translateX(16px);background:var(--accent);}
+.tog-lbl{font-family:var(--font-m);font-size:12px;color:var(--ink2);min-width:52px;}
+.notice{display:flex;gap:8px;align-items:flex-start;background:#fffbf5;border:1.5px solid #f0d090;border-radius:var(--radius);padding:8px 12px;font-size:11px;color:#7a5a10;margin-bottom:16px;line-height:1.55;}
+.notice code{font-family:var(--font-m);font-size:10px;background:#faefd0;padding:1px 4px;border-radius:3px;}
+.vbtn{width:100%;margin-top:12px;background:linear-gradient(180deg,#2c2a27 0%,#1a1916 100%);border:none;border-radius:var(--radius);color:var(--white);font-family:var(--font-d);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:12px;cursor:pointer;transition:background .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(0,0,0,0.28);}
+.vbtn:hover{background:linear-gradient(180deg,var(--accent2) 0%,var(--accent) 100%);}
+.output-panel{background:var(--white);display:flex;flex-direction:column;overflow:hidden;min-height:0;border-left:1px solid var(--line2);}
+.out-layout{display:flex;flex:1;overflow:hidden;}
+.file-tree{width:210px;border-right:1px solid var(--line2);background:linear-gradient(180deg,#f3f2ee 0%,#ebe9e3 100%);flex-shrink:0;overflow-y:auto;padding:12px 0;}
+.ft-section{padding:0 12px 6px;font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink4);margin-top:6px;}
+.ft-dir{padding:3px 12px;font-family:var(--font-m);font-size:10px;color:var(--ink3);display:flex;align-items:center;gap:5px;}
+.ft-dir::before{content:'📁';font-size:11px;}
+.ft-file{padding:4px 26px;font-family:var(--font-m);font-size:10.5px;color:var(--ink2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;white-space:nowrap;display:flex;align-items:center;gap:5px;}
+.ft-file:hover{background:var(--off2);color:var(--ink);}
+.ft-file.active{background:var(--a-dim);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+.ft-file.sub{padding-left:38px;}
+.editor-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.editor-header{padding:10px 16px;border-bottom:1px solid var(--line2);background:linear-gradient(180deg,#f8f7f3 0%,#efede7 100%);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px;box-shadow:0 2px 6px rgba(0,0,0,0.04);}
+.editor-filepath{font-family:var(--font-m);font-size:11px;color:var(--ink3);display:flex;align-items:center;gap:4px;}
+.editor-filepath .ep-dir{color:var(--blue);}
+.editor-filepath .ep-file{color:var(--ink);}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 0 2px rgba(26,122,74,.2);animation:blink 2.5s ease-in-out infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.editor-actions{display:flex;gap:6px;}
+.icon-btn{background:linear-gradient(180deg,#ffffff 0%,#f4f3ef 100%);border:1px solid rgba(210,207,200,0.9);border-top-color:rgba(255,255,255,0.95);border-radius:var(--radius);font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);padding:4px 10px;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:var(--shadow-sm);}
+.icon-btn:hover{background:linear-gradient(180deg,#2c2a27 0%,var(--ink) 100%);color:var(--white);border-color:transparent;}
+.icon-btn.green{border-color:rgba(26,122,74,.4);color:var(--green);}
+.icon-btn.green:hover{background:var(--green);color:var(--white);}
+.icon-btn.copied{background:var(--green);color:var(--white);}
+.icon-btn.muted{opacity:.4;cursor:not-allowed;}
+.icon-btn.muted:hover{background:var(--white);color:var(--ink2);}
+pre.code-editor{flex:1;min-height:80px;overflow-y:auto;padding:18px 20px;font-family:var(--font-m);font-size:12px;line-height:1.85;color:var(--ink2);white-space:pre;scrollbar-width:thin;scrollbar-color:var(--line2) transparent;}
+pre.code-editor::-webkit-scrollbar{width:4px;}
+pre.code-editor::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3px;}
+.explain-panel{flex-shrink:0;max-height:45%;border-top:2px solid var(--line2);background:linear-gradient(180deg,#fafaf7 0%,#f5f4f0 100%);display:flex;flex-direction:column;overflow:hidden;}
+.explain-ph{padding:8px 16px;border-bottom:1px solid var(--line2);background:linear-gradient(180deg,#f3f2ee 0%,#ece9e2 100%);display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.explain-ph-title{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.explain-ph-file{font-family:var(--font-m);font-size:10px;color:var(--ink3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.explain-body{flex:1;overflow-y:auto;padding:14px 18px;font-family:var(--font-b);font-size:12.5px;line-height:1.75;color:var(--ink2);white-space:pre-wrap;scrollbar-width:thin;}
+.inst-list{display:flex;flex-direction:column;gap:12px;}
+.inst-card{background:linear-gradient(180deg,#ffffff 0%,#fafaf7 100%);border:1px solid rgba(210,207,200,0.8);border-top-color:rgba(255,255,255,0.95);border-radius:var(--radius-lg);box-shadow:var(--shadow);overflow:hidden;transition:box-shadow .2s;}
+.inst-card.open .inst-body{display:block;}
+.inst-card-head{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:linear-gradient(180deg,#f8f7f3 0%,#efede7 100%);border-bottom:1px solid transparent;transition:background .15s;}
+.inst-card.open .inst-card-head{border-bottom-color:var(--line2);}
+.inst-card-head:hover{background:linear-gradient(180deg,#f3f1ec 0%,#e8e5dc 100%);}
+.inst-num{font-family:var(--font-d);font-weight:800;font-size:11px;color:var(--white);background:linear-gradient(135deg,var(--accent2) 0%,var(--accent) 100%);border-radius:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 2px 6px var(--a-dim2);}
+.inst-modname{font-family:var(--font-m);font-size:10px;color:var(--accent);background:var(--a-dim);border:1px solid var(--a-dim2);border-radius:3px;padding:1px 6px;flex-shrink:0;}
+.inst-chevron{font-size:10px;color:var(--ink4);transition:transform .2s;flex-shrink:0;}
+.inst-card.open .inst-chevron{transform:rotate(180deg);}
+.inst-rm{background:none;border:1px solid rgba(192,57,43,.25);border-radius:4px;color:var(--red);font-size:11px;padding:2px 8px;cursor:pointer;flex-shrink:0;transition:all .15s;font-family:var(--font-d);font-weight:700;letter-spacing:.04em;}
+.inst-rm:hover{background:var(--r-dim);}
+.inst-body{display:none;padding:18px 18px 12px;}
+.drag-handle{cursor:grab;color:var(--ink4);font-size:13px;flex-shrink:0;user-select:none;padding:0 4px 0 0;opacity:.6;}
+.drag-handle:active{cursor:grabbing;}
+.inst-card.dragging{opacity:.35;}
+.inst-card.drag-over-top{border-top:3px solid var(--accent) !important;}
+.inst-card.drag-over-bottom{border-bottom:3px solid var(--accent) !important;}
+.inst-add-row{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.inst-add-btn{display:flex;align-items:center;gap:6px;background:linear-gradient(180deg,var(--a-dim) 0%,rgba(199,70,52,0.05) 100%);border:1.5px solid var(--a-dim2);border-radius:var(--radius);color:var(--accent);font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:7px 16px;cursor:pointer;transition:all .15s;}
+.inst-add-btn:hover{background:linear-gradient(180deg,var(--accent2) 0%,var(--accent) 100%);color:var(--white);}
+.inst-count-lbl{font-family:var(--font-m);font-size:10px;color:var(--ink3);}
+.hkw{color:var(--red);font-weight:500;}.hres{color:#854F0B;font-weight:500;}.hstr{color:var(--green);}.hnum{color:#534AB7;}.hbol{color:#854F0B;font-weight:500;}.href{color:var(--green);font-style:italic;}.hvar{color:#534AB7;font-style:italic;}.htype{color:var(--blue);}.hcmt{color:var(--ink4);font-style:italic;}
+.ai-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:800;display:none;align-items:center;justify-content:center;backdrop-filter:blur(3px);padding:24px;}
+.ai-modal-overlay.open{display:flex;}
+.ai-modal{background:#1e1d1a;border:1px solid #383530;border-radius:12px;width:100%;max-width:900px;height:70vh;min-height:420px;min-width:520px;display:flex;flex-direction:column;box-shadow:0 32px 80px rgba(0,0,0,.85);overflow:hidden;resize:both;}
+.ai-modal-head{display:flex;align-items:center;gap:10px;padding:13px 18px;border-bottom:1px solid #2e2c28;flex-shrink:0;background:#252320;}
+.ai-modal-title{font-family:var(--font-d);font-weight:800;font-size:16px;color:#f0ede8;flex:1;}
+.ai-modal-close{background:none;border:none;color:#888;font-size:20px;cursor:pointer;line-height:1;padding:0 4px;}
+.ai-modal-close:hover{color:#fff;}
+.ai-modal-body{flex:1;overflow-y:auto;padding:18px 20px 22px;display:flex;flex-direction:column;gap:13px;min-height:0;}
+.ai-paste-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#aaa;margin-bottom:6px;}
+.ai-textarea{width:100%;background:#141310;border:1.5px solid #383530;border-radius:var(--radius);color:#ddd;font-family:var(--font-m);font-size:11.5px;padding:10px 14px;outline:none;resize:vertical;min-height:110px;line-height:1.7;}
+.ai-textarea:focus{border-color:#7b42bc;}
+.ai-textarea::placeholder{color:#555;}
+.ai-run-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:0 24px;height:34px;border-radius:var(--radius);cursor:pointer;border:1.5px solid #7b42bc;background:rgba(123,66,188,.2);color:#c090f0;transition:all .15s;align-self:flex-start;}
+.ai-run-btn:hover{background:#7b42bc;color:#fff;}
+.ai-run-btn:disabled{opacity:.35;cursor:not-allowed;}
+.ai-result{display:none;flex-direction:column;gap:11px;}.ai-result.visible{display:flex;}
+.ai-summary-box{background:#171614;border:1px solid #383530;border-radius:var(--radius-lg);padding:14px 17px;}
+.ai-summary-text{font-family:var(--font-b);font-size:13.5px;color:#e0ddd8;line-height:1.65;}
+.ai-section-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#aaa;margin-bottom:7px;}
+.ai-root-cause{background:rgba(192,57,43,.1);border:1px solid rgba(240,128,112,.28);border-radius:var(--radius);padding:13px 17px;}
+.ai-root-cause-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#f08070;margin-bottom:6px;}
+.ai-root-cause-text{font-family:var(--font-b);font-size:14px;color:#f0ede8;line-height:1.6;}
+.ai-explanation{font-family:var(--font-b);font-size:13px;color:#bbb;line-height:1.7;}
+.ai-steps-list{display:flex;flex-direction:column;gap:8px;}
+.ai-step-row{display:flex;align-items:flex-start;gap:12px;background:#141310;border:1px solid #2a2826;border-radius:5px;padding:10px 14px;}
+.ai-step-num{font-family:var(--font-d);font-weight:800;font-size:14px;color:#a060e0;flex-shrink:0;width:20px;}
+.ai-step-text{font-family:var(--font-m);font-size:12px;color:#ddd;line-height:1.6;flex:1;}
+.ai-err-box{background:rgba(192,57,43,.12);border:1px solid rgba(240,128,112,.3);border-radius:var(--radius);padding:11px 15px;font-family:var(--font-m);font-size:11.5px;color:#f08070;}
+.ai-spinner{display:inline-block;width:13px;height:13px;border:2px solid #383530;border-top-color:#9060d0;border-radius:50%;animation:ai-spin .7s linear infinite;vertical-align:middle;margin-right:7px;}
+@keyframes ai-spin{to{transform:rotate(360deg);}}
+</style>
+<script src="{{ url_for('static', filename='panel-resizer.js') }}" defer></script>
+</head>
+<body class="dg">
+<header>
+  <a class="logo" href="/" style="text-decoration:none">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span><span style="font-size:10px;font-weight:400;color:#C9A227;margin-left:8px;font-family:var(--font-m);letter-spacing:.04em">v5.6</span></div>
+    <div class="logo-sub" style="color:#C9A227">Oracle AI DB@Cloud · Terraform Generator</div>
+  </a>
+  <div class="header-right">
+    <div class="cloud-sw">
+      <a class="csw-btn" href="/aws">AWS</a>
+      <a class="csw-btn" href="/gcp">GCP</a>
+      <a class="csw-btn" href="/azure">Azure</a>
+      <a class="csw-btn sel-dg" href="/dg">OCI DG</a>
+      <a class="csw-btn" href="/oci">OCI DB</a>
+    </div>
+    <div class="tool-sw">
+      <button class="tsw-btn sel-tf" id="btn-tf"   onclick="switchTool('terraform')"  title="Generate for Terraform">⬡ Terraform</button>
+      <button class="tsw-btn"         id="btn-tofu" onclick="switchTool('opentofu')"   title="Generate for OpenTofu">⬡ OpenTofu</button>
+    </div>
+    <span class="provider-badge" id="prov-badge">oracle/oci ≥ 6.0.0</span>
+  </div>
+</header>
+
+<div class="cust-bar">
+  <span class="cust-label">Customer</span>
+  <input class="cust-input" type="text" id="cust-name" placeholder="Enter customer name…" oninput="onCustInput()">
+  <button class="cust-btn save" id="save-btn" onclick="saveConfig()" disabled title="Save current config">💾 Save</button>
+  <button class="cust-btn load" id="load-btn" onclick="loadConfig()" title="Load saved config">📂 Load</button>
+  <button class="cust-btn del"  id="del-btn"  onclick="deleteConfig()" title="Delete saved config" disabled>🗑 Delete</button>
+  <button class="cust-btn test" id="test-btn" onclick="runCustomerTests()" title="Run generation tests" disabled>🧪 Test</button>
+  <div class="cust-sep"></div>
+  <select class="cust-select" id="cust-select" onchange="onCustSelect()">
+    <option value="">— saved customers —</option>
+  </select>
+  <span class="save-toast" id="save-toast"></span>
+  <span class="backend-pill" id="backend-pill"></span>
+</div>
+
+<div class="llm-bar" id="llm-bar">
+  <span class="llm-bar-label">✦ AI</span>
+  <input class="llm-bar-input" type="text" id="llm-input"
+    placeholder="Describe what you want… e.g. 'Cross-region DG from Ashburn to Phoenix'"
+    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
+  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
+  <span class="llm-reply" id="llm-reply"></span>
+  <span class="llm-prov" id="llm-prov-badge">checking…</span>
+  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
+  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
+</div>
+
+<!-- ── Spreadsheet Import Bar ── -->
+<div style="background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:38px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
+  <span style="font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#1B6FAB;white-space:nowrap;flex-shrink:0;">📊 Spreadsheet</span>
+  <button id="import-sheet-btn" onclick="document.getElementById('import-sheet-input').click()"
+    style="font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:24px;border-radius:4px;cursor:pointer;border:1.5px solid #1B6FAB;background:rgba(27,111,171,.18);color:#2e8fd4;white-space:nowrap;transition:all .15s;"
+    title="Upload .xlsx or .csv to populate all form fields automatically">
+    📥 Import Spreadsheet
+  </button>
+  <input type="file" id="import-sheet-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="onImportSpreadsheet(this)">
+  <a href="/api/import/template/dg"
+    style="font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:24px;border-radius:4px;cursor:pointer;border:1.5px solid #2a3a45;background:rgba(27,111,171,.08);color:#2e8fd4;white-space:nowrap;display:flex;align-items:center;text-decoration:none;transition:all .15s;"
+    title="Download blank Excel template — fill in your OCIDs and CIDRs then import">
+    📋 Download Template
+  </a>
+  <span style="font-family:var(--font-m);font-size:10px;color:#444;flex:1;">Fill the form from a spreadsheet — or download the template first, fill it in, and import.</span>
+  <span id="import-reply" style="font-family:var(--font-m);font-size:11px;white-space:nowrap;display:none;"></span>
+</div>
+
+<!-- Test Modal -->
+<div class="test-modal-overlay" id="test-modal-overlay" onclick="if(event.target===this)closeTestModal()">
+  <div class="test-modal">
+    <div class="test-modal-head">
+      <span style="font-size:18px">🧪</span>
+      <div>
+        <div class="test-modal-title" id="test-modal-title">Running Tests…</div>
+        <div class="test-modal-sub" id="test-modal-sub"></div>
+      </div>
+      <button class="test-modal-close" onclick="closeTestModal()">✕</button>
+    </div>
+    <div class="test-tab-bar">
+      <button class="test-tab active" id="ttab-functional" onclick="switchTestTab('functional')">⚙ Functional Tests</button>
+      <button class="test-tab" id="ttab-tfvalidate" onclick="switchTestTab('tfvalidate')">🔬 Mock TF Validate</button>
+      <button class="test-tab" id="ttab-tfcli" onclick="switchTestTab('tfcli')">🏗 TF CLI</button>
+    </div>
+    <div class="test-modal-body">
+      <div class="test-progress"><div class="test-progress-bar" id="test-progress-bar"></div></div>
+      <div id="test-summary-row"></div>
+      <div id="test-results-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- AI Troubleshoot Modal -->
+<div class="ai-modal-overlay" id="ai-troubleshoot-overlay" onclick="if(event.target===this)closeAiTool('troubleshoot')">
+  <div class="ai-modal">
+    <div class="ai-modal-head">
+      <span style="font-size:17px">🔧</span>
+      <span class="ai-modal-title">Terraform Error Troubleshooter</span>
+      <button class="ai-modal-close" onclick="closeAiTool('troubleshoot')">✕</button>
+    </div>
+    <div class="ai-modal-body">
+      <div>
+        <div class="ai-paste-label">Paste your terraform error</div>
+        <textarea class="ai-textarea" id="ai-error-input" placeholder="Paste the full terraform error output here…"></textarea>
+      </div>
+      <button class="ai-run-btn" id="ai-error-btn" onclick="runTroubleshooter()">Diagnose Error</button>
+      <div class="ai-result" id="ai-error-result">
+        <div class="ai-root-cause">
+          <div class="ai-root-cause-label">Root Cause</div>
+          <div class="ai-root-cause-text" id="ai-error-root"></div>
+        </div>
+        <div class="ai-explanation" id="ai-error-explanation"></div>
+        <div>
+          <div class="ai-section-label">Fix Steps</div>
+          <div class="ai-steps-list" id="ai-error-steps"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+<!-- NAV PANEL -->
+<div class="nav-panel">
+  <div class="nav-cloud-head">
+    <span class="nav-cloud-label">Data Guard</span>
+  </div>
+  <div class="nav-section-label">Configuration Type</div>
+  <div class="tgroup show" id="dg-tabs">
+    <div class="tab active" onclick="switchTab(0)"><span class="tab-num">A</span><span class="tab-label">DG Multi-AZ</span></div>
+    <div class="tab" onclick="switchTab(1)"><span class="tab-num">B</span><span class="tab-label">DG Cross-Region</span></div>
+  </div>
+</div>
+
+<!-- FORM PANEL -->
+<div class="form-panel">
+
+<!-- PAGE 0: DG Multi-AZ -->
+<div class="page active" id="dg-page-0">
+  <div class="page-hero">
+    <div>
+      <div class="page-resource-name" style="font-size:22px;line-height:1.2">Data Guard — <em>Multi-AZ</em></div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--ink3);margin-top:4px">oracle/oci — oci_core_local_peering_gateway · oci_core_network_security_group_security_rule · oci_core_default_route_table</div>
+    </div>
+    <a class="page-doc-link" href="https://docs.oracle.com/en-us/iaas/Content/database/concepts/exadbxs-overview.htm" target="_blank">docs ↗</a>
+  </div>
+  <div class="notice"><span style="font-size:13px;flex-shrink:0">ℹ</span> Uses the <strong>oracle/oci</strong> provider. Creates a Local Peering Gateway pair, NSG rules (TCP 1521), and default route table entries to enable Data Guard between two AZs in the same OCI region. Generates a <strong>standalone directory</strong>.</div>
+  <div id="dg-maz-list" class="inst-list"></div>
+  <div class="inst-add-row">
+    <button class="inst-add-btn" onclick="addDgMaz()">＋ Add DG Multi-AZ Config</button>
+    <span class="inst-count-lbl" id="dg-maz-count"></span>
+  </div>
+  <button class="vbtn" style="margin-top:14px" onclick="vgen(0)">Validate &amp; Generate All</button>
+</div>
+
+<!-- PAGE 1: DG Cross-Region -->
+<div class="page" id="dg-page-1">
+  <div class="page-hero">
+    <div>
+      <div class="page-resource-name" style="font-size:20px;line-height:1.2">Data Guard — <em>Cross-Region</em></div>
+      <div style="font-family:var(--font-m);font-size:10px;color:var(--ink3);margin-top:4px">oracle/oci — Hub VCNs · LPGs · DRGs · Remote Peering Connections · Route Tables · NSG Rules</div>
+    </div>
+    <a class="page-doc-link" href="https://docs.oracle.com/en-us/iaas/Content/database/concepts/exadbxs-overview.htm" target="_blank">docs ↗</a>
+  </div>
+  <div class="notice"><span style="font-size:13px;flex-shrink:0">ℹ</span> Uses the <strong>oracle/oci</strong> provider with two region aliases (<code>oci.primary</code> / <code>oci.dr</code>). Creates Hub VCNs, LPGs, DRGs, DRG attachments, Remote Peering Connections, transit route tables, and NSG rules for cross-region Data Guard. Generates a <strong>standalone directory</strong> with 3 modules. Import existing route tables before apply — see generated README.md.</div>
+  <div id="dg-cr-list" class="inst-list"></div>
+  <div class="inst-add-row">
+    <button class="inst-add-btn" onclick="addDgCr()">＋ Add DG Cross-Region Config</button>
+    <span class="inst-count-lbl" id="dg-cr-count"></span>
+  </div>
+  <button class="vbtn" style="margin-top:14px" onclick="vgen(1)">Validate &amp; Generate All</button>
+</div>
+
+</div><!-- /form-panel -->
+
+<div class="resizer" id="panel-resizer" title="Drag to resize"></div>
+
+<!-- OUTPUT PANEL -->
+<div class="output-panel">
+  <div class="out-layout">
+    <div class="file-tree" id="file-tree">
+      <div id="ft-modules-section"></div>
+    </div>
+    <div class="editor-pane">
+      <div class="editor-header">
+        <div class="editor-filepath"><span class="live-dot"></span><span id="ep-path"></span></div>
+        <div class="editor-actions">
+          <button class="icon-btn green" id="btn-dl" onclick="dlZip()">⬇ Download ZIP</button>
+          <button class="icon-btn" onclick="loadZip()" title="Load a Terraflow ZIP">⬆ Load ZIP</button>
+          <input type="file" id="load-zip-input" accept=".zip" style="display:none" onchange="onLoadZipFile(this)">
+          <button class="icon-btn muted" id="gh-push-btn" onclick="pushToGithub()" title="Set GITHUB_TOKEN and GITHUB_REPO in .env">⬆ Push to Git</button>
+          <span id="gh-status-badge" style="font-family:var(--font-m);font-size:9px;color:#444;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis"></span>
+          <button class="icon-btn" id="copybtn" onclick="copyFile()">⎘ Copy</button>
+          <button class="icon-btn" id="explain-btn" onclick="explainCurrentFile()" title="Ask AI to explain this file">✦ Explain</button>
+        </div>
+      </div>
+      <pre class="code-editor" id="code-out"><span style="color:var(--ink4);font-style:italic"># Fill in the form — output appears here in real time.</span></pre>
+      <div id="explain-panel" class="explain-panel" style="display:none">
+        <div class="explain-ph">
+          <span class="explain-ph-title">✦ AI Explanation</span>
+          <span id="explain-file-label" class="explain-ph-file"></span>
+          <button class="icon-btn" onclick="closeExplain()" style="padding:2px 8px;flex-shrink:0">✕ Close</button>
+        </div>
+        <div id="explain-body" class="explain-body"></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div><!-- /app -->
+
+<script>
+// ── OCI Region selector ───────────────────────────────────────────────────────
+function ociRegionSelectHTML(id, val, onchange) {
+  const regions = [
+    ['us-ashburn-1',   'US East (Ashburn)'],
+    ['us-chicago-1',   'US Central (Columbus / Ohio)'],
+    ['us-portland-1',  'US West (Portland)'],
+    ['us-sanjose-1',   'US West (San Jose)'],
+    ['eu-frankfurt-1', 'EU (Frankfurt)'],
+    ['eu-amsterdam-1', 'EU (Amsterdam)'],
+    ['uk-london-1',    'UK (London)'],
+    ['ap-singapore-1', 'Asia Pacific (Singapore)'],
+    ['ap-tokyo-1',     'Asia Pacific (Tokyo)'],
+    ['ap-mumbai-1',    'Asia Pacific (Mumbai)'],
+    ['ap-sydney-1',    'Asia Pacific (Sydney)'],
+    ['sa-saopaulo-1',  'South America (São Paulo)'],
+  ];
+  let opts = `<option value="">— select OCI region —</option>`;
+  regions.forEach(([r,l]) => { opts += `<option value="${r}"${val===r?' selected':''}>${r} — ${l}</option>`; });
+  return `<select id="${id}" onchange="${onchange}">${opts}</select>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const cloud = 'dg';
+let dgMazs = [], dgCrs = [];
+let iacTool = 'terraform';
+let activeFile = null;
+let cur = 0;
+let rtimer;
+
+// ── Default factories ─────────────────────────────────────────────────────────
+// New cards start on the regions oci/dataguard.py already defaults to, so the
+// Terraform appears as soon as a card exists, as it does on the other pages.
+// A saved config keeps whatever it stored, including an empty region.
+function defDgMaz(i) {
+  return {module_name: i===0?'primary':`primary_${i+1}`, prefix:'dg', oci_region:'us-ashburn-1', compartment_id:'',
+    primary_vcn_id:'', primary_nsg_id:'', primary_client_cidr:'10.10.1.0/24', primary_route_table_id:'',
+    standby_vcn_id:'', standby_nsg_id:'', standby_client_cidr:'10.20.1.0/24', standby_route_table_id:'',
+    add_ssh:false, manage_route_table:false};
+}
+function defDgCr(i) {
+  return {module_name: i===0?'primary':`primary_${i+1}`, prefix:'dg', primary_oci_region:'us-ashburn-1', standby_oci_region:'us-portland-1',
+    compartment_id:'', primary_vcn_id:'', primary_nsg_id:'', primary_client_cidr:'10.10.1.0/24',
+    primary_route_table_id:'', primary_hub_cidr:'10.15.0.0/24',
+    standby_vcn_id:'', standby_nsg_id:'', standby_client_cidr:'10.30.1.0/24',
+    standby_route_table_id:'', standby_hub_cidr:'10.16.0.0/24', add_ssh:false, manage_route_table:false};
+}
+
+// ── Add helpers ───────────────────────────────────────────────────────────────
+function addDgMaz() { dgMazs.push(defDgMaz(dgMazs.length)); renderDgMazs(); refresh(); }
+function addDgCr()  { dgCrs.push(defDgCr(dgCrs.length));   renderDgCrs();  refresh(); }
+
+// ── Read functions ────────────────────────────────────────────────────────────
+function readDgMaz(i) {
+  const p = `dm${i}_`;
+  dgMazs[i] = {...dgMazs[i],
+    module_name:            fv(`${p}mn`) || dgMazs[i].module_name,
+    prefix:                 fv(`${p}prefix`) || 'dg',
+    oci_region:             fv(`${p}oci_reg`),
+    compartment_id:         fv(`${p}cid`),
+    primary_vcn_id:         fv(`${p}pvcn`),
+    primary_nsg_id:         fv(`${p}pnsg`),
+    primary_client_cidr:    fv(`${p}pcc`),
+    primary_route_table_id: fv(`${p}prt`),
+    standby_vcn_id:         fv(`${p}svcn`),
+    standby_nsg_id:         fv(`${p}snsg`),
+    standby_client_cidr:    fv(`${p}scc`),
+    standby_route_table_id: fv(`${p}srt`),
+    add_ssh:                fcb(`${p}ssh`),
+    manage_route_table:     fcb(`${p}mrt`),
+  };
+}
+function readDgCr(i) {
+  const p = `dc${i}_`;
+  dgCrs[i] = {...dgCrs[i],
+    module_name:            fv(`${p}mn`) || dgCrs[i].module_name,
+    prefix:                 fv(`${p}prefix`) || 'dg',
+    primary_oci_region:     fv(`${p}poci`),
+    standby_oci_region:     fv(`${p}soci`),
+    compartment_id:         fv(`${p}cid`),
+    primary_vcn_id:         fv(`${p}pvcn`),
+    primary_nsg_id:         fv(`${p}pnsg`),
+    primary_client_cidr:    fv(`${p}pcc`),
+    primary_route_table_id: fv(`${p}prt`),
+    primary_hub_cidr:       fv(`${p}phub`),
+    standby_vcn_id:         fv(`${p}svcn`),
+    standby_nsg_id:         fv(`${p}snsg`),
+    standby_client_cidr:    fv(`${p}scc`),
+    standby_route_table_id: fv(`${p}srt`),
+    standby_hub_cidr:       fv(`${p}shub`),
+    add_ssh:                fcb(`${p}ssh`),
+    manage_route_table:     fcb(`${p}mrt`),
+    additional_pairs:       (dgCrs[i].additional_pairs || []).map((pr, j) => _readDgCrPair(p, j, pr)),
+  };
+}
+const _PAIR_KEYS = [['name','name'],['pvcn','primary_vcn_id'],['pnsg','primary_nsg_id'],['pcc','primary_client_cidr'],
+                    ['prt','primary_route_table_id'],['svcn','standby_vcn_id'],['snsg','standby_nsg_id'],
+                    ['scc','standby_client_cidr'],['srt','standby_route_table_id']];
+function _readDgCrPair(p, j, pr) {
+  const out = {...pr};
+  _PAIR_KEYS.forEach(([s, k]) => { const el = document.getElementById(`${p}x${j}_${s}`); if (el) out[k] = el.value.trim(); });
+  return out;
+}
+// More cluster VCN pairs on this card's hub VCNs, DRGs and RPC — built once, shared.
+function addDgCrPair(i) {
+  readDgCr(i);
+  const pairs = dgCrs[i].additional_pairs || [];
+  // The name is the for_each key: never reuse one, even after a removal.
+  let n = pairs.length + 2;
+  while (pairs.some(pr => pr.name === `pair${n}`)) n++;
+  pairs.push({name: `pair${n}`, primary_vcn_id: '', primary_nsg_id: '', primary_client_cidr: `10.10.${n}.0/24`,
+              primary_route_table_id: '', standby_vcn_id: '', standby_nsg_id: '',
+              standby_client_cidr: `10.30.${n}.0/24`, standby_route_table_id: ''});
+  dgCrs[i].additional_pairs = pairs;
+  renderDgCrs(); refresh();
+}
+function removeDgCrPair(i, j) {
+  readDgCr(i);
+  dgCrs[i].additional_pairs.splice(j, 1);
+  renderDgCrs(); refresh();
+}
+function _dgCrPairsHTML(d, i, p) {
+  const on = `readDgCr(${i});refresh()`;
+  const f = (pr, j, s, k, ph, w) => `<div class="field"><div class="field-lbl">${k}</div><input type="text" id="${p}x${j}_${s}" value="${pr[k]||''}" placeholder="${ph}" oninput="${on}"></div>`;
+  const rows = (d.additional_pairs || []).map((pr, j) => `
+      <div class="dg-pair" style="border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--ink3)">pair ${j+2}</span>
+          <input type="text" id="${p}x${j}_name" value="${pr.name||''}" placeholder="app2" oninput="${on}" style="flex:1;max-width:220px">
+          <button class="inst-rm" onclick="removeDgCrPair(${i},${j})">Remove</button>
+        </div>
+        <div class="g2">${f(pr,j,'pvcn','primary_vcn_id','ocid1.vcn.oc1..')}${f(pr,j,'svcn','standby_vcn_id','ocid1.vcn.oc1..')}</div>
+        <div class="g2">${f(pr,j,'pnsg','primary_nsg_id','ocid1.networksecuritygroup.oc1..')}${f(pr,j,'snsg','standby_nsg_id','ocid1.networksecuritygroup.oc1..')}</div>
+        <div class="g2">${f(pr,j,'pcc','primary_client_cidr','10.11.1.0/24')}${f(pr,j,'scc','standby_client_cidr','10.31.1.0/24')}</div>
+        ${d.manage_route_table ? `<div class="g2">${f(pr,j,'prt','primary_route_table_id','ocid1.routetable.oc1..')}${f(pr,j,'srt','standby_route_table_id','ocid1.routetable.oc1..')}</div>` : ''}
+      </div>`).join('');
+  const count = (d.additional_pairs || []).length + 1;
+  return `<div class="section"><div class="section-head"><div class="section-title">Additional VCN Pairs (same hub)</div><span class="badge-opt">optional</span><div class="section-line"></div></div>
+      <div class="field-hint" style="margin-bottom:8px">More primary/standby cluster VCNs using this card's hub VCNs, DRGs and DRG peering &mdash; built once, not per pair. Each pair gets its own LPG pair, route and NSG rules, and reaches only its own peer. The VCNs above are pair 1. A hub VCN holds 10 LPGs by default: ${count} of 10 used.</div>
+      ${rows}
+      <button class="inst-add-btn" onclick="addDgCrPair(${i})">&#65291; Add VCN pair</button>
+    </div>`;
+}
+
+// ── Card HTML ─────────────────────────────────────────────────────────────────
+function dgMazCardHTML(d, i) {
+  const p = `dm${i}_`, open = (_cardOpen[`dm-card-${i}`]??i===0) ? 'open' : '';
+  return `<div class="inst-card ${open}" id="dm-card-${i}" draggable="true" ondragstart="onCardDragStart(event,dgMazs,${i},renderDgMazs,'dm-card-')" ondragover="onCardDragOver(event,dgMazs,${i})" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,dgMazs,${i},renderDgMazs,'dm-card-')" ondragend="onCardDragEnd(event)">
+  <div class="inst-card-head" onclick="toggleCard('dm-card-${i}')">
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
+    <span class="inst-num">${i+1}</span>
+    <span class="inst-modname">dg_multi_az_${d.module_name}</span>
+    <span class="inst-chevron">▼</span>
+    <button class="inst-rm" onclick="event.stopPropagation();removeInst(dgMazs,${i},renderDgMazs)">Remove</button>
+  </div>
+  <div class="inst-body">
+    <div class="module-path-row"><span class="mp-dir">dg_multi_az_</span><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" oninput="readDgMaz(${i});refresh()"><span style="color:var(--ink4)">/ {main·variables·outputs·tfvars}</span></div>
+    <div class="section"><div class="section-head"><div class="section-title">OCI Configuration</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">prefix <span class="req-star">*</span></div><input type="text" id="${p}prefix" value="${d.prefix||'dg'}" placeholder="dg" oninput="readDgMaz(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">oci_region <span class="req-star">*</span></div>${ociRegionSelectHTML(`${p}oci_reg`, d.oci_region||'', `readDgMaz(${i});refresh()`)}</div>
+      </div>
+      <div class="field"><div class="field-lbl">compartment_id</div><div class="field-hint">OCI compartment OCID</div><input type="text" id="${p}cid" value="${d.compartment_id||''}" placeholder="ocid1.compartment.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Primary Site</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">primary_vcn_id</div><input type="text" id="${p}pvcn" value="${d.primary_vcn_id||''}" placeholder="ocid1.vcn.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">primary_nsg_id</div><input type="text" id="${p}pnsg" value="${d.primary_nsg_id||''}" placeholder="ocid1.networksecuritygroup.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">primary_client_cidr <span class="req-star">*</span></div><input type="text" id="${p}pcc" value="${d.primary_client_cidr||'10.10.1.0/24'}" placeholder="10.10.1.0/24" oninput="readDgMaz(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">primary_route_table_id</div><div class="field-hint">Import before apply</div><input type="text" id="${p}prt" value="${d.primary_route_table_id||''}" placeholder="ocid1.routetable.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+      </div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Standby Site</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">standby_vcn_id</div><input type="text" id="${p}svcn" value="${d.standby_vcn_id||''}" placeholder="ocid1.vcn.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">standby_nsg_id</div><input type="text" id="${p}snsg" value="${d.standby_nsg_id||''}" placeholder="ocid1.networksecuritygroup.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">standby_client_cidr <span class="req-star">*</span></div><input type="text" id="${p}scc" value="${d.standby_client_cidr||'10.20.1.0/24'}" placeholder="10.20.1.0/24" oninput="readDgMaz(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">standby_route_table_id</div><div class="field-hint">Import before apply</div><input type="text" id="${p}srt" value="${d.standby_route_table_id||''}" placeholder="ocid1.routetable.oc1.." oninput="readDgMaz(${i});refresh()"></div>
+      </div>
+    </div>
+    <div class="section collapsed"><div class="section-head clickable" onclick="toggleOptSection(this)"><div class="section-title">Route Table &amp; NSG Options</div><span class="badge-opt">optional</span><div class="section-line"></div><span class="opt-chevron">▼</span></div>
+      <div class="field"><div class="field-lbl">Route table</div><div class="field-hint"><strong>Skip (default):</strong> Terraform ignores the cluster VCN route table — add the DG route manually after apply. <strong>Terraform-managed:</strong> Terraform owns the route table, requires <code>terraform import</code> first to avoid wiping existing routes.</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}mrt" ${d.manage_route_table?'checked':''} onchange="readDgMaz(${i});refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.manage_route_table?'Terraform-managed (import required)':'Skip — handle manually (default)'}</span></div></div>
+      <div class="field"><div class="field-lbl">add SSH (port 22) rules</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}ssh" ${d.add_ssh?'checked':''} onchange="readDgMaz(${i});refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.add_ssh?'yes':'no'}</span></div></div>
+    </div>
+  </div>
+</div>`;
+}
+
+function dgCrCardHTML(d, i) {
+  const p = `dc${i}_`, open = (_cardOpen[`dc-card-${i}`]??i===0) ? 'open' : '';
+  return `<div class="inst-card ${open}" id="dc-card-${i}" draggable="true" ondragstart="onCardDragStart(event,dgCrs,${i},renderDgCrs,'dc-card-')" ondragover="onCardDragOver(event,dgCrs,${i})" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,dgCrs,${i},renderDgCrs,'dc-card-')" ondragend="onCardDragEnd(event)">
+  <div class="inst-card-head" onclick="toggleCard('dc-card-${i}')">
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
+    <span class="inst-num">${i+1}</span>
+    <span class="inst-modname">dg_cross_region_${d.module_name}</span>
+    <span class="inst-chevron">▼</span>
+    <button class="inst-rm" onclick="event.stopPropagation();removeInst(dgCrs,${i},renderDgCrs)">Remove</button>
+  </div>
+  <div class="inst-body">
+    <div class="module-path-row"><span class="mp-dir">dg_cross_region_</span><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" oninput="readDgCr(${i});refresh()"><span style="color:var(--ink4)">/ {main·variables·tfvars·README + modules/}</span></div>
+    <div class="section"><div class="section-head"><div class="section-title">OCI Regions &amp; Common</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">prefix <span class="req-star">*</span></div><input type="text" id="${p}prefix" value="${d.prefix||'dg'}" placeholder="dg" oninput="readDgCr(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">compartment_id</div><input type="text" id="${p}cid" value="${d.compartment_id||''}" placeholder="ocid1.compartment.oc1.." oninput="readDgCr(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">primary_oci_region <span class="req-star">*</span></div>${ociRegionSelectHTML(`${p}poci`, d.primary_oci_region||'', `readDgCr(${i});refresh()`)}</div>
+        <div class="field"><div class="field-lbl">standby_oci_region <span class="req-star">*</span></div>${ociRegionSelectHTML(`${p}soci`, d.standby_oci_region||'', `readDgCr(${i});refresh()`)}</div>
+      </div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Primary Site</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">primary_vcn_id</div><input type="text" id="${p}pvcn" value="${d.primary_vcn_id||''}" placeholder="ocid1.vcn.oc1.." oninput="readDgCr(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">primary_nsg_id</div><input type="text" id="${p}pnsg" value="${d.primary_nsg_id||''}" placeholder="ocid1.networksecuritygroup.oc1.." oninput="readDgCr(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">primary_client_cidr <span class="req-star">*</span></div><input type="text" id="${p}pcc" value="${d.primary_client_cidr||'10.10.1.0/24'}" placeholder="10.10.1.0/24" oninput="readDgCr(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">primary_hub_cidr <span class="req-star">*</span></div><div class="field-hint">Transit VCN CIDR</div><input type="text" id="${p}phub" value="${d.primary_hub_cidr||'10.15.0.0/24'}" placeholder="10.15.0.0/24" oninput="readDgCr(${i});refresh()"></div>
+      </div>
+      <div class="field"><div class="field-lbl">primary_route_table_id</div><div class="field-hint">Import before apply — see README.md</div><input type="text" id="${p}prt" value="${d.primary_route_table_id||''}" placeholder="ocid1.routetable.oc1.." oninput="readDgCr(${i});refresh()"></div>
+    </div>
+    <div class="section"><div class="section-head"><div class="section-title">Standby Site</div><span class="badge-req">required</span><div class="section-line"></div></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">standby_vcn_id</div><input type="text" id="${p}svcn" value="${d.standby_vcn_id||''}" placeholder="ocid1.vcn.oc1.." oninput="readDgCr(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">standby_nsg_id</div><input type="text" id="${p}snsg" value="${d.standby_nsg_id||''}" placeholder="ocid1.networksecuritygroup.oc1.." oninput="readDgCr(${i});refresh()"></div>
+      </div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">standby_client_cidr <span class="req-star">*</span></div><input type="text" id="${p}scc" value="${d.standby_client_cidr||'10.30.1.0/24'}" placeholder="10.30.1.0/24" oninput="readDgCr(${i});refresh()"></div>
+        <div class="field"><div class="field-lbl">standby_hub_cidr <span class="req-star">*</span></div><div class="field-hint">Transit VCN CIDR</div><input type="text" id="${p}shub" value="${d.standby_hub_cidr||'10.16.0.0/24'}" placeholder="10.16.0.0/24" oninput="readDgCr(${i});refresh()"></div>
+      </div>
+      <div class="field"><div class="field-lbl">standby_route_table_id</div><div class="field-hint">Import before apply — see README.md</div><input type="text" id="${p}srt" value="${d.standby_route_table_id||''}" placeholder="ocid1.routetable.oc1.." oninput="readDgCr(${i});refresh()"></div>
+    </div>
+    ${_dgCrPairsHTML(d, i, p)}
+    <div class="section collapsed"><div class="section-head clickable" onclick="toggleOptSection(this)"><div class="section-title">Route Table &amp; NSG Options</div><span class="badge-opt">optional</span><div class="section-line"></div><span class="opt-chevron">▼</span></div>
+      <div class="field"><div class="field-lbl">Route table</div><div class="field-hint"><strong>Skip (default):</strong> Terraform ignores the cluster VCN route tables — add DG routes manually after apply. <strong>Terraform-managed:</strong> Terraform owns both route tables, requires <code>terraform import</code> for each to avoid wiping existing routes.</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}mrt" ${d.manage_route_table?'checked':''} onchange="readDgCr(${i});renderDgCrs();refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.manage_route_table?'Terraform-managed (import required)':'Skip — handle manually (default)'}</span></div></div>
+      <div class="field"><div class="field-lbl">add SSH (port 22) rules</div><div class="tog-row"><label class="tog-sw"><input type="checkbox" id="${p}ssh" ${d.add_ssh?'checked':''} onchange="readDgCr(${i});refresh()"><div class="tog-track"></div><div class="tog-thumb"></div></label><span class="tog-lbl">${d.add_ssh?'yes':'no'}</span></div></div>
+    </div>
+  </div>
+</div>`;
+}
+
+// ── Render functions ──────────────────────────────────────────────────────────
+function _safeRender(id, html) {
+  const el = document.getElementById(id); if (el) el.innerHTML = html;
+}
+function renderDgMazs() {
+  _safeRender('dg-maz-list', dgMazs.map((d,i) => dgMazCardHTML(d,i)).join(''));
+  const ct = document.getElementById('dg-maz-count');
+  if (ct) ct.textContent = dgMazs.length > 1 ? `${dgMazs.length} configs` : '';
+  updateTree();
+}
+function renderDgCrs() {
+  _safeRender('dg-cr-list', dgCrs.map((d,i) => dgCrCardHTML(d,i)).join(''));
+  const ct = document.getElementById('dg-cr-count');
+  if (ct) ct.textContent = dgCrs.length > 1 ? `${dgCrs.length} configs` : '';
+  updateTree();
+}
+
+// ── Card toggle & drag ────────────────────────────────────────────────────────
+const _cardOpen = {};
+function toggleCard(id) {
+  const el = document.getElementById(id); if (!el) return;
+  el.classList.toggle('open');
+  _cardOpen[id] = el.classList.contains('open');
+}
+function toggleOptSection(headEl) { headEl.closest('.section').classList.toggle('collapsed'); }
+let _dragSrc = null;
+function onCardDragStart(e, arr, i, renderFn, prefix) {
+  if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+  _dragSrc = {arr, i, renderFn, prefix};
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(i));
+  e.currentTarget.classList.add('dragging');
+}
+function onCardDragOver(e, arr, i) {
+  e.preventDefault();
+  if (!_dragSrc) return;
+  const src = _dragSrc.i, tgt = i;
+  document.querySelectorAll('.inst-card').forEach(c => c.classList.remove('drag-over-top','drag-over-bottom'));
+  if (src !== tgt) e.currentTarget.classList.add(tgt > src ? 'drag-over-bottom' : 'drag-over-top');
+}
+function onCardDragLeave(e) { e.currentTarget.classList.remove('drag-over-top','drag-over-bottom'); }
+function onCardDrop(e, arr, i, renderFn) {
+  e.preventDefault();
+  if (!_dragSrc || _dragSrc.i === i) return;
+  const [moved] = arr.splice(_dragSrc.i, 1);
+  arr.splice(i, 0, moved);
+  renderFn(); refresh();
+}
+function onCardDragEnd(e) {
+  document.querySelectorAll('.inst-card').forEach(c => c.classList.remove('dragging','drag-over-top','drag-over-bottom'));
+  _dragSrc = null;
+}
+// Zero cards is a valid page: the tree and editor fall back to the empty hint.
+function removeInst(arr, i, renderFn) { arr.splice(i, 1); renderFn(); refresh(); }
+
+// ── Shorthand accessors ───────────────────────────────────────────────────────
+function fv(id){ const e=document.getElementById(id); return e?e.value.trim():''; }
+function fcb(id){ const e=document.getElementById(id); return e?e.checked:false; }
+
+// ── switchTab ─────────────────────────────────────────────────────────────────
+function switchTab(i) {
+  cur = i;
+  document.querySelectorAll('#dg-tabs .tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('dg-page-'+i).classList.add('active');
+  if (i === 0 && dgMazs.length) activeFile = 'dg_maz:' + dgMazs[0].module_name + ':main';
+  else if (i === 1 && dgCrs.length) activeFile = 'dg_cr:' + dgCrs[0].module_name + ':main';
+  updateTree(); renderEditor();
+}
+
+// ── Payload / Config ──────────────────────────────────────────────────────────
+function buildPayload() {
+  dgMazs.forEach((d,i) => readDgMaz(i));
+  dgCrs.forEach((d,i) => readDgCr(i));
+  return {
+    cloud,
+    iac_tool: iacTool,
+    customer_name: getCustName(),
+    dg_multi_az:    dgMazs,
+    dg_cross_region: dgCrs,
+  };
+}
+
+function applyConfig(doc) {
+  const cust = document.getElementById('cust-name');
+  if (cust && doc.customer_name) { cust.value = doc.customer_name; onCustInput(); }
+  // Accept current dg_* keys or legacy aws_dg_*/gcp_dg_*/azure_dg_* from old ZIPs
+  const mazs = doc.dg_multi_az || doc.aws_dg_multi_az || doc.gcp_dg_multi_az || doc.azure_dg_multi_az || [];
+  const crs  = doc.dg_cross_region || doc.aws_dg_cross_region || doc.gcp_dg_cross_region || doc.azure_dg_cross_region || [];
+  // Replace outright: a config saved with every card of a kind removed must not
+  // leave the previous customer's cards on screen.
+  dgMazs = mazs.map((d, i) => ({...defDgMaz(i), ...d}));
+  dgCrs  = crs.map((d, i)  => ({...defDgCr(i),  ...d}));
+  activeFile = null;  // reset so updateTree auto-selects the first available file
+  renderAll();
+  renderEditor();
+}
+
+function renderAll() {
+  renderDgMazs();
+  renderDgCrs();
+  updateTree();
+}
+
+// ── File tree ─────────────────────────────────────────────────────────────────
+// Check if a Multi-AZ entry has the minimum required field (oci_region)
+function _mazFilled(dg) { return !!(dg.oci_region||'').trim(); }
+// Check if a Cross-Region entry has the minimum required fields (both regions)
+function _crFilled(dg)  { return !!(dg.primary_oci_region||'').trim() && !!(dg.standby_oci_region||'').trim(); }
+
+// Which cards are waiting on a region, by name — shown in the tree and editor.
+function _dgMissingRegions() {
+  const out = [];
+  dgMazs.forEach(d => { if (!_mazFilled(d)) out.push(`Multi-AZ <b>${esc(d.module_name)}</b>: oci_region`); });
+  dgCrs.forEach(d => {
+    const miss = [!(d.primary_oci_region||'').trim() && 'primary_oci_region', !(d.standby_oci_region||'').trim() && 'standby_oci_region'].filter(Boolean);
+    if (miss.length) out.push(`Cross-Region <b>${esc(d.module_name)}</b>: ${miss.join(' and ')}`);
+  });
+  return out;
+}
+function _dgEmptyHint() {
+  const miss = _dgMissingRegions();
+  if (!miss.length) return 'Add a Data Guard configuration on the left to generate Terraform.';
+  return 'No Terraform yet — Data Guard needs its OCI region(s). Choose: ' + miss.join('; ') + '.';
+}
+
+function updateTree() {
+  const sec = document.getElementById('ft-modules-section');
+  if (!sec) return;
+  let h = '';
+  let firstFile = null;  // track first available file to auto-select
+
+  const filledMazs = dgMazs.filter(_mazFilled);
+  if (filledMazs.length) {
+    h += '<div class="ft-section">DG Multi-AZ</div>';
+    filledMazs.forEach(dg => {
+      const dn = 'dg_multi_az_' + dg.module_name;
+      h += '<div class="ft-dir">' + dn + '/</div>';
+      [['main','main.tf','📄'],['variables','variables.tf','📋'],['outputs','outputs.tf','📤'],['tfvars','terraform.tfvars','⚙'],['readme','README.md','📖']].forEach(([kt,f,ic]) => {
+        const fk = 'dg_maz:' + dg.module_name + ':' + kt;
+        if (!firstFile) firstFile = fk;
+        h += '<div class="ft-file ' + (activeFile===fk?'active':'') + '" onclick="selFile(\'' + fk + '\')"><span>' + ic + '</span>' + f + '</div>';
+      });
+    });
+  }
+
+  const filledCrs = dgCrs.filter(_crFilled);
+  if (filledCrs.length) {
+    h += '<div class="ft-section" style="margin-top:8px">DG Cross-Region</div>';
+    filledCrs.forEach(dg => {
+      const dn = 'dg_cross_region_' + dg.module_name;
+      h += '<div class="ft-dir">' + dn + '/</div>';
+      [['main','main.tf','📄'],['variables','variables.tf','📋'],['tfvars','terraform.tfvars','⚙'],['readme','README.md','📖']].forEach(([kt,f,ic]) => {
+        const fk = 'dg_cr:' + dg.module_name + ':' + kt;
+        if (!firstFile) firstFile = fk;
+        h += '<div class="ft-file ' + (activeFile===fk?'active':'') + '" onclick="selFile(\'' + fk + '\')"><span>' + ic + '</span>' + f + '</div>';
+      });
+      // Separate module dirs — primary and DR each have their own main.tf
+      h += '<div class="ft-dir" style="padding-left:24px">modules/oci-dg-primary/</div>';
+      [['primary:main','main.tf','📄'],['primary:variables','variables.tf','📋'],['primary:outputs','outputs.tf','📤']].forEach(([kt,f,ic]) => {
+        const fk = 'dg_cr:' + dg.module_name + ':' + kt;
+        h += '<div class="ft-file sub ' + (activeFile===fk?'active':'') + '" onclick="selFile(\'' + fk + '\')"><span>' + ic + '</span>' + f + '</div>';
+      });
+      h += '<div class="ft-dir" style="padding-left:24px">modules/oci-dg-dr/</div>';
+      [['dr:main','main.tf','📄'],['dr:variables','variables.tf','📋'],['dr:outputs','outputs.tf','📤']].forEach(([kt,f,ic]) => {
+        const fk = 'dg_cr:' + dg.module_name + ':' + kt;
+        h += '<div class="ft-file sub ' + (activeFile===fk?'active':'') + '" onclick="selFile(\'' + fk + '\')"><span>' + ic + '</span>' + f + '</div>';
+      });
+      h += '<div class="ft-dir" style="padding-left:24px">modules/oci-dg-peering/</div>';
+      [['peering:main','main.tf','📄'],['peering:variables','variables.tf','📋'],['peering:outputs','outputs.tf','📤']].forEach(([kt,f,ic]) => {
+        const fk = 'dg_cr:' + dg.module_name + ':' + kt;
+        h += '<div class="ft-file sub ' + (activeFile===fk?'active':'') + '" onclick="selFile(\'' + fk + '\')"><span>' + ic + '</span>' + f + '</div>';
+      });
+    });
+  }
+
+  // Auto-select first available file when nothing is selected yet
+  if (!activeFile && firstFile) { activeFile = firstFile; }
+  // If activeFile points to a config that was cleared, reset it
+  if (activeFile && !h.includes("onclick=\"selFile('" + activeFile + "')\"")) { activeFile = firstFile || null; }
+
+  if (!h) h = '<div style="padding:18px 14px;font-family:var(--font-m);font-size:11px;color:var(--ink2);line-height:1.5">' + _dgEmptyHint() + '</div>';
+  sec.innerHTML = h;
+}
+
+// ── File key helpers ──────────────────────────────────────────────────────────
+function fkToPath(k) {
+  const m1 = k.match(/^dg_maz:([^:]+):(main|variables|outputs|tfvars|readme)$/);
+  if (m1) {
+    const f = m1[2]==='tfvars'?'terraform.tfvars': m1[2]==='readme'?'README.md': m1[2]+'.tf';
+    return '<span class="ep-dir">dg_multi_az_'+m1[1]+'/</span><span class="ep-file">'+f+'</span>';
+  }
+  const m2 = k.match(/^dg_cr:([^:]+):(main|variables|tfvars)$/);
+  if (m2) { const f=m2[2]==='tfvars'?'terraform.tfvars':m2[2]+'.tf'; return '<span class="ep-dir">dg_cross_region_'+m2[1]+'/</span><span class="ep-file">'+f+'</span>'; }
+  const m3 = k.match(/^dg_cr:([^:]+):readme$/);
+  if (m3) { return '<span class="ep-dir">dg_cross_region_'+m3[1]+'/</span><span class="ep-file">README.md</span>'; }
+  const m4 = k.match(/^dg_cr:([^:]+):(primary|dr):(main|variables|outputs)$/);
+  if (m4) { return '<span class="ep-dir">dg_cross_region_'+m4[1]+'/modules/oci-dg-'+m4[2]+'/</span><span class="ep-file">'+m4[3]+'.tf</span>'; }
+  const m5 = k.match(/^dg_cr:([^:]+):peering:(main|variables|outputs)$/);
+  if (m5) { return '<span class="ep-dir">dg_cross_region_'+m5[1]+'/modules/oci-dg-peering/</span><span class="ep-file">'+m5[2]+'.tf</span>'; }
+  return k;
+}
+
+function fkToApiPath(k) {
+  const m1 = k.match(/^dg_maz:([^:]+):(main|variables|outputs|tfvars|readme)$/);
+  if (m1) {
+    const f = m1[2]==='tfvars'?'terraform.tfvars': m1[2]==='readme'?'README.md': m1[2]+'.tf';
+    return 'dg_multi_az_'+m1[1]+'/'+f;
+  }
+  const m2 = k.match(/^dg_cr:([^:]+):(main|variables|tfvars)$/);
+  if (m2) { const f=m2[2]==='tfvars'?'terraform.tfvars':m2[2]+'.tf'; return 'dg_cross_region_'+m2[1]+'/'+f; }
+  const m3 = k.match(/^dg_cr:([^:]+):readme$/);
+  if (m3) { return 'dg_cross_region_'+m3[1]+'/README.md'; }
+  const m4 = k.match(/^dg_cr:([^:]+):(primary|dr):(main|variables|outputs)$/);
+  if (m4) { return 'dg_cross_region_'+m4[1]+'/modules/oci-dg-'+m4[2]+'/'+m4[3]+'.tf'; }
+  const m5 = k.match(/^dg_cr:([^:]+):peering:(main|variables|outputs)$/);
+  if (m5) { return 'dg_cross_region_'+m5[1]+'/modules/oci-dg-peering/'+m5[2]+'.tf'; }
+  return k;
+}
+
+async function fetchFile(fk) {
+  const p = buildPayload(); p.file_key = fkToApiPath(fk);
+  try {
+    const r = await fetch('/api/generate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)});
+    const d = await r.json();
+    if (d.error) return '# Error:\n# ' + d.error;
+    return d.content || '';
+  } catch(e) { return '# Network error: ' + e.message; }
+}
+
+async function renderEditor() {
+  if (!activeFile) {
+    document.getElementById('ep-path').innerHTML = '';
+    document.getElementById('code-out').innerHTML = '<span style="color:var(--ink2)"># ' + _dgEmptyHint() + '</span>';
+    return;
+  }
+  document.getElementById('ep-path').innerHTML = fkToPath(activeFile);
+  document.getElementById('code-out').innerHTML = '<span style="color:var(--ink4);font-style:italic"># Generating…</span>';
+  const c = await fetchFile(activeFile);
+  document.getElementById('code-out').innerHTML = hl(c);
+}
+
+function selFile(k) { activeFile = k; updateTree(); renderEditor(); }
+
+function refresh() {
+  document.querySelectorAll('.inst-body .field.invalid').forEach(f => f.classList.remove('invalid'));
+  document.querySelectorAll('.card-err-banner').forEach(b => b.remove());
+  clearTimeout(rtimer); rtimer = setTimeout(() => { updateTree(); renderEditor(); }, 300);
+}
+
+// ── Syntax highlighter ────────────────────────────────────────────────────────
+// Spans are emitted as sentinel markers and only turned into real <span> tags at
+// the very end — emitting tags inline made later rules match their own markup
+// (class="hcmt" hit the string rule and printed literal `hcmt"` into the output).
+const _HS = '\\u0001', _HE = '\\u0002', _HC = '\\u0003';
+function _mk(cls, txt){ return _HS + cls + _HE + txt + _HC; }
+function _spans(s){
+  return s.replace(/\\u0001([a-z]+)\\u0002/g, '<span class="$1">').replace(/\\u0003/g, '</span>');
+}
+
+function hl(code) {
+  return _spans(code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/^(#[^\n]*)/gm,(m,c)=>_mk('hcmt',c))
+    .replace(/\b(resource|module|output|variable|terraform|provider|required_providers|required_version|dynamic|content|for_each|depends_on|source|version|description|type|default|value|sensitive)\b(?=[^(])/g,(m,k)=>_mk('hkw',k))
+    .replace(/\b(string|number|bool|list|map|any|null)\b/g,(m,t)=>_mk('htype',t))
+    .replace(/var\.([a-z_][a-z0-9_.]*)/g,(m,v)=>_mk('hvar','var.'+v))
+    .replace(/module\.([a-z_][a-z0-9_.]*)/g,(m,v)=>_mk('href','module.'+v))
+    .replace(/=\s*"([^"\\u0001-\\u0003]+)"/g,(m,v)=>'= '+_mk('hstr','"'+v+'"'))
+    .replace(/=\s*(true|false)\b/g,(m,b)=>'= '+_mk('hbol',b))
+    .replace(/=\s*(-?\d+\.?\d*)\b/g,(m,n)=>'= '+_mk('hnum',n)));
+}
+
+// ── Tool switcher ─────────────────────────────────────────────────────────────
+function switchTool(t) {
+  iacTool = t;
+  document.getElementById('btn-tf').className   = 'tsw-btn' + (t==='terraform' ? ' sel-tf' : '');
+  document.getElementById('btn-tofu').className = 'tsw-btn' + (t==='opentofu'  ? ' sel-tofu' : '');
+  refresh();
+}
+
+// ── Validate & Generate ───────────────────────────────────────────────────────
+async function vgen(tab) {
+  const p = buildPayload(); p.tab = tab;
+  try {
+    const res = await fetch('/api/validate', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)});
+    const d = await res.json();
+    if (!d.valid) {
+      const msgs = Object.entries(d.errors_by_module || {}).flatMap(([mn, e]) => Object.values(e).map(m => `${mn}: ${m}`));
+      showToast(msgs.join('\n') || 'Validation errors', true); return;
+    }
+    showToast('Valid — generating…');
+  } catch(e) { showToast('Error: '+e.message, true); return; }
+  updateTree(); renderEditor();
+}
+
+// ── Explain file ──────────────────────────────────────────────────────────────
+async function explainCurrentFile() {
+  const btn = document.getElementById('explain-btn');
+  const panel = document.getElementById('explain-panel');
+  const body  = document.getElementById('explain-body');
+  const lbl   = document.getElementById('explain-file-label');
+  const path  = document.getElementById('ep-path').innerText || '';
+  if (panel.style.display !== 'none' && lbl.textContent === path) { closeExplain(); return; }
+  btn.textContent = '⟳ …'; btn.disabled = true;
+  lbl.textContent = path;
+  body.innerHTML = '<span style="color:var(--ink4);font-style:italic">Generating explanation…</span>';
+  panel.style.display = 'flex';
+  const rawCode = await fetchFile(activeFile);
+  try {
+    const r = await fetch('/api/llm/explain', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({content:rawCode, filename:path})});
+    const d = await r.json();
+    if (d.error) body.innerHTML = '<span style="color:var(--red)">Error: '+d.error+'</span>';
+    else body.textContent = d.explanation;
+  } catch(e) { body.innerHTML = '<span style="color:var(--red)">Network error: '+e.message+'</span>'; }
+  finally { btn.textContent = '✦ Explain'; btn.disabled = false; }
+}
+function closeExplain() { document.getElementById('explain-panel').style.display='none'; }
+
+// ── Download ZIP ──────────────────────────────────────────────────────────────
+// ── Spreadsheet import ────────────────────────────────────────────────────────
+async function onImportSpreadsheet(inp) {
+  const file = inp.files[0]; if (!file) return; inp.value = '';
+  const btn = document.getElementById('import-sheet-btn');
+  const reply = document.getElementById('import-reply');
+  reply.style.display = 'inline';
+  reply.style.color = '#555'; reply.textContent = '⏳ Parsing…';
+  btn.disabled = true;
+  const fd = new FormData(); fd.append('file', file); fd.append('cloud', cloud);
+  try {
+    const r = await fetch('/api/import/spreadsheet', { method: 'POST', body: fd });
+    const doc = await r.json();
+    if (doc.error) {
+      reply.style.color = '#c0392b';
+      reply.textContent = '✗ ' + doc.error;
+      return;
+    }
+    const summary = doc._import_summary || '';
+    delete doc._import_summary;
+    applyConfig(doc);
+    reply.style.color = '#1a7a4a';
+    reply.textContent = '✓ ' + summary;
+    setTimeout(() => { reply.style.display = 'none'; }, 4000);
+  } catch(e) {
+    reply.style.color = '#c0392b';
+    reply.textContent = '✗ ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function dlZip() {
+  const p = buildPayload();
+  const r = await fetch('/api/download', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(p)});
+  const b = await r.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(b);
+  const tool = iacTool==='opentofu' ? '-tofu' : '';
+  const cust = getCustName().replace(/[^a-z0-9_-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+  a.download = 'terraflow-studio-dg' + (cust?'-'+cust:'') + tool + '.zip';
+  a.click();
+}
+
+// ── Load ZIP ──────────────────────────────────────────────────────────────────
+function loadZip() { document.getElementById('load-zip-input').click(); }
+async function onLoadZipFile(inp) {
+  const file = inp.files[0]; if (!file) return; inp.value = '';
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const r = await fetch('/api/load-zip', {method:'POST', body:fd});
+    const doc = await r.json();
+    if (doc.error) { showToast(doc.error, true); return; }
+    const cld = doc.cloud || cloud;
+    // Accept 'dg' cloud, or any cloud that has dg_* / aws_dg_* / gcp_dg_* keys
+    const hasDgData = doc.dg_multi_az || doc.dg_cross_region ||
+                      doc.aws_dg_multi_az || doc.aws_dg_cross_region ||
+                      doc.gcp_dg_multi_az || doc.gcp_dg_cross_region ||
+                      doc.azure_dg_multi_az || doc.azure_dg_cross_region;
+    if (cld !== cloud && !hasDgData) {
+      showToast(`This ZIP is for ${cld.toUpperCase()} and has no Data Guard config — open that product page`, true);
+      return;
+    }
+    applyConfig(doc); showToast('ZIP loaded ✓');
+  } catch(e) { showToast('Load failed: '+e.message, true); }
+}
+
+// ── Copy file ─────────────────────────────────────────────────────────────────
+function copyFile() {
+  const text = document.getElementById('code-out').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copybtn');
+    btn.classList.add('copied'); btn.textContent = '✓ Copied!';
+    setTimeout(() => { btn.classList.remove('copied'); btn.textContent = '⎘ Copy'; }, 2000);
+  });
+}
+
+// ── Customer & Config ─────────────────────────────────────────────────────────
+function getCustName() { return (document.getElementById('cust-name').value||'').trim(); }
+function onCustInput() {
+  const n = getCustName();
+  document.getElementById('save-btn').disabled = !n;
+  updateDelBtn(); updateTestBtn();
+}
+function updateDelBtn() {
+  const name = getCustName(), sel = document.getElementById('cust-select');
+  const hasMatch = Array.from(sel.options).some(o => !o.value?false: o.dataset.name===name && o.value.split('|')[1]===cloud);
+  document.getElementById('del-btn').disabled = !hasMatch;
+}
+function updateTestBtn() {
+  const btn = document.getElementById('test-btn'); if (btn) btn.disabled = !getCustName();
+}
+function onCustSelect() {
+  const sel = document.getElementById('cust-select'), val = sel.value; if (!val) return;
+  const [slug, cld] = val.split('|');
+  const name = sel.options[sel.selectedIndex].dataset.name || slug;
+  document.getElementById('cust-name').value = name;
+  onCustInput();   // a programmatic value fires no input event — Save/Test/Delete would stay disabled
+  if (cld && cld !== cloud) { showToast(`Config is for ${cld.toUpperCase()} — open that page`, true); return; }
+  loadConfigFor(name, cld || cloud);
+}
+async function saveConfig() {
+  const name = getCustName(); if (!name) { showToast('Enter a customer name first', true); return; }
+  try {
+    const r = await fetch('/api/config/save', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...buildPayload(), customer:name})});
+    const d = await r.json();
+    if (d.error) { showToast('Save failed: '+d.error, true); return; }
+    showToast('Saved ✓');
+    const btn = document.getElementById('save-btn');
+    btn.classList.add('saved'); setTimeout(() => btn.classList.remove('saved'), 2000);
+    await refreshCustomerList();
+  } catch(e) { showToast('Save error: '+e.message, true); }
+}
+async function deleteConfig() {
+  const name = getCustName(); if (!name) return;
+  if (!confirm(`Delete saved config for "${name}" (DG)?`)) return;
+  try {
+    const r = await fetch(`/api/config/delete/${encodeURIComponent(name)}/${cloud}`, {method:'DELETE'});
+    const d = await r.json();
+    if (!d.ok) { showToast('Nothing to delete', true); return; }
+    showToast(`Deleted "${name}" ✓`); await refreshCustomerList();
+  } catch(e) { showToast('Delete error: '+e.message, true); }
+}
+async function loadConfig() {
+  const name = getCustName(); if (!name) { showToast('Enter a customer name first', true); return; }
+  await loadConfigFor(name, cloud);
+}
+async function loadConfigFor(name, cld) {
+  try {
+    const r = await fetch(`/api/config/load/${encodeURIComponent(name)}/${cld}`);
+    if (r.status === 404) { showToast('No saved config found', true); return; }
+    const doc = await r.json();
+    if (doc.error) { showToast('Load failed: '+doc.error, true); return; }
+    applyConfig(doc); showToast('Loaded ✓');
+  } catch(e) { showToast('Load error: '+e.message, true); }
+}
+function showToast(msg, isError=false) {
+  if (!isError) { const el=document.getElementById('save-toast'); if(el){el.textContent=msg;el.style.color='#4aaf79';el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2500);return;} }
+  let t = document.getElementById('vgen-toast');
+  if (!t) { t=document.createElement('div');t.id='vgen-toast';t.style.cssText='position:fixed;bottom:24px;right:24px;z-index:9999;background:var(--ink);color:var(--white);font-family:var(--font-m);font-size:12px;padding:10px 16px;border-radius:8px;max-width:360px;white-space:pre-wrap;box-shadow:0 4px 16px rgba(0,0,0,0.3);transition:opacity .3s;';document.body.appendChild(t); }
+  t.style.background = isError ? 'var(--red)' : 'var(--ink)';
+  t.textContent = msg; t.style.opacity = '1';
+  clearTimeout(t._timer); t._timer = setTimeout(() => { t.style.opacity='0'; }, isError?5000:2500);
+}
+async function refreshCustomerList() {
+  try {
+    const r = await fetch('/api/config/list');
+    const list = await r.json();
+    const sel = document.getElementById('cust-select'), prev = sel.value;
+    sel.innerHTML = '<option value="">— saved customers —</option>';
+    list.forEach(c => {
+      const opt = document.createElement('option');
+      const cld = c.clouds.includes(cloud) ? cloud : (c.clouds[0]||cloud);
+      opt.value = `${c.slug}|${cld}`; opt.dataset.name = c.customer;
+      opt.textContent = c.clouds.includes(cloud) ? c.customer : `${c.customer} [${c.clouds.join('/')}]`;
+      if (!c.clouds.includes(cloud)) opt.style.color='#999';
+      if (opt.value===prev) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    updateDelBtn();
+  } catch(e) {}
+}
+async function initStorage() {
+  try {
+    const r = await fetch('/api/config/backend'), d = await r.json();
+    document.getElementById('backend-pill').textContent = d.backend.startsWith('couchdb')?'🛢 CouchDB':'📁 File';
+  } catch(e) {}
+  await refreshCustomerList();
+}
+
+// ── Test modal ────────────────────────────────────────────────────────────────
+// Every Data Guard card is its own Terraform root, so Mock TF Validate and TF CLI
+// report each one under its directory (dg_multi_az_<name>/, dg_cross_region_<name>/).
+let _activeTestTab = 'functional';
+function switchTestTab(tab) {
+  _activeTestTab = tab;
+  document.querySelectorAll('.test-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('ttab-' + tab).classList.add('active');
+  if (document.getElementById('test-modal-overlay').classList.contains('open')) _runCurrentTab();
+}
+function updateTestBtn() { const b=document.getElementById('test-btn'); if(b) b.disabled=!getCustName(); }
+async function runCustomerTests() {
+  if (!getCustName()) { showToast('Enter a customer name first', true); return; }
+  document.getElementById('test-modal-overlay').classList.add('open'); _runCurrentTab();
+}
+async function _runCurrentTab() {
+  const name = getCustName();
+  const tab  = _activeTestTab;
+  const tabLabels = { functional: `Testing "${name}"…`, tfvalidate: `TF Validate "${name}"…`, tfcli: `TF CLI "${name}"…` };
+  const tabHints  = { functional: '⏳ Running functional tests…', tfvalidate: '⏳ Running mock Terraform validation…',
+                      tfcli: '⏳ Running terraform fmt + init + validate in each Data Guard root… (init may take ~30s per root to download providers)' };
+  document.getElementById('test-modal-title').textContent = tabLabels[tab] || `Testing "${name}"…`;
+  document.getElementById('test-modal-sub').textContent = `Cloud: DG`;
+  document.getElementById('test-progress-bar').style.width = '15%';
+  document.getElementById('test-summary-row').innerHTML = '';
+  document.getElementById('test-results-body').innerHTML = `<div class="test-running">${tabHints[tab] || '⏳ Running…'}</div>`;
+  const endpoints = { functional: '/api/test', tfvalidate: '/api/tf-validate', tfcli: '/api/tf-cli' };
+  try {
+    const r = await fetch(endpoints[tab] || '/api/test', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({...buildPayload(), customer:name})});
+    const d = await r.json();
+    document.getElementById('test-progress-bar').style.width = '100%';
+    if (tab === 'functional') renderTestResults(d);
+    else if (tab === 'tfvalidate') renderTFValidateResults(d);
+    else renderTFCliResults(d);
+  } catch(e) { document.getElementById('test-results-body').innerHTML=`<div class="test-err">Network error: ${_testEsc(e.message)}</div>`; }
+}
+function _testEsc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _testSummaryHTML(passed, failed, warned, total, showWarn) {
+  return `<div class="test-summary">
+      <div class="test-stat pass"><div class="test-stat-num">${passed}</div><div class="test-stat-lbl">Passed</div></div>
+      <div class="test-stat fail"><div class="test-stat-num">${failed}</div><div class="test-stat-lbl">Failed</div></div>
+      ${showWarn ? `<div class="test-stat warn"><div class="test-stat-num">${warned}</div><div class="test-stat-lbl">Warnings</div></div>` : ''}
+      <div class="test-stat skip"><div class="test-stat-num">${total}</div><div class="test-stat-lbl">Total</div></div>
+    </div>`;
+}
+function renderTestResults(d) {
+  const { passed=0, failed=0, total=0, results=[], customer='' } = d;
+  document.getElementById('test-modal-title').textContent =
+    failed === 0 ? `✅ All tests passed — "${customer}"` : `❌ ${failed} test${failed!==1?'s':''} failed — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent = `Cloud: DG · ${total} checks`;
+  document.getElementById('test-summary-row').innerHTML = _testSummaryHTML(passed, failed, 0, total, false);
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results);
+}
+function renderTFValidateResults(d) {
+  const { passed=0, failed=0, warned=0, total=0, results=[], customer='', files_generated=0 } = d;
+  const icon = failed === 0 ? (warned > 0 ? '⚠️' : '✅') : '❌';
+  document.getElementById('test-modal-title').textContent = `${icon} Mock TF Validate — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent = `Cloud: DG · ${files_generated} files · ${total} checks`;
+  document.getElementById('test-summary-row').innerHTML = _testSummaryHTML(passed, failed, warned, total, true) + `
+    <div style="font-family:var(--font-m);font-size:11px;color:var(--ink3);margin-bottom:12px;padding:8px 12px;background:var(--off);border-radius:var(--radius);">
+      🔬 <strong>Mock Terraform Validator</strong> — simulates <code>terraform validate</code> for each Data Guard root: HCL syntax, the <code>oracle/oci</code> provider declaration and resource schema, variable resolution, outputs and module references, without Terraform or OCI credentials.
+    </div>`;
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results);
+}
+function renderTFCliResults(d) {
+  const { passed=0, failed=0, warned=0, total=0, results=[], customer='', files_generated=0, bin='terraform', bin_version='' } = d;
+  const icon = failed === 0 ? (warned > 0 ? '⚠️' : '✅') : '❌';
+  document.getElementById('test-modal-title').textContent = `${icon} TF CLI — "${customer}"`;
+  document.getElementById('test-modal-sub').textContent =
+    `Cloud: DG · ${files_generated} files · ${bin}${bin_version ? ' v'+bin_version : ''}`;
+  document.getElementById('test-summary-row').innerHTML = _testSummaryHTML(passed, failed, warned, total, true) + `
+    <div style="font-family:var(--font-m);font-size:11px;color:var(--ink3);margin-bottom:12px;padding:8px 12px;background:var(--off);border-radius:var(--radius);">
+      🏗 Runs <code>${_testEsc(bin)} fmt -check -recursive</code> over everything, then <code>${_testEsc(bin)} init -backend=false</code> and <code>${_testEsc(bin)} validate</code> inside each Data Guard root, in a temporary directory.
+    </div>`;
+  document.getElementById('test-results-body').innerHTML = _buildResultsHTML(results);
+}
+function _buildResultsHTML(results) {
+  if (!results || results.length === 0) return '<div class="test-running">No tests ran.</div>';
+  const groups = {};
+  results.forEach(r => { (groups[r.group] = groups[r.group] || []).push(r); });
+  let html = '';
+  for (const [grpName, rows] of Object.entries(groups)) {
+    const grpFail = rows.filter(r => r.status === 'fail').length;
+    const grpWarn = rows.filter(r => r.status === 'warn').length;
+    const badge = grpFail ? `<span style="color:var(--red);font-size:10px"> ✗ ${grpFail} failed</span>`
+                : grpWarn ? `<span style="color:#d4a017;font-size:10px"> ⚠ ${grpWarn} warnings</span>`
+                :           `<span style="color:var(--green);font-size:10px"> ✓ all passed</span>`;
+    html += `<div class="test-group"><div class="test-group-name">${_testEsc(grpName)}${badge}</div>`;
+    rows.forEach(r => {
+      const icon = r.status === 'pass' ? '✅' : r.status === 'warn' ? '⚠️' : '❌';
+      const fileLabel = r.file ? `<span style="font-family:var(--font-m);font-size:10px;color:var(--ink4);margin-left:6px">${_testEsc(r.file)}</span>` : '';
+      html += `<div class="test-row${r.status === 'warn' ? ' test-warn-row' : ''}">
+        <span class="test-icon">${icon}</span>
+        <div style="flex:1">
+          <span class="test-name">${_testEsc(r.name)}</span>${fileLabel}
+          ${r.error ? `<div class="test-err" style="white-space:pre-wrap">${_testEsc(r.error)}</div>` : ''}
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  return html;
+}
+function closeTestModal() { document.getElementById('test-modal-overlay').classList.remove('open'); }
+
+// ── AI Tools ──────────────────────────────────────────────────────────────────
+function openAiTool(tool) { document.getElementById('ai-'+tool+'-overlay').classList.add('open'); }
+function closeAiTool(tool) { document.getElementById('ai-'+tool+'-overlay').classList.remove('open'); }
+async function runTroubleshooter() {
+  const text = document.getElementById('ai-error-input').value.trim();
+  if (!text) { alert('Paste your terraform error first.'); return; }
+  const btn = document.getElementById('ai-error-btn');
+  btn.disabled=true; btn.innerHTML='<span class="ai-spinner"></span>Diagnosing…';
+  document.getElementById('ai-error-result').classList.remove('visible');
+  try {
+    const r = await fetch('/api/ai/troubleshoot', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({error_text:text, cloud})});
+    const d = await r.json();
+    if (d.error) { renderAiError('ai-error-result', d.error); return; }
+    document.getElementById('ai-error-root').textContent        = d.root_cause  || '';
+    document.getElementById('ai-error-explanation').textContent = d.explanation || '';
+    const sl = document.getElementById('ai-error-steps'); sl.innerHTML = '';
+    (d.fix_steps||[]).forEach((s,i) => { sl.innerHTML += `<div class="ai-step-row"><span class="ai-step-num">${i+1}</span><span class="ai-step-text">${esc(s)}</span></div>`; });
+    document.getElementById('ai-error-result').classList.add('visible');
+  } catch(e) { renderAiError('ai-error-result', e.message); }
+  finally { btn.disabled=false; btn.textContent='Diagnose Error'; }
+}
+function renderAiError(id, msg) { const el=document.getElementById(id); el.innerHTML=`<div class="ai-err-box">Error: ${esc(msg)}</div>`; el.classList.add('visible'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── LLM bar ───────────────────────────────────────────────────────────────────
+async function initLlmBar() {
+  try {
+    const r = await fetch('/api/llm/info'), d = await r.json();
+    const badge = document.getElementById('llm-prov-badge');
+    if (d.configured) { badge.textContent=`${d.provider} · ${d.model}`; badge.className='llm-prov ok'; }
+    else { badge.textContent='LLM not configured'; badge.className='llm-prov err'; document.getElementById('llm-send-btn').disabled=true; }
+  } catch(e) { const b=document.getElementById('llm-prov-badge'); if(b) b.textContent='unavailable'; }
+}
+async function sendLlmPrompt() {
+  const inp=document.getElementById('llm-input'), reply=document.getElementById('llm-reply'), btn=document.getElementById('llm-send-btn');
+  const prompt=inp.value.trim(); if(!prompt) return;
+  btn.disabled=true; btn.textContent='…'; reply.textContent='Thinking…'; reply.style.color='#555';
+  try {
+    const r=await fetch('/api/llm/fill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,cloud,current:buildPayload()})});
+    const d=await r.json();
+    if(d.error){reply.textContent='✗ '+d.error;reply.style.color='#c0392b';}
+    else{if(d.payload&&Object.keys(d.payload).length)applyConfig(d.payload);reply.textContent='✓ '+(d.explanation||'Done');reply.style.color='#1a7a4a';inp.value='';}
+  } catch(e){reply.textContent='✗ Network error: '+e.message;reply.style.color='#c0392b';}
+  finally{btn.disabled=false;btn.textContent='Ask';}
+}
+
+// ── GitHub ────────────────────────────────────────────────────────────────────
+async function initGithub() {
+  try {
+    const r=await fetch('/api/github/info'), d=await r.json();
+    const btn=document.getElementById('gh-push-btn'), badge=document.getElementById('gh-status-badge');
+    if(d.configured){btn.dataset.configured='true';btn.classList.remove('muted');btn.classList.add('green');badge.textContent=`${d.repo} / ${d.branch}`;badge.style.color='#2a7a4a';}
+  } catch(e){}
+}
+async function pushToGithub() {
+  const btn=document.getElementById('gh-push-btn'), badge=document.getElementById('gh-status-badge');
+  if(btn.dataset.configured!=='true'){badge.textContent='✗ Not configured — add GITHUB_TOKEN to .env';badge.style.color='#c0392b';return;}
+  const prev=btn.textContent; btn.disabled=true; btn.textContent='↑ Pushing…';
+  const payload=buildPayload(); payload.commit_message=`chore: Terraflow DG update — ${getCustName()||'unnamed'}`;
+  try {
+    const r=await fetch('/api/github/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(d.error){badge.textContent='✗ '+d.error;badge.style.color='#c0392b';}
+    else{badge.textContent=`✓ ${d.pushed?.length||0} files pushed`;badge.style.color='#1a7a4a';}
+  } catch(e){badge.textContent='✗ Network error';badge.style.color='#c0392b';}
+  finally{btn.disabled=false;btn.textContent=prev;}
+}
+
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+initStorage();
+renderAll();
+renderEditor();
+initLlmBar();
+initGithub();
+</script>
+</body>
+</html>

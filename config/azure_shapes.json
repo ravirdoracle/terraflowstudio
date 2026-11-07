@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Oracle AI Database@Azure Exadata shape catalogue. Single source of truth for the",
+    "shape, database_server_type and storage_server_type dropdowns on the Azure page.",
+    "",
+    "Edit this file, or use /regions, to add a shape or a server type — no code",
+    "change needed. A bad edit is rejected on save, so the file on disk is never",
+    "left in a state that would empty the dropdowns.",
+    "",
+    "Fields per entry:",
+    "  shape                  azurerm_oracle_exadata_infrastructure.shape. Unique.",
+    "  label                  Human name shown in the dropdown.",
+    "  status                 live | planned. Planned shapes are shown greyed out.",
+    "  database_server_types  Values offered for database_server_type.",
+    "  storage_server_types   Values offered for storage_server_type. HC = High",
+    "                         Capacity, EF = Extreme Flash.",
+    "  server_types_required  Both server types must be set for this shape. The card marks",
+    "                         them required and /api/validate rejects a blank one.",
+    "",
+    "The Azure page offered only X9M and X11M before this catalogue existed, while",
+    "AWS and GCP offered X10M as well — the three lists had drifted apart. X10M is",
+    "listed here as planned rather than live: add it as live once confirmed for",
+    "your subscription."
+  ],
+  "default_shape": "Exadata.X11M",
+  "shapes": [
+    { "shape": "Exadata.X9M",  "label": "Exadata X9M",  "status": "live",    "database_server_types": ["X9M"],  "storage_server_types": ["X9M-HC", "X9M-EF"],   "server_types_required": false },
+    { "shape": "Exadata.X10M", "label": "Exadata X10M", "status": "planned", "database_server_types": ["X10M"], "storage_server_types": ["X10M-HC", "X10M-EF"], "server_types_required": false },
+    { "shape": "Exadata.X11M", "label": "Exadata X11M", "status": "live",    "database_server_types": ["X11M"], "storage_server_types": ["X11M-HC", "X11M-EF"], "server_types_required": true }
+  ]
+}

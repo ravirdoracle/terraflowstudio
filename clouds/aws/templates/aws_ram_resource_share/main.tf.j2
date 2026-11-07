@@ -1,0 +1,38 @@
+# AWS RAM resource share for Oracle AI Database@AWS resources.
+#
+# Shares ODB Networks and Exadata Infrastructures with other AWS accounts in the
+# Organization, so they can build on them — VM clusters on a shared Exadata
+# Infrastructure, without hardware of their own. RAM picks the default managed
+# permission for each resource type (AWSRAMDefaultPermissionODBNetwork /
+# AWSRAMDefaultPermissionODBCloudExadataInfrastructure).
+#
+# Prerequisite, once, from the Organization's management account:
+#   aws ram enable-sharing-with-aws-organization
+# With it enabled, a share to an account in the Organization needs no acceptance.
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 6.42.0" }
+  }
+}
+
+resource "aws_ram_resource_share" "this" {
+  name                      = var.name
+  allow_external_principals = var.allow_external_principals
+  tags                      = var.tags
+}
+
+resource "aws_ram_principal_association" "this" {
+  for_each = toset(var.principals)
+
+  principal          = each.value
+  resource_share_arn = aws_ram_resource_share.this.arn
+}
+
+# Keyed by name, not ARN: the ARNs of resources this configuration creates are
+# unknown until apply, and for_each keys must be known at plan time.
+resource "aws_ram_resource_association" "this" {
+  for_each = var.resource_arns
+
+  resource_arn       = each.value
+  resource_share_arn = aws_ram_resource_share.this.arn
+}

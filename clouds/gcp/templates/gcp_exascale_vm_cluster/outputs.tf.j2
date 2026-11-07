@@ -1,0 +1,5 @@
+output "vm_cluster_name" { value = google_oracle_database_exadb_vm_cluster.this.name }
+output "vm_cluster_id" { value = google_oracle_database_exadb_vm_cluster.this.exadb_vm_cluster_id }
+output "gcp_oracle_zone" { value = google_oracle_database_exadb_vm_cluster.this.gcp_oracle_zone }
+output "gi_version" { value = google_oracle_database_exadb_vm_cluster.this.properties[0].gi_version }
+output "memory_size_gb" { value = google_oracle_database_exadb_vm_cluster.this.properties[0].memory_size_gb }

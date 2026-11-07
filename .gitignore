@@ -1,0 +1,29 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Secrets
+.env
+
+# Runtime / generated data
+data/chroma/
+data/rag_index.json
+
+# Customer configs (runtime data — back up separately)
+data/fmc/
+data/roi/
+data/test/
+
+# Claude Code local settings
+.claude/
+
+# Node (for future React build)
+node_modules/
+dist/
+.vite/
+
+# Archives
+*.zip
+artifacts/

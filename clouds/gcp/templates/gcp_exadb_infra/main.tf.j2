@@ -1,0 +1,53 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.5.0"
+    }
+  }
+}
+
+resource "google_oracle_database_cloud_exadata_infrastructure" "this" {
+  cloud_exadata_infrastructure_id = var.cloud_exadata_infrastructure_id
+  location                        = var.location
+  display_name                    = var.display_name != null ? var.display_name : null
+  gcp_oracle_zone                 = var.gcp_oracle_zone != null && var.gcp_oracle_zone != "" ? var.gcp_oracle_zone : null
+  project                         = var.project != null ? var.project : null
+  deletion_protection             = var.deletion_protection
+  labels                          = var.labels
+
+  properties {
+    shape                 = var.shape
+    compute_count         = var.compute_count
+    storage_count         = var.storage_count
+    total_storage_size_gb = var.total_storage_size_gb != null && var.total_storage_size_gb != 0 ? var.total_storage_size_gb : null
+
+    dynamic "customer_contacts" {
+      for_each = var.customer_contacts
+      content {
+        email = customer_contacts.value
+      }
+    }
+
+    maintenance_window {
+      preference                       = var.mw_preference
+      patching_mode                    = var.mw_patching_mode
+      is_custom_action_timeout_enabled = var.mw_is_custom_action_timeout_enabled
+      custom_action_timeout_mins       = var.mw_custom_action_timeout_mins
+      lead_time_week                   = var.mw_lead_time_week
+
+      days_of_week   = length(var.mw_days_of_week) > 0 ? var.mw_days_of_week : null
+      months         = length(var.mw_months) > 0 ? var.mw_months : null
+      hours_of_day   = length(var.mw_hours_of_day) > 0 ? var.mw_hours_of_day : null
+      weeks_of_month = length(var.mw_weeks_of_month) > 0 ? var.mw_weeks_of_month : null
+    }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      properties[0].compute_count,
+      properties[0].storage_count,
+      properties[0].total_storage_size_gb,
+    ]
+  }
+}

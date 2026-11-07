@@ -1,0 +1,36 @@
+resource_group_name   = "{{ resource_group_name }}"
+location              = "{{ location }}"
+name                  = "{{ name }}"
+display_name          = "{{ display_name }}"
+shape                 = "{{ shape }}"
+{% if database_server_type %}
+database_server_type  = "{{ database_server_type }}"
+{% endif %}
+{% if storage_server_type %}
+storage_server_type   = "{{ storage_server_type }}"
+{% endif %}
+compute_count         = {{ compute_count }}
+storage_count         = {{ storage_count }}
+zone                  = "{{ zone }}"
+mw_preference         = "{{ mw_preference }}"
+mw_patching_mode      = "{{ mw_patching_mode }}"
+mw_lead_time_in_weeks = {{ mw_lead_time_in_weeks }}
+{% if mw_days_of_week %}
+mw_days_of_week   = {{ mw_days_of_week | tojson }}
+{% endif %}
+{% if mw_hours_of_day %}
+mw_hours_of_day   = {{ mw_hours_of_day | tojson }}
+{% endif %}
+{% if mw_weeks_of_month %}
+mw_weeks_of_month = {{ mw_weeks_of_month | tojson }}
+{% endif %}
+{% if mw_months %}
+mw_months         = {{ mw_months | tojson }}
+{% endif %}
+{% if tags %}
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% endfor %}
+}
+{% endif %}

@@ -1,0 +1,74 @@
+variable "resource_group_name" {
+  type    = string
+  default = "{{ resource_group_name }}"
+}
+variable "location" {
+  type    = string
+  default = "{{ location }}"
+}
+variable "name" {
+  type    = string
+  default = "{{ name }}"
+}
+variable "display_name" {
+  type    = string
+  default = "{{ display_name }}"
+}
+variable "shape" {
+  type    = string
+  default = "{{ shape }}"
+}
+variable "database_server_type" {
+  description = "Database server model, e.g. X11M. Empty lets the service choose."
+  type        = string
+  default     = "{{ database_server_type }}"
+}
+variable "storage_server_type" {
+  description = "Storage server model, e.g. X11M-HC. Empty lets the service choose."
+  type        = string
+  default     = "{{ storage_server_type }}"
+}
+variable "compute_count" {
+  type    = number
+  default = {{ compute_count }}
+}
+variable "storage_count" {
+  type    = number
+  default = {{ storage_count }}
+}
+variable "zone" {
+  type    = string
+  default = "{{ zone }}"
+}
+variable "mw_preference" {
+  type    = string
+  default = "{{ mw_preference }}"
+}
+variable "mw_patching_mode" {
+  type    = string
+  default = "{{ mw_patching_mode }}"
+}
+variable "mw_lead_time_in_weeks" {
+  type    = number
+  default = {{ mw_lead_time_in_weeks }}
+}
+variable "mw_days_of_week" {
+  type    = list(string)
+  default = {{ mw_days_of_week | tojson }}
+}
+variable "mw_hours_of_day" {
+  type    = list(number)
+  default = {{ mw_hours_of_day | tojson }}
+}
+variable "mw_weeks_of_month" {
+  type    = list(number)
+  default = {{ mw_weeks_of_month | tojson }}
+}
+variable "mw_months" {
+  type    = list(string)
+  default = {{ mw_months | tojson }}
+}
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

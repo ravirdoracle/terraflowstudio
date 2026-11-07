@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIDR Planner — Terraflow Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --white:#ffffff;--off:#f5f4f1;--off2:#eeece8;--line:#d8d5cf;--line2:#c8c4bc;
+  --ink:#1a1916;--ink2:#4a4840;--ink3:#888480;--ink4:#b0ada8;
+  --orange:#e8500a;--orange2:#ff6b2b;
+  --green:#1a7a4a;--red:#c0392b;
+  --gcp:#4285F4;--aws:#e8500a;--azure:#1B7F4F;
+  --radius:6px;--radius-lg:10px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.07);
+  --font-d:'Barlow Condensed',sans-serif;--font-b:'Barlow',sans-serif;--font-m:'DM Mono',monospace;
+  --accent:#4285F4;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--off);color:var(--ink);font-family:var(--font-b);height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 16px rgba(0,0,0,0.45);}
+.logo{display:flex;align-items:baseline;gap:14px;cursor:pointer;color:inherit;}
+.logo-name{font-family:var(--font-d);font-weight:800;font-size:22px;color:var(--white);line-height:1;}
+.logo-name .ac{color:#ff6b2b;}
+.logo-sub{font-family:var(--font-m);font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.tool-badge{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:rgba(66,133,244,0.2);color:#5a9cff;border:1px solid rgba(66,133,244,0.4);border-radius:4px;padding:3px 10px;}
+.nav-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#666;text-decoration:none;padding:5px 12px;border:1px solid #333;border-radius:4px;transition:all .15s;}
+.nav-btn:hover{color:#aaa;border-color:#555;}
+.cloud-bar{background:#111;border-bottom:1px solid #222;padding:0 28px;display:flex;align-items:center;height:42px;flex-shrink:0;}
+.cld-btn{font-family:var(--font-d);font-weight:700;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 22px;cursor:pointer;color:#555;border:none;background:transparent;transition:all .15s;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.cld-btn.sel-gcp{color:#4285F4;border-bottom-color:#4285F4;}
+.cld-btn.sel-aws{color:#ff6b2b;border-bottom-color:#ff6b2b;}
+.cld-btn.sel-azure{color:#29a36a;border-bottom-color:#29a36a;}
+.cld-btn:hover:not(.sel-gcp):not(.sel-aws):not(.sel-azure){color:#999;}
+.main-layout{flex:1;display:grid;grid-template-columns:440px 1fr;overflow:hidden;min-height:0;}
+.inputs-panel{background:var(--white);border-right:1.5px solid var(--line);display:flex;flex-direction:column;overflow:hidden;}
+.cloud-panel{display:none;flex-direction:column;overflow:hidden;flex:1;}
+.cloud-panel.active{display:flex;}
+.mode-bar{display:flex;border-bottom:1px solid var(--line);padding:0 20px;background:var(--off);flex-shrink:0;}
+.mode-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:10px 18px;cursor:pointer;color:var(--ink3);border:none;background:transparent;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.mode-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.form-body{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:14px;}
+.form-body.hidden{display:none;}
+.field-row{display:flex;flex-direction:column;gap:4px;}
+.field-label{font-family:var(--font-b);font-size:12px;color:var(--ink2);font-weight:500;}
+.field-input{font-family:var(--font-m);font-size:12px;background:var(--off);border:1.5px solid var(--line2);border-radius:var(--radius);color:var(--ink);padding:6px 10px;outline:none;transition:border-color .15s;width:100%;}
+.field-input:focus{border-color:var(--accent);}
+.info-note{border-radius:var(--radius);padding:9px 13px;font-family:var(--font-m);font-size:10.5px;line-height:1.65;}
+.info-note.blue{background:rgba(66,133,244,0.07);border:1px solid rgba(66,133,244,0.22);color:#1a56a0;}
+.info-note.orange{background:rgba(232,80,10,0.07);border:1px solid rgba(232,80,10,0.22);color:#a03808;}
+.info-note.green{background:rgba(27,127,79,0.07);border:1px solid rgba(27,127,79,0.22);color:#155f3a;}
+.net-card{background:var(--off);border:1.5px solid var(--line2);border-radius:var(--radius-lg);padding:13px;display:flex;flex-direction:column;gap:10px;}
+.net-card-header{display:flex;align-items:center;gap:8px;}
+.net-name-input{flex:1;font-family:var(--font-d);font-weight:700;font-size:14px;color:var(--ink);background:none;border:none;outline:none;min-width:0;}
+.net-remove{font-family:var(--font-m);font-size:10px;color:var(--ink4);cursor:pointer;background:none;border:1px solid var(--line2);padding:2px 8px;border-radius:3px;transition:all .15s;white-space:nowrap;flex-shrink:0;}
+.net-remove:hover{color:var(--red);border-color:var(--red);background:rgba(192,57,43,0.07);}
+.sect-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);}
+.cluster-card{background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;display:flex;flex-direction:column;gap:8px;}
+.cluster-hdr{display:flex;align-items:center;gap:6px;}
+.cl-name-input{flex:1;font-family:var(--font-m);font-size:11px;color:var(--ink2);background:none;border:none;outline:none;min-width:0;}
+.cl-remove{font-family:var(--font-m);font-size:9px;color:var(--ink4);cursor:pointer;background:none;border:none;padding:1px 5px;border-radius:3px;transition:all .15s;}
+.cl-remove:hover{color:var(--red);}
+.cl-fields{display:grid;gap:6px;}
+.cl-field{display:flex;flex-direction:column;gap:3px;}
+.cl-field-label{font-family:var(--font-m);font-size:9px;color:var(--ink4);letter-spacing:.04em;text-transform:uppercase;}
+.cl-field-input{font-family:var(--font-m);font-size:12px;background:var(--off);border:1.5px solid var(--line2);border-radius:var(--radius);color:var(--ink);padding:4px 8px;outline:none;transition:border-color .15s;width:100%;text-align:center;}
+.cl-field-input:focus{border-color:var(--accent);}
+.cl-field-input[readonly]{color:var(--ink4);cursor:default;}
+.add-btn{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;cursor:pointer;border:1.5px dashed var(--line2);border-radius:var(--radius);color:var(--ink3);background:transparent;transition:all .15s;align-self:flex-start;}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);}
+.add-cl-btn{font-family:var(--font-m);font-size:10px;color:var(--ink3);cursor:pointer;background:none;border:1px dashed var(--line2);border-radius:var(--radius);padding:5px 10px;transition:all .15s;width:100%;}
+.add-cl-btn:hover{border-color:var(--accent);color:var(--accent);}
+.results-panel{background:var(--off2);overflow-y:auto;padding:22px;}
+.results-content{display:none;flex-direction:column;gap:18px;}
+.results-content.active{display:flex;}
+.res-net{background:var(--white);border:1.5px solid var(--line);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);}
+.res-net-hdr{padding:11px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.res-net-name{font-family:var(--font-d);font-weight:800;font-size:16px;color:var(--ink);}
+.res-net-tag{font-family:var(--font-m);font-size:9px;color:var(--ink3);background:var(--off2);border:1px solid var(--line);border-radius:3px;padding:2px 7px;white-space:nowrap;}
+.res-table{width:100%;border-collapse:collapse;}
+.res-table th{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink4);padding:8px 12px;text-align:left;background:var(--off);border-bottom:1px solid var(--line);}
+.res-table td{font-family:var(--font-m);font-size:12px;color:var(--ink);padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.res-table tr:last-child td{border-bottom:none;}
+.td-dim{color:var(--ink3);}
+.tag-ok{display:inline-block;font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:rgba(26,122,74,0.1);color:var(--green);border:1px solid rgba(26,122,74,0.2);}
+.tag-warn{display:inline-block;font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:rgba(200,140,0,0.12);color:#8a6000;border:1px solid rgba(200,140,0,0.3);}
+.tag-err{display:inline-block;font-family:var(--font-d);font-weight:700;font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:rgba(192,57,43,0.1);color:var(--red);border:1px solid rgba(192,57,43,0.2);}
+.warn-list{display:flex;flex-direction:column;gap:5px;padding:10px 12px;border-bottom:1px solid var(--line);}
+.warn-item{display:flex;align-items:flex-start;gap:8px;font-family:var(--font-m);font-size:10.5px;padding:7px 10px;border-radius:var(--radius);line-height:1.5;}
+.warn-item.warn{background:rgba(200,140,0,0.07);border:1px solid rgba(200,140,0,0.22);color:#7a5800;}
+.warn-item.err{background:rgba(192,57,43,0.07);border:1px solid rgba(192,57,43,0.18);color:var(--red);}
+.warn-item.ok{background:rgba(26,122,74,0.07);border:1px solid rgba(26,122,74,0.18);color:var(--green);}
+.warn-icon{flex-shrink:0;font-size:11px;}
+.empty{text-align:center;padding:60px 24px;color:var(--ink4);font-family:var(--font-m);font-size:12px;line-height:1.8;}
+.empty-icon{font-size:28px;margin-bottom:10px;opacity:.4;}
+.cidr-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+</style>
+</head>
+<body>
+<header>
+  <a class="logo" href="/" style="text-decoration:none">
+    <div class="logo-name">Terraflow<span class="ac"> Studio</span><span style="font-size:10px;font-weight:400;color:#C9A227;margin-left:8px;font-family:var(--font-m);letter-spacing:.04em">v5.3</span></div>
+    <div class="logo-sub" style="color:#C9A227">Oracle AI DB@Cloud · Terraform Generator</div>
+  </a>
+  <div class="hdr-right">
+    <span class="tool-badge">CIDR Planner</span>
+    <a href="/" class="nav-btn">&#8592; Home</a>
+  </div>
+</header>
+
+<div class="cloud-bar">
+  <button class="cld-btn sel-gcp" id="tab-gcp" onclick="switchCloud('gcp')">GCP ExaDB</button>
+  <button class="cld-btn" id="tab-aws" onclick="switchCloud('aws')">AWS ODB</button>
+  <button class="cld-btn" id="tab-azure" onclick="switchCloud('azure')">Azure ExaCS</button>
+</div>
+
+<div class="main-layout">
+  <div class="inputs-panel">
+
+    <!-- ── GCP ── -->
+    <div id="cloud-gcp" class="cloud-panel active">
+      <div class="mode-bar">
+        <button class="mode-btn active" id="gcp-mbtn-plan" onclick="switchMode('gcp','plan')">Plan CIDRs</button>
+        <button class="mode-btn" id="gcp-mbtn-validate" onclick="switchMode('gcp','validate')">Validate CIDRs</button>
+      </div>
+      <div id="gcp-plan" class="form-body">
+        <div class="field-row">
+          <label class="field-label">Base IP Address <span style="color:var(--ink4);font-size:10px;font-family:var(--font-m)">(RFC1918 start)</span></label>
+          <input class="field-input" id="gcp-base-ip" type="text" value="10.0.0.0" oninput="recalc('gcp','plan')">
+        </div>
+        <div class="info-note blue">
+          GCP reserves first 2 + last 1 IP per subnet (3 total). Min /27 &mdash; Max /22. Up to 5 ODB subnets per network. Avoid 100.64.0.0/10.<br><br>
+          <b>Client IPs:</b> 3 + clusters&times;3(SCAN) + clusters&times;VMs&times;4 + ADBs + BaseDB VMs<br>
+          <b>Backup IPs:</b> 3 + clusters&times;VMs&times;3
+        </div>
+        <div id="gcp-plan-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('gcp','plan')">+ Add ODB Network</button>
+      </div>
+      <div id="gcp-validate" class="form-body hidden">
+        <div class="info-note blue">Enter existing ODB network CIDRs and cluster specs to verify capacity and detect conflicts.</div>
+        <div id="gcp-val-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('gcp','validate')">+ Add ODB Network</button>
+      </div>
+    </div>
+
+    <!-- ── AWS ── -->
+    <div id="cloud-aws" class="cloud-panel">
+      <div class="mode-bar">
+        <button class="mode-btn active" id="aws-mbtn-plan" onclick="switchMode('aws','plan')">Plan CIDRs</button>
+        <button class="mode-btn" id="aws-mbtn-validate" onclick="switchMode('aws','validate')">Validate CIDRs</button>
+      </div>
+      <div id="aws-plan" class="form-body">
+        <div class="field-row">
+          <label class="field-label">Base IP Address <span style="color:var(--ink4);font-size:10px;font-family:var(--font-m)">(RFC1918 start)</span></label>
+          <input class="field-input" id="aws-base-ip" type="text" value="10.0.0.0" oninput="recalc('aws','plan')">
+        </div>
+        <div class="info-note orange">
+          Each ODB Network needs one <b>client</b> subnet and one <b>backup</b> subnet shared by all clusters. AWS reserves first 4 + last 1 IP (5 total). Avoid 100.64.0.0/10 and 169.254.0.0/16.<br><br>
+          <b>Client IPs:</b> 6(service) + clusters&times;3(SCAN) + total&nbsp;VMs&times;4 + 1(DNS)<br>
+          <b>Backup IPs:</b> 3(service) + total&nbsp;VMs&times;3<br>
+          <b>Client min /27 &mdash; Backup min /28 &mdash; Max /16</b>
+        </div>
+        <div id="aws-plan-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('aws','plan')">+ Add ODB Network</button>
+      </div>
+      <div id="aws-validate" class="form-body hidden">
+        <div class="info-note orange">Enter existing client and backup subnet CIDRs per ODB Network to verify adequacy and detect conflicts.</div>
+        <div id="aws-val-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('aws','validate')">+ Add ODB Network</button>
+      </div>
+    </div>
+
+    <!-- ── Azure ── -->
+    <div id="cloud-azure" class="cloud-panel">
+      <div class="mode-bar">
+        <button class="mode-btn active" id="azure-mbtn-plan" onclick="switchMode('azure','plan')">Plan CIDRs</button>
+        <button class="mode-btn" id="azure-mbtn-validate" onclick="switchMode('azure','validate')">Validate CIDRs</button>
+      </div>
+      <div id="azure-plan" class="form-body">
+        <div class="field-row">
+          <label class="field-label">Base IP Address <span style="color:var(--ink4);font-size:10px;font-family:var(--font-m)">(RFC1918 start)</span></label>
+          <input class="field-input" id="azure-base-ip" type="text" value="10.0.0.0" oninput="recalc('azure','plan')">
+        </div>
+        <div class="info-note green">
+          Azure reserves first 3 + last 1 IP per subnet (4 total). Oracle requires minimum /27 for delegated subnets. Each VNet contains one Oracle-delegated subnet per ExaCS cluster.<br><br>
+          <b>Cluster IPs:</b> 3(SCAN) + nodes&times;2(private+VIP) + 4 overhead
+        </div>
+        <div id="azure-plan-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('azure','plan')">+ Add VNet</button>
+      </div>
+      <div id="azure-validate" class="form-body hidden">
+        <div class="info-note green">Enter existing VNet and Oracle-delegated subnet CIDRs to check adequacy and detect conflicts.</div>
+        <div id="azure-val-nets" style="display:flex;flex-direction:column;gap:12px;"></div>
+        <button class="add-btn" onclick="addNet('azure','validate')">+ Add VNet</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="results-panel">
+    <div id="results-gcp" class="results-content active">
+      <div class="empty"><div class="empty-icon">&#9675;</div>Add an ODB Network on the left to see CIDR suggestions.</div>
+    </div>
+    <div id="results-aws" class="results-content">
+      <div class="empty"><div class="empty-icon">&#9675;</div>Add an ODB Network on the left to see CIDR suggestions.</div>
+    </div>
+    <div id="results-azure" class="results-content">
+      <div class="empty"><div class="empty-icon">&#9675;</div>Add a VNet on the left to see CIDR suggestions.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── IP Math ─────────────────────────────────────────────────────────────────
+function ipToInt(ip){
+  const p=ip.trim().split('.');
+  if(p.length!==4)return NaN;
+  return((+p[0]<<24)|(+p[1]<<16)|(+p[2]<<8)|(+p[3]))>>>0;
+}
+function intToIp(n){
+  n=n>>>0;
+  return[(n>>>24)&255,(n>>>16)&255,(n>>>8)&255,n&255].join('.');
+}
+function maskOf(p){return p===0?0:(0xFFFFFFFF<<(32-p))>>>0;}
+function sizeOf(p){return p===0?4294967296:1<<(32-p);}
+function alignUp(addr,p){const s=sizeOf(p);return(Math.ceil(addr/s)*s)>>>0;}
+function alignDown(addr,p){return(addr&maskOf(p))>>>0;}
+function isValidIp(ip){
+  const p=ip.trim().split('.');
+  return p.length===4&&p.every(x=>x!==''&&!isNaN(+x)&&+x>=0&&+x<=255);
+}
+function parseCidr(c){
+  if(!c||!c.includes('/'))return null;
+  const[ip,ps]=c.trim().split('/');const pf=parseInt(ps);
+  if(isNaN(pf)||pf<0||pf>32||!isValidIp(ip))return null;
+  return{ip,prefix:pf};
+}
+function cidrLo(c){const r=parseCidr(c);return r?alignDown(ipToInt(r.ip),r.prefix):NaN;}
+function cidrHi(c){const r=parseCidr(c);return r?(cidrLo(c)+sizeOf(r.prefix)-1)>>>0:NaN;}
+function cidrsOverlap(a,b){
+  if(!parseCidr(a)||!parseCidr(b))return false;
+  return!(cidrHi(a)<cidrLo(b)||cidrLo(a)>cidrHi(b));
+}
+function ipInRange(ip,cidr){const n=ipToInt(ip);return n>=cidrLo(cidr)&&n<=cidrHi(cidr);}
+function isRfc1918(cidr){
+  const ip=cidr.split('/')[0];
+  return ipInRange(ip,'10.0.0.0/8')||ipInRange(ip,'172.16.0.0/12')||ipInRange(ip,'192.168.0.0/16');
+}
+function isExaReserved(cidr){return cidrsOverlap(cidr,'100.64.0.0/10');}
+function isLinkLocal(cidr){return cidrsOverlap(cidr,'169.254.0.0/16');}
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const S={
+  gcp:{mode:'plan',plan:[],validate:[]},
+  aws:{mode:'plan',plan:[],validate:[]},
+  azure:{mode:'plan',plan:[],validate:[]}
+};
+let _uid=0;const uid=()=>'u'+(++_uid);
+
+// ─── Defaults ────────────────────────────────────────────────────────────────
+// GCP cluster: vmCount, adbCount, bdbCount
+const defGcpCl=()=>({id:uid(),name:'cluster-1',vmCount:2,adbCount:0,bdbCount:0});
+// AWS cluster: vmCount (VMs per cluster)
+const defAwsCl=()=>({id:uid(),name:'cluster-1',vmCount:2});
+// Azure cluster: nodeCount, separate subnet per cluster
+const defAzCl=()=>({id:uid(),name:'cluster-1',nodeCount:2,subnetCidr:''});
+
+function defNet(cloud,mode){
+  const idx=S[cloud][mode].length+1;
+  if(cloud==='gcp'){
+    const n={id:uid(),name:'odb-net-'+idx,clusters:[defGcpCl()]};
+    if(mode==='validate'){n.clientCidr='';n.backupCidr='';}
+    return n;
+  }
+  if(cloud==='aws'){
+    // AWS: one client subnet + one backup subnet per ODB Network (shared by all clusters)
+    const n={id:uid(),name:'odb-net-'+idx,clusters:[defAwsCl()]};
+    if(mode==='validate'){n.clientCidr='';n.backupCidr='';}
+    return n;
+  }
+  // Azure: per-cluster Oracle-delegated subnets inside a VNet
+  const n={id:uid(),name:'vnet-oracle-'+idx,clusters:[defAzCl()]};
+  if(mode==='validate')n.vnetCidr='';
+  return n;
+}
+
+// ─── IP Formulas ─────────────────────────────────────────────────────────────
+// GCP — reserves 3 IPs per subnet (first 2 + last 1)
+function gcpClientIPs(cls){
+  let t=3;
+  cls.forEach(c=>{t+=3+c.vmCount*4+(c.adbCount||0)+(c.bdbCount||0);});
+  return t;
+}
+function gcpBackupIPs(cls){
+  let t=3;cls.forEach(c=>{t+=c.vmCount*3;});return t;
+}
+function gcpMinPrefix(n,minP){
+  const needed=n+3;
+  for(let p=(minP||27);p>=22;p--){if(sizeOf(p)>=needed)return p;}
+  return null;
+}
+function gcpUsable(p){return sizeOf(p)-3;}
+
+// AWS — reserves 5 IPs per subnet (first 4 + last 1)
+// Client: 6(service) + 3×clusters + 4×totalVMs + 1(DNS)   min /27
+// Backup: 3(service) + 3×totalVMs                           min /28
+function awsClientIPs(cls){
+  const totalVMs=cls.reduce((s,c)=>s+c.vmCount,0);
+  return 6+cls.length*3+totalVMs*4+1;
+}
+function awsBackupIPs(cls){
+  const totalVMs=cls.reduce((s,c)=>s+c.vmCount,0);
+  return 3+totalVMs*3;
+}
+function awsClientMinPrefix(n){
+  const needed=n+5;
+  for(let p=27;p>=16;p--){if(sizeOf(p)>=needed)return p;}
+  return null;
+}
+function awsBackupMinPrefix(n){
+  const needed=n+5;
+  for(let p=28;p>=16;p--){if(sizeOf(p)>=needed)return p;}
+  return null;
+}
+function awsUsable(p){return sizeOf(p)-5;}
+
+// Azure — reserves 4 IPs per subnet (first 3 + last 1), min /27
+function azClusterIPs(c){return 3+c.nodeCount*2+4;}
+function azMinPrefix(n){
+  const needed=n+4;
+  for(let p=27;p>=16;p--){if(sizeOf(p)>=needed)return p;}
+  return null;
+}
+function azUsable(p){return sizeOf(p)-4;}
+
+// ─── CIDR allocation engine ───────────────────────────────────────────────────
+function allocCidrs(reqs,startCursor){
+  let cur=startCursor;
+  const results=reqs.map(r=>{
+    if(r.prefix==null)return{...r,cidr:null,usable:0,err:true};
+    cur=alignUp(cur,r.prefix);
+    const cidr=intToIp(cur)+'/'+r.prefix;
+    const res={...r,cidr,usable:sizeOf(r.prefix)-r.reserved,err:false};
+    cur=(cur+sizeOf(r.prefix))>>>0;
+    return res;
+  });
+  return{results,next:cur};
+}
+
+// ─── Cloud / mode switching ──────────────────────────────────────────────────
+let curCloud='gcp';
+function switchCloud(cloud){
+  ['gcp','aws','azure'].forEach(c=>{
+    document.getElementById('cloud-'+c).classList.toggle('active',c===cloud);
+    document.getElementById('results-'+c).classList.toggle('active',c===cloud);
+    document.getElementById('tab-'+c).className='cld-btn'+(c===cloud?' sel-'+c:'');
+  });
+  curCloud=cloud;
+  document.documentElement.style.setProperty('--accent',
+    cloud==='gcp'?'#4285F4':cloud==='aws'?'#e8500a':'#1B7F4F');
+}
+function switchMode(cloud,mode){
+  S[cloud].mode=mode;
+  ['plan','validate'].forEach(m=>{
+    const fb=document.getElementById(cloud+'-'+m);if(fb)fb.classList.toggle('hidden',m!==mode);
+    const mb=document.getElementById(cloud+'-mbtn-'+m);if(mb)mb.classList.toggle('active',m===mode);
+  });
+  recalc(cloud,mode);
+}
+
+// ─── Add / remove ────────────────────────────────────────────────────────────
+function addNet(cloud,mode){
+  S[cloud][mode].push(defNet(cloud,mode));
+  renderForm(cloud,mode);recalc(cloud,mode);
+}
+function removeNet(cloud,mode,id){
+  S[cloud][mode]=S[cloud][mode].filter(n=>n.id!==id);
+  renderForm(cloud,mode);recalc(cloud,mode);
+}
+function addCluster(cloud,mode,nid){
+  const net=S[cloud][mode].find(n=>n.id===nid);if(!net)return;
+  const idx=net.clusters.length+1;
+  if(cloud==='gcp')net.clusters.push({...defGcpCl(),name:'cluster-'+idx});
+  else if(cloud==='aws')net.clusters.push({...defAwsCl(),name:'cluster-'+idx});
+  else net.clusters.push({...defAzCl(),name:'cluster-'+idx});
+  renderForm(cloud,mode);recalc(cloud,mode);
+}
+function removeCluster(cloud,mode,nid,cid){
+  const net=S[cloud][mode].find(n=>n.id===nid);if(!net)return;
+  net.clusters=net.clusters.filter(c=>c.id!==cid);
+  renderForm(cloud,mode);recalc(cloud,mode);
+}
+
+// ─── Read DOM → state ────────────────────────────────────────────────────────
+function readForm(cloud,mode){
+  S[cloud][mode].forEach(net=>{
+    const g=id=>document.getElementById(id);
+    const nname=g('nn-'+net.id);if(nname)net.name=nname.value;
+    if(mode==='validate'){
+      // GCP and AWS both use clientCidr/backupCidr
+      const cc=g('cc-'+net.id);if(cc)net.clientCidr=cc.value;
+      const bc=g('bc-'+net.id);if(bc)net.backupCidr=bc.value;
+      // Azure uses vnetCidr
+      const vc=g('vc-'+net.id);if(vc)net.vnetCidr=vc.value;
+    }
+    net.clusters.forEach(cl=>{
+      const cn=g('cn-'+cl.id);if(cn)cl.name=cn.value;
+      // GCP: vmCount, adbCount, bdbCount
+      const cv=g('cv-'+cl.id);if(cv)cl.vmCount=Math.max(1,parseInt(cv.value)||1);
+      // AWS: vmCount
+      const av=g('av-'+cl.id);if(av)cl.vmCount=Math.max(1,parseInt(av.value)||1);
+      // Azure: nodeCount, subnetCidr
+      const nd=g('cd-'+cl.id);if(nd)cl.nodeCount=Math.max(1,parseInt(nd.value)||1);
+      const ad=g('ca-'+cl.id);if(ad)cl.adbCount=Math.max(0,parseInt(ad.value)||0);
+      const bd=g('cb-'+cl.id);if(bd)cl.bdbCount=Math.max(0,parseInt(bd.value)||0);
+      if(mode==='validate'&&cloud==='azure'){
+        const sc=g('cs-'+cl.id);if(sc)cl.subnetCidr=sc.value;
+      }
+    });
+  });
+}
+
+// ─── Render form ─────────────────────────────────────────────────────────────
+function renderForm(cloud,mode){
+  const cid=cloud+'-'+(mode==='plan'?'plan':'val')+'-nets';
+  const el=document.getElementById(cid);
+  if(el)el.innerHTML=S[cloud][mode].map(net=>netCardHTML(cloud,mode,net)).join('');
+}
+
+function netCardHTML(cloud,mode,net){
+  const isPlan=mode==='plan';
+  const cls=net.clusters.map(cl=>clusterCardHTML(cloud,mode,net.id,cl)).join('');
+
+  let cidrFields='';
+  if(!isPlan){
+    if(cloud==='gcp'||cloud==='aws'){
+      // Both GCP and AWS: network-level client + backup subnet CIDRs
+      const cp=cloud==='gcp'?'e.g. 10.0.0.0/26':'e.g. 10.0.0.0/27';
+      const bp=cloud==='gcp'?'e.g. 10.0.0.64/27':'e.g. 10.0.0.32/28';
+      cidrFields=`<div class="cidr-pair">
+        <div class="field-row"><label class="field-label" style="font-size:11px;">Client Subnet CIDR</label>
+          <input class="field-input" id="cc-${net.id}" type="text" placeholder="${cp}" value="${esc(net.clientCidr||'')}" oninput="recalc('${cloud}','${mode}')"></div>
+        <div class="field-row"><label class="field-label" style="font-size:11px;">Backup Subnet CIDR</label>
+          <input class="field-input" id="bc-${net.id}" type="text" placeholder="${bp}" value="${esc(net.backupCidr||'')}" oninput="recalc('${cloud}','${mode}')"></div>
+      </div>`;
+    } else {
+      // Azure: VNet CIDR at network level
+      cidrFields=`<div class="field-row"><label class="field-label" style="font-size:11px;">VNet CIDR</label>
+        <input class="field-input" id="vc-${net.id}" type="text" placeholder="e.g. 10.0.0.0/16" value="${esc(net.vnetCidr||'')}" oninput="recalc('${cloud}','${mode}')"></div>`;
+    }
+  }
+
+  return `<div class="net-card">
+    <div class="net-card-header">
+      <input class="net-name-input" id="nn-${net.id}" value="${esc(net.name)}" oninput="recalc('${cloud}','${mode}')">
+      <button class="net-remove" onclick="removeNet('${cloud}','${mode}','${net.id}')">&#10005; remove</button>
+    </div>
+    ${cidrFields}
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <div class="sect-label">VM Clusters</div>
+      ${cls}
+      <button class="add-cl-btn" onclick="addCluster('${cloud}','${mode}','${net.id}')">+ Add VM Cluster</button>
+    </div>
+  </div>`;
+}
+
+function clusterCardHTML(cloud,mode,nid,cl){
+  const isPlan=mode==='plan';
+  let fields='';
+
+  if(cloud==='gcp'){
+    fields=`<div class="cl-fields" style="grid-template-columns:1fr 1fr 1fr;">
+      <div class="cl-field"><span class="cl-field-label">VM Nodes</span>
+        <input class="cl-field-input" id="cv-${cl.id}" type="number" min="2" max="32" value="${cl.vmCount}" oninput="recalc('${cloud}','${mode}')"></div>
+      <div class="cl-field"><span class="cl-field-label">Autonomous DBs</span>
+        <input class="cl-field-input" id="ca-${cl.id}" type="number" min="0" value="${cl.adbCount||0}" oninput="recalc('${cloud}','${mode}')"></div>
+      <div class="cl-field"><span class="cl-field-label">Base DB VMs</span>
+        <input class="cl-field-input" id="cb-${cl.id}" type="number" min="0" value="${cl.bdbCount||0}" oninput="recalc('${cloud}','${mode}')"></div>
+    </div>`;
+
+  } else if(cloud==='aws'){
+    // AWS clusters contribute VMs to the shared network-level subnets
+    const ipCont=`client +${3+cl.vmCount*4} / backup +${cl.vmCount*3}`;
+    fields=`<div class="cl-fields" style="grid-template-columns:1fr 1fr;">
+      <div class="cl-field"><span class="cl-field-label">VM Count</span>
+        <input class="cl-field-input" id="av-${cl.id}" type="number" min="2" max="64" value="${cl.vmCount}" oninput="recalc('${cloud}','${mode}')"></div>
+      <div class="cl-field"><span class="cl-field-label">IP contribution</span>
+        <input class="cl-field-input" type="text" readonly value="${ipCont}"></div>
+    </div>`;
+
+  } else {
+    // Azure: per-cluster Oracle-delegated subnet
+    const ipEst=azClusterIPs(cl);
+    fields=`<div class="cl-fields" style="grid-template-columns:1fr 1fr;">
+      <div class="cl-field"><span class="cl-field-label">DB Nodes</span>
+        <input class="cl-field-input" id="cd-${cl.id}" type="number" min="2" max="64" value="${cl.nodeCount}" oninput="recalc('${cloud}','${mode}')"></div>
+      <div class="cl-field"><span class="cl-field-label">Est. IPs needed</span>
+        <input class="cl-field-input" id="est-${cl.id}" type="text" readonly value="${ipEst}"></div>
+    </div>
+    ${!isPlan?`<div class="cl-field" style="margin-top:4px;">
+      <span class="cl-field-label">Oracle Delegated Subnet CIDR</span>
+      <input class="field-input" id="cs-${cl.id}" type="text" placeholder="e.g. 10.0.1.0/27" value="${esc(cl.subnetCidr||'')}" oninput="recalc('${cloud}','${mode}')">
+    </div>`:''}`;
+  }
+
+  return `<div class="cluster-card">
+    <div class="cluster-hdr">
+      <input class="cl-name-input" id="cn-${cl.id}" value="${esc(cl.name)}" oninput="recalc('${cloud}','${mode}')">
+      <button class="cl-remove" onclick="removeCluster('${cloud}','${mode}','${nid}','${cl.id}')">&#10005;</button>
+    </div>
+    ${fields}
+  </div>`;
+}
+
+// ─── Recalculate ─────────────────────────────────────────────────────────────
+function recalc(cloud,mode){
+  mode=mode||S[cloud].mode;
+  readForm(cloud,mode);
+  // refresh Azure est IPs (readonly display)
+  if(cloud==='azure'){
+    S[cloud][mode].forEach(net=>net.clusters.forEach(cl=>{
+      const el=document.getElementById('est-'+cl.id);
+      if(el)el.value=azClusterIPs(cl);
+    }));
+  }
+  // refresh AWS IP contribution display
+  if(cloud==='aws'){
+    S[cloud][mode].forEach(net=>net.clusters.forEach(cl=>{
+      const els=document.querySelectorAll(`#av-${cl.id}`);
+      // contribution field is readonly, re-rendered by renderForm; skip
+    }));
+  }
+  const el=document.getElementById('results-'+cloud);
+  if(!el)return;
+  if(mode==='plan')renderPlan(cloud,el);
+  else renderValidate(cloud,el);
+}
+
+// ─── Plan Results ─────────────────────────────────────────────────────────────
+function renderPlan(cloud,el){
+  const nets=S[cloud].plan;
+  if(!nets.length){el.innerHTML=emptyHTML('Add a network to see suggestions.');return;}
+  const baseIp=(document.getElementById(cloud+'-base-ip')||{}).value||'10.0.0.0';
+  if(!isValidIp(baseIp)){el.innerHTML='<div class="warn-item err" style="border-radius:8px;"><span class="warn-icon">&#9888;</span>Invalid base IP address.</div>';return;}
+  if(!isRfc1918(baseIp+'/32')){el.innerHTML='<div class="warn-item warn" style="border-radius:8px;"><span class="warn-icon">&#9432;</span>Base IP must be RFC1918 (10.x, 172.16–31.x, 192.168.x).</div>';return;}
+
+  let cursor=ipToInt(baseIp);
+  const allCidrs=[];const gw=[];
+  let html='';
+
+  nets.forEach((net,ni)=>{
+    let reqs=[];
+
+    if(cloud==='gcp'){
+      const ci=gcpClientIPs(net.clusters),bi=gcpBackupIPs(net.clusters);
+      const cp=gcpMinPrefix(ci,27),bp=gcpMinPrefix(bi,27);
+      reqs=[
+        {prefix:cp,reserved:3,needed:ci,label:'Client Subnet'},
+        {prefix:bp,reserved:3,needed:bi,label:'Backup Subnet'}
+      ];
+    } else if(cloud==='aws'){
+      const ci=awsClientIPs(net.clusters),bi=awsBackupIPs(net.clusters);
+      const cp=awsClientMinPrefix(ci),bp=awsBackupMinPrefix(bi);
+      reqs=[
+        {prefix:cp,reserved:5,needed:ci,label:'Client Subnet'},
+        {prefix:bp,reserved:5,needed:bi,label:'Backup Subnet'}
+      ];
+    } else {
+      net.clusters.forEach(cl=>{
+        const n=azClusterIPs(cl);
+        reqs.push({prefix:azMinPrefix(n),reserved:4,needed:n,label:cl.name+' Oracle subnet'});
+      });
+    }
+
+    const alloc=allocCidrs(reqs,cursor);
+    cursor=alloc.next;
+
+    const rows=alloc.results.map(r=>{
+      if(r.cidr){
+        allCidrs.push(r.cidr);
+        if(isExaReserved(r.cidr))gw.push({type:'err',msg:`${r.label} (${r.cidr}) overlaps Exadata reserved range 100.64.0.0/10`});
+        if(isLinkLocal(r.cidr))gw.push({type:'err',msg:`${r.label} (${r.cidr}) overlaps link-local range 169.254.0.0/16`});
+      }
+      if(r.err)return `<tr><td>${esc(r.label)}</td><td colspan="4"><span class="tag-err">OVERFLOW — exceeds max subnet size</span></td></tr>`;
+      const ok=r.usable>=r.needed;
+      return`<tr>
+        <td>${esc(r.label)}</td>
+        <td style="font-weight:500;font-family:var(--font-m)">${r.cidr}</td>
+        <td class="td-dim">${r.needed}</td>
+        <td class="td-dim">${r.usable} (/${r.prefix})</td>
+        <td>${ok?'<span class="tag-ok">OK</span>':`<span class="tag-err">SHORT by ${r.needed-r.usable}</span>`}</td>
+      </tr>`;
+    }).join('');
+
+    // Per-cluster breakdown row for GCP and AWS
+    let clRows='';
+    if(cloud==='gcp'){
+      clRows=net.clusters.map(c=>{
+        const ci=3+c.vmCount*4+(c.adbCount||0)+(c.bdbCount||0);
+        const bi=c.vmCount*3;
+        return`<tr style="background:var(--off)">
+          <td colspan="2" style="padding-left:24px;color:var(--ink3);font-size:11px;">&#8627; ${esc(c.name)}</td>
+          <td class="td-dim" style="font-size:11px;">${ci} client</td>
+          <td class="td-dim" style="font-size:11px;">${bi} backup</td>
+          <td></td></tr>`;
+      }).join('');
+    } else if(cloud==='aws'){
+      clRows=net.clusters.map(c=>{
+        const scanIps=3;const vmIpsC=c.vmCount*4;const vmIpsB=c.vmCount*3;
+        return`<tr style="background:var(--off)">
+          <td colspan="2" style="padding-left:24px;color:var(--ink3);font-size:11px;">&#8627; ${esc(c.name)} (${c.vmCount} VMs)</td>
+          <td class="td-dim" style="font-size:11px;">+${scanIps+vmIpsC} client</td>
+          <td class="td-dim" style="font-size:11px;">+${vmIpsB} backup</td>
+          <td></td></tr>`;
+      }).join('');
+    }
+
+    // Suggest parent block tag for AWS
+    let netTag=cloud==='gcp'?`GCP ODB Network ${ni+1}`:cloud==='aws'?`AWS ODB Network ${ni+1}`:`Azure VNet ${ni+1}`;
+
+    // GCP: warn if > 5 subnets per network
+    if(cloud==='gcp'&&alloc.results.length>5)gw.push({type:'warn',msg:`"${net.name}": ${alloc.results.length} subnets exceeds max 5 per ODB Network`});
+
+    html+=`<div class="res-net">
+      <div class="res-net-hdr"><span class="res-net-name">${esc(net.name)}</span><span class="res-net-tag">${netTag}</span></div>
+      <table class="res-table">
+        <thead><tr><th>Subnet</th><th>CIDR</th><th>IPs Needed</th><th>Usable</th><th>Status</th></tr></thead>
+        <tbody>${rows}${clRows}</tbody>
+      </table>
+    </div>`;
+  });
+
+  // Global overlap check (same-level CIDRs)
+  for(let i=0;i<allCidrs.length;i++)for(let j=i+1;j<allCidrs.length;j++){
+    if(cidrsOverlap(allCidrs[i],allCidrs[j]))gw.push({type:'err',msg:`Overlap: ${allCidrs[i]} &#8596; ${allCidrs[j]}`});
+  }
+
+  let banner='';
+  if(!gw.length&&nets.length){
+    banner=`<div class="warn-item ok"><span class="warn-icon">&#10003;</span>All CIDRs valid and non-overlapping.</div>`;
+  } else {
+    banner=gw.map(w=>`<div class="warn-item ${w.type}"><span class="warn-icon">${w.type==='err'?'&#9888;':'&#9432;'}</span>${w.msg}</div>`).join('');
+  }
+  el.innerHTML=banner+html;
+}
+
+// ─── Validate Results ─────────────────────────────────────────────────────────
+function renderValidate(cloud,el){
+  const nets=S[cloud].validate;
+  if(!nets.length){el.innerHTML=emptyHTML('Add a network to validate CIDRs.');return;}
+  const allCidrs=[];const gw=[];let html='';
+
+  nets.forEach((net,ni)=>{
+    const nw=[];const rows=[];
+
+    if(cloud==='gcp'){
+      const ci=gcpClientIPs(net.clusters),bi=gcpBackupIPs(net.clusters);
+      validateSubnetPair(net.clientCidr,ci,'Client Subnet',3,22,27,nw,rows,allCidrs);
+      validateSubnetPair(net.backupCidr,bi,'Backup Subnet',3,22,27,nw,rows,allCidrs);
+      if(net.clientCidr&&net.backupCidr&&parseCidr(net.clientCidr)&&parseCidr(net.backupCidr)&&cidrsOverlap(net.clientCidr,net.backupCidr))
+        nw.push({type:'err',msg:'Client and backup subnets overlap!'});
+
+    } else if(cloud==='aws'){
+      const ci=awsClientIPs(net.clusters),bi=awsBackupIPs(net.clusters);
+      // Client: min /27, Backup: min /28; both max /16; reserved 5
+      validateSubnetPairAws(net.clientCidr,ci,'Client Subnet',27,nw,rows,allCidrs);
+      validateSubnetPairAws(net.backupCidr,bi,'Backup Subnet',28,nw,rows,allCidrs);
+      if(net.clientCidr&&net.backupCidr&&parseCidr(net.clientCidr)&&parseCidr(net.backupCidr)&&cidrsOverlap(net.clientCidr,net.backupCidr))
+        nw.push({type:'err',msg:'Client and backup subnets overlap!'});
+      // Check reserved ranges
+      [net.clientCidr,net.backupCidr].forEach(cidr=>{
+        if(cidr&&parseCidr(cidr)&&isLinkLocal(cidr))nw.push({type:'err',msg:cidr+' overlaps link-local 169.254.0.0/16'});
+      });
+
+    } else {
+      // Azure: VNet + per-cluster Oracle subnets
+      if(net.vnetCidr){
+        const pr=parseCidr(net.vnetCidr);
+        if(pr){
+          allCidrs.push(net.vnetCidr);
+          if(!isRfc1918(net.vnetCidr))nw.push({type:'err',msg:'VNet CIDR not RFC1918'});
+          rows.push(`<tr><td>VNet</td><td style="font-family:var(--font-m);font-weight:500">${esc(net.vnetCidr)}</td><td colspan="3" class="td-dim">Parent block</td></tr>`);
+        } else nw.push({type:'err',msg:'VNet CIDR is invalid'});
+      }
+      net.clusters.forEach(cl=>{
+        const needed=azClusterIPs(cl);
+        if(!cl.subnetCidr){rows.push(pendingRow(cl.name+' Oracle subnet'));return;}
+        const pr=parseCidr(cl.subnetCidr);
+        if(!pr){rows.push(errRow(cl.name,cl.subnetCidr,'Invalid CIDR'));return;}
+        const usable=azUsable(pr.prefix);
+        allCidrs.push(cl.subnetCidr);
+        if(pr.prefix>27)nw.push({type:'err',msg:`${cl.name}: /${pr.prefix} is below Oracle minimum /27`});
+        if(!isRfc1918(cl.subnetCidr))nw.push({type:'err',msg:`${cl.name}: not RFC1918`});
+        if(net.vnetCidr&&parseCidr(net.vnetCidr)&&!cidrsOverlap(cl.subnetCidr,net.vnetCidr))
+          nw.push({type:'err',msg:`${cl.name} subnet not within VNet ${net.vnetCidr}`});
+        const ok=usable>=needed&&pr.prefix<=27;
+        rows.push(`<tr>
+          <td>${esc(cl.name)}</td>
+          <td style="font-family:var(--font-m);font-weight:500">${esc(cl.subnetCidr)}</td>
+          <td class="td-dim">${needed}</td>
+          <td class="td-dim">${usable} (/${pr.prefix})</td>
+          <td>${pr.prefix>27?'<span class="tag-err">BELOW /27 MIN</span>':ok?'<span class="tag-ok">OK</span>':`<span class="tag-err">SHORT by ${needed-usable}</span>`}</td>
+        </tr>`);
+      });
+    }
+
+    const warnBlock=nw.length?`<div class="warn-list">${nw.map(w=>`<div class="warn-item ${w.type}"><span class="warn-icon">${w.type==='err'?'&#9888;':'&#9432;'}</span>${w.msg}</div>`).join('')}</div>`:'';
+    html+=`<div class="res-net">
+      <div class="res-net-hdr"><span class="res-net-name">${esc(net.name)}</span><span class="res-net-tag">${cloud.toUpperCase()} Network ${ni+1}</span></div>
+      ${warnBlock}
+      <table class="res-table">
+        <thead><tr><th>Subnet</th><th>CIDR</th><th>IPs Needed</th><th>Usable</th><th>Status</th></tr></thead>
+        <tbody>${rows.join('')}</tbody>
+      </table>
+    </div>`;
+  });
+
+  // Cross-network overlap
+  const vc=allCidrs.filter(c=>parseCidr(c));
+  for(let i=0;i<vc.length;i++)for(let j=i+1;j<vc.length;j++){
+    const pi=parseInt(vc[i].split('/')[1]),pj=parseInt(vc[j].split('/')[1]);
+    if(Math.abs(pi-pj)<8&&cidrsOverlap(vc[i],vc[j]))
+      gw.push({type:'err',msg:`CIDR overlap: ${vc[i]} &#8596; ${vc[j]}`});
+  }
+  el.innerHTML=gw.map(w=>`<div class="warn-item ${w.type}"><span class="warn-icon">&#9888;</span>${w.msg}</div>`).join('')+html;
+}
+
+// ─── Validate helpers ─────────────────────────────────────────────────────────
+// GCP: reserved=3, prefix range 22–27
+function validateSubnetPair(cidr,needed,label,reserved,maxBits,minBits,nw,rows,allCidrs){
+  if(!cidr){rows.push(pendingRow(label));return;}
+  const pr=parseCidr(cidr);
+  if(!pr){rows.push(errRow(label,cidr,'Invalid CIDR'));return;}
+  allCidrs.push(cidr);
+  const usable=sizeOf(pr.prefix)-reserved;
+  if(!isRfc1918(cidr))nw.push({type:'err',msg:label+': not RFC1918'});
+  if(isExaReserved(cidr))nw.push({type:'err',msg:label+': overlaps Exadata reserved 100.64.0.0/10'});
+  if(pr.prefix<maxBits||pr.prefix>minBits)nw.push({type:'warn',msg:`${label}: /${pr.prefix} outside allowed /${minBits}–/${maxBits} range`});
+  const ok=usable>=needed;
+  rows.push(`<tr>
+    <td>${esc(label)}</td>
+    <td style="font-family:var(--font-m);font-weight:500">${esc(cidr)}</td>
+    <td class="td-dim">${needed}</td>
+    <td class="td-dim">${usable} (/${pr.prefix})</td>
+    <td>${ok?'<span class="tag-ok">OK</span>':`<span class="tag-err">SHORT by ${needed-usable}</span>`}</td>
+  </tr>`);
+}
+// AWS: reserved=5, minBits=27 for client, 28 for backup; max /16
+function validateSubnetPairAws(cidr,needed,label,minBits,nw,rows,allCidrs){
+  if(!cidr){rows.push(pendingRow(label));return;}
+  const pr=parseCidr(cidr);
+  if(!pr){rows.push(errRow(label,cidr,'Invalid CIDR'));return;}
+  allCidrs.push(cidr);
+  const usable=awsUsable(pr.prefix);
+  if(!isRfc1918(cidr))nw.push({type:'err',msg:label+': not RFC1918'});
+  if(isExaReserved(cidr))nw.push({type:'err',msg:label+': overlaps Exadata reserved 100.64.0.0/10'});
+  if(pr.prefix>minBits)nw.push({type:'warn',msg:`${label}: /${pr.prefix} smaller than Oracle minimum /${minBits}`});
+  if(pr.prefix<16)nw.push({type:'warn',msg:`${label}: /${pr.prefix} larger than max /16`});
+  const ok=usable>=needed&&pr.prefix<=minBits;
+  rows.push(`<tr>
+    <td>${esc(label)}</td>
+    <td style="font-family:var(--font-m);font-weight:500">${esc(cidr)}</td>
+    <td class="td-dim">${needed}</td>
+    <td class="td-dim">${usable} (/${pr.prefix})</td>
+    <td>${pr.prefix>minBits?`<span class="tag-err">BELOW /${minBits} MIN</span>`:ok?'<span class="tag-ok">OK</span>':`<span class="tag-err">SHORT by ${needed-usable}</span>`}</td>
+  </tr>`);
+}
+
+// ─── Misc helpers ─────────────────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function emptyHTML(msg){return`<div class="empty"><div class="empty-icon">&#9675;</div>${msg}</div>`;}
+function pendingRow(label){return`<tr><td>${esc(label)}</td><td colspan="4" style="color:var(--ink4);font-style:italic;font-family:var(--font-m);font-size:11px;">Enter CIDR above</td></tr>`;}
+function errRow(label,cidr,msg){return`<tr><td>${esc(label)}</td><td style="font-family:var(--font-m)">${esc(cidr)}</td><td colspan="2" style="color:var(--red);font-size:11px;">${msg}</td><td><span class="tag-err">ERROR</span></td></tr>`;}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+addNet('gcp','plan');
+addNet('aws','plan');
+addNet('azure','plan');
+switchCloud('gcp');
+</script>
+</body>
+</html>

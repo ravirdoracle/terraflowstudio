@@ -1,0 +1,19 @@
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 6.0.0"
+    }
+  }
+}
+
+resource "google_oracle_database_odb_subnet" "this" {
+  odb_subnet_id = var.odb_subnet_id
+  location      = var.location
+  odbnetwork    = var.odb_network
+  cidr_range    = var.cidr_range
+  purpose       = var.purpose
+
+  project             = var.project != "" ? var.project : null
+  deletion_protection = var.deletion_protection
+}

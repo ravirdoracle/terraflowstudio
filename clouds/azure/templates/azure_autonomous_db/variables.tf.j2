@@ -1,0 +1,127 @@
+variable "resource_group_name" {
+  type    = string
+  default = "{{ resource_group_name }}"
+}
+variable "location" {
+  type    = string
+  default = "{{ location }}"
+}
+variable "name" {
+  description = "Azure resource name for the Autonomous Database."
+  type        = string
+  default     = "{{ name }}"
+}
+variable "display_name" {
+  description = "Display name shown in the OCI console."
+  type        = string
+  default     = "{{ display_name }}"
+}
+variable "db_workload" {
+  description = "OLTP (transaction processing), DW (data warehouse), AJD (JSON) or APEX."
+  type        = string
+  default     = "{{ db_workload }}"
+  validation {
+    condition     = contains(["OLTP", "DW", "AJD", "APEX"], var.db_workload)
+    error_message = "db_workload must be OLTP, DW, AJD or APEX."
+  }
+}
+variable "db_version" {
+  description = "Autonomous Database version, e.g. 19c or 23ai."
+  type        = string
+  default     = "{{ db_version }}"
+}
+variable "license_model" {
+  type    = string
+  default = "{{ license_model }}"
+  validation {
+    condition     = contains(["LicenseIncluded", "BringYourOwnLicense"], var.license_model)
+    error_message = "license_model must be LicenseIncluded or BringYourOwnLicense."
+  }
+}
+variable "compute_model" {
+  description = "ECPU is the current model; OCPU is legacy."
+  type        = string
+  default     = "{{ compute_model }}"
+  validation {
+    condition     = contains(["ECPU", "OCPU"], var.compute_model)
+    error_message = "compute_model must be ECPU or OCPU."
+  }
+}
+variable "compute_count" {
+  description = "ECPUs allocated. Minimum 2 for ECPU; fractional values allowed."
+  type        = number
+  default     = {{ compute_count }}
+}
+variable "data_storage_size_in_tbs" {
+  description = "Storage in TB. Minimum 1."
+  type        = number
+  default     = {{ data_storage_size_in_tbs }}
+}
+variable "auto_scaling_enabled" {
+  description = "Let the database scale compute up to 3x the base count on demand."
+  type        = bool
+  default     = {{ auto_scaling_enabled }}
+}
+variable "auto_scaling_for_storage_enabled" {
+  description = "Let storage grow beyond the reserved size on demand."
+  type        = bool
+  default     = {{ auto_scaling_for_storage_enabled }}
+}
+variable "backup_retention_period_in_days" {
+  description = "Automatic backup retention, 1-60 days."
+  type        = number
+  default     = {{ backup_retention_period_in_days }}
+}
+variable "character_set" {
+  type    = string
+  default = "{{ character_set }}"
+}
+variable "national_character_set" {
+  type    = string
+  default = "{{ national_character_set }}"
+}
+
+# No default: the password must never be written into a generated file. Supply
+# it at apply time with TF_VAR_{{ module_name }}_admin_password, or from a
+# secret store. 12-30 chars, upper + lower + digit, no double quote, cannot
+# contain the word "admin".
+variable "admin_password" {
+  description = "ADMIN user password."
+  type        = string
+  sensitive   = true
+}
+
+variable "mtls_connection_required" {
+  description = "Require mutual TLS. Set false to allow TLS-only connections."
+  type        = bool
+  default     = {{ mtls_connection_required }}
+}
+
+# ── Network ───────────────────────────────────────────────────────────────────
+# Auto-wired in the root from the VNet module's delegated subnet.
+variable "subnet_id" {
+  description = "Oracle-delegated subnet ID. Empty means public access."
+  type        = string
+  default     = "{{ subnet_id }}"
+}
+variable "virtual_network_id" {
+  description = "VNet ID holding the delegated subnet. Empty means public access."
+  type        = string
+  default     = "{{ virtual_network_id }}"
+}
+variable "allowed_ips" {
+  description = "Public access control list. Leave empty when using a delegated subnet."
+  type        = list(string)
+  default     = [{{ allowed_ips | map("tojson") | join(", ") }}]
+}
+
+variable "customer_contacts" {
+  description = "Email addresses Oracle notifies about this database."
+  type        = list(string)
+  default     = [{{ customer_contacts | map("tojson") | join(", ") }}]
+}
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}

@@ -1,0 +1,62 @@
+# ODB Network for Autonomous AI Database Serverless only.
+#
+# Identical to gcp-odb-network except that it creates NO backup subnet: the
+# backup subnet is used by Exadata VM Clusters and never by an Autonomous
+# Database, so a network serving only ADB-S does not need one.
+#
+# This is a separate module rather than a flag on gcp-odb-network on purpose.
+# Terraform cannot make a resource conditional without changing its address, so
+# putting a count on the backup subnet would rewrite
+# google_oracle_database_odb_subnet.backup to ...backup[0] in every existing
+# configuration — a state move, and a proposed destroy of a live backup subnet
+# for anyone who had already applied. Networks flagged "dedicated" or "both"
+# keep the original module, byte for byte.
+terraform {
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = ">= 7.5.0"
+    }
+  }
+}
+
+resource "google_oracle_database_odb_network" "this" {
+  odb_network_id      = var.odb_network_id
+  location            = var.location
+  network             = var.network != "" ? var.network : null
+  project             = var.project != null ? var.project : null
+  gcp_oracle_zone     = var.gcp_oracle_zone != null && var.gcp_oracle_zone != "" ? var.gcp_oracle_zone : null
+  deletion_protection = var.deletion_protection
+  labels              = var.labels
+
+  timeouts {
+    create = "12h"
+    update = "2h"
+    delete = "8h"
+  }
+
+  lifecycle {
+    # Same guard as modules/odb-network, for the same reason: the resource is
+    # immutable in the provider, so drift here proposes replacing the network —
+    # and every subnet and database that hangs off it.
+    #
+    # gcp_oracle_zone is default_from_api: the service picks a zone when none is
+    # given. Harmless while the variable stays null, since Terraform then adopts
+    # whatever the API reports, but a replacement risk the moment someone sets it
+    # in terraform.tfvars and the service normalises the value.
+    ignore_changes = [
+      gcp_oracle_zone,
+    ]
+  }
+}
+
+resource "google_oracle_database_odb_subnet" "client" {
+  odb_subnet_id       = var.client_subnet_id
+  location            = var.location
+  project             = var.project != null ? var.project : null
+  odbnetwork          = google_oracle_database_odb_network.this.odb_network_id
+  cidr_range          = var.client_cidr_range
+  purpose             = "CLIENT_SUBNET"
+  deletion_protection = var.deletion_protection
+  labels              = var.labels
+}

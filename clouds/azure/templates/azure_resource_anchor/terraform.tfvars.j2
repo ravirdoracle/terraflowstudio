@@ -1,0 +1,9 @@
+resource_group_name = "{{ resource_group_name }}"
+name                = "{{ name }}"
+{% if tags %}
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% endfor %}
+}
+{% endif %}

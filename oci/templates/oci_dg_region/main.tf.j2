@@ -1,0 +1,299 @@
+# oci-dg-region — Per-region Data Guard networking
+# Reusable module: instantiate once for primary region, once for DR.
+# The correct OCI provider alias is passed from the root module.
+
+terraform {
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = ">= 6.0.0"
+    }
+  }
+}
+
+# ── Hub (transit) VCN ─────────────────────────────────────────────────────────
+
+resource "oci_core_vcn" "hub" {
+  compartment_id = var.compartment_id
+  cidr_blocks    = [var.hub_cidr]
+  display_name   = "${var.prefix}-hub-vcn"
+}
+
+# ── LPG: Hub VCN side (peers with cluster_lpg) ───────────────────────────────
+
+resource "oci_core_local_peering_gateway" "hub_lpg" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.hub.id
+  display_name   = "${var.prefix}-hub-lpg"
+  peer_id        = oci_core_local_peering_gateway.cluster_lpg.id
+  route_table_id = oci_core_route_table.hub_transit_lpg.id
+}
+
+# ── LPG: Cluster VCN side ────────────────────────────────────────────────────
+
+resource "oci_core_local_peering_gateway" "cluster_lpg" {
+  compartment_id = var.compartment_id
+  vcn_id         = var.cluster_vcn_id
+  display_name   = "${var.prefix}-cluster-lpg"
+}
+{% if extra_pairs %}
+
+# ── Additional VCN pairs: an LPG pair each, on this same hub ─────────────────
+# The hub VCN, DRG and RPC above are shared. Each extra cluster VCN gets its own
+# LPG pair. A VCN holds at most 10 LPGs by default, so the hub serves 10 pairs.
+
+resource "oci_core_local_peering_gateway" "hub_lpg_extra" {
+  for_each       = var.extra_spokes
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.hub.id
+  display_name   = "${var.prefix}-hub-lpg-${each.key}"
+  peer_id        = oci_core_local_peering_gateway.cluster_lpg_extra[each.key].id
+  route_table_id = oci_core_route_table.hub_transit_lpg.id
+}
+
+resource "oci_core_local_peering_gateway" "cluster_lpg_extra" {
+  for_each       = var.extra_spokes
+  compartment_id = var.compartment_id
+  vcn_id         = each.value.cluster_vcn_id
+  display_name   = "${var.prefix}-cluster-lpg-${each.key}"
+}
+{% endif %}
+
+# ── DRG ──────────────────────────────────────────────────────────────────────
+
+resource "oci_core_drg" "hub" {
+  compartment_id = var.compartment_id
+  display_name   = "${var.prefix}-hub-drg"
+}
+
+# ── Route table: DRG attachment → cluster VCN via hub LPG ────────────────────
+
+resource "oci_core_route_table" "hub_transit_drg" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.hub.id
+  display_name   = "${var.prefix}-hub-transit-drg"
+
+  route_rules {
+    network_entity_id = oci_core_local_peering_gateway.hub_lpg.id
+    destination       = var.local_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "DRG to cluster VCN via hub LPG"
+  }
+{% if extra_pairs %}
+
+  dynamic "route_rules" {
+    for_each = var.extra_spokes
+    content {
+      network_entity_id = oci_core_local_peering_gateway.hub_lpg_extra[route_rules.key].id
+      destination       = route_rules.value.local_client_cidr
+      destination_type  = "CIDR_BLOCK"
+      description       = "DRG to ${route_rules.key} cluster VCN via hub LPG"
+    }
+  }
+{% endif %}
+}
+
+# ── Route table: hub LPG → remote region via DRG ─────────────────────────────
+
+resource "oci_core_route_table" "hub_transit_lpg" {
+  compartment_id = var.compartment_id
+  vcn_id         = oci_core_vcn.hub.id
+  display_name   = "${var.prefix}-hub-transit-lpg"
+
+  route_rules {
+    network_entity_id = oci_core_drg.hub.id
+    destination       = var.remote_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "Cluster VCN to remote region via DRG"
+  }
+{% if extra_pairs %}
+
+  dynamic "route_rules" {
+    for_each = var.extra_spokes
+    content {
+      network_entity_id = oci_core_drg.hub.id
+      destination       = route_rules.value.remote_client_cidr
+      destination_type  = "CIDR_BLOCK"
+      description       = "${route_rules.key} cluster VCN to remote region via DRG"
+    }
+  }
+{% endif %}
+}
+
+# ── DRG attachment to Hub VCN ─────────────────────────────────────────────────
+
+resource "oci_core_drg_attachment" "hub" {
+  drg_id       = oci_core_drg.hub.id
+  display_name = "${var.prefix}-hub-drg-attachment"
+
+  network_details {
+    id             = oci_core_vcn.hub.id
+    type           = "VCN"
+    route_table_id = oci_core_route_table.hub_transit_drg.id
+  }
+}
+
+{% if manage_route_table %}
+# ── Cluster VCN default route table (Terraform-managed) ──────────────────────
+# Import before apply:
+#   terraform import oci_core_default_route_table.cluster_rt <{{ side }}-default-rt-ocid>
+#
+# After import, run:
+#   terraform state show oci_core_default_route_table.cluster_rt
+# and copy each pre-existing route_rules block into the section below.
+
+resource "oci_core_default_route_table" "cluster_rt" {
+  manage_default_resource_id = var.cluster_route_table_id
+
+  # ── Data Guard route (added by Terraflow) ─────────────────────────────────
+  route_rules {
+    network_entity_id = oci_core_local_peering_gateway.cluster_lpg.id
+    destination       = var.remote_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "Data Guard: to {{ side }} remote region via Hub LPG"
+  }
+
+  # ── Pre-existing {{ side }} region routes ─────────────────────────────────
+  # Populate from: terraform state show oci_core_default_route_table.cluster_rt
+  # Uncomment and repeat a route_rules block for each existing route:
+  #
+  # route_rules {
+  #   destination       = "<cidr-block>"         # e.g. 0.0.0.0/0
+  #   destination_type  = "CIDR_BLOCK"
+  #   network_entity_id = "<entity-ocid>"         # internet gateway, NAT gateway, etc.
+  #   description       = "<description>"
+  # }
+}
+{% else %}
+# ── Cluster VCN default route table — MANUAL management selected ─────────────
+# Route table is NOT managed by Terraform. Add the DG route manually after apply:
+#
+# OCI CLI:
+#   oci network route-table update \
+#     --rt-id <{{ side }}-default-rt-ocid> \
+#     --route-rules '[{"destination":"{{ remote_client_cidr }}","destinationType":"CIDR_BLOCK","networkEntityId":"<lpg-ocid>","description":"Data Guard: to {{ side }} remote region via Hub LPG"}]'
+#
+# The Hub LPG OCID is available after apply:
+#   terraform output {{ side }}_cluster_lpg_id
+#
+# OCI Console: Networking → Virtual Cloud Networks → <cluster-vcn> → Route Tables
+#   → Default Route Table → Add Route Rules
+#   → Target Type: Local Peering Gateway → Target: <prefix>-cluster-lpg
+#   → Destination CIDR: {{ remote_client_cidr }}
+{% endif %}
+
+# ── NSG: allow Data Guard traffic from remote region ─────────────────────────
+
+resource "oci_core_network_security_group_security_rule" "dg_ingress" {
+  network_security_group_id = var.cluster_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.remote_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "Data Guard ingress from remote region"
+
+  tcp_options {
+    destination_port_range {
+      min = 1521
+      max = 1521
+    }
+  }
+}
+{% if add_ssh %}
+
+resource "oci_core_network_security_group_security_rule" "ssh_ingress" {
+  network_security_group_id = var.cluster_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = var.remote_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "SSH from remote region"
+
+  tcp_options {
+    destination_port_range {
+      min = 22
+      max = 22
+    }
+  }
+}
+{% endif %}
+{% if extra_pairs %}
+
+# ── Additional VCN pairs: cluster route + NSG rules ──────────────────────────
+# Paired routing: each cluster VCN routes to, and admits, only its own peer's CIDR.
+{% if manage_route_table %}
+# Import each default route table before apply, as for the first pair:
+{% for p in extra_pairs %}
+#   terraform import 'module.{{ side }}.oci_core_default_route_table.cluster_rt_extra["{{ p.name }}"]' <{{ p.name }}-{{ side }}-default-rt-ocid>
+{% endfor %}
+# One resource serves every pair, so a table's pre-existing rules cannot be
+# pasted in here as they are for the first pair. They come from that pair's
+# existing_route_rules in terraform.tfvars instead. Leave it empty and the
+# table keeps only the Data Guard rule: every other route in it is removed.
+
+resource "oci_core_default_route_table" "cluster_rt_extra" {
+  for_each                   = var.extra_spokes
+  manage_default_resource_id = each.value.cluster_route_table_id
+
+  route_rules {
+    network_entity_id = oci_core_local_peering_gateway.cluster_lpg_extra[each.key].id
+    destination       = each.value.remote_client_cidr
+    destination_type  = "CIDR_BLOCK"
+    description       = "Data Guard: to {{ side }} remote region via Hub LPG"
+  }
+
+  dynamic "route_rules" {
+    for_each = each.value.existing_route_rules
+    content {
+      destination       = route_rules.value.destination
+      destination_type  = route_rules.value.destination_type
+      network_entity_id = route_rules.value.network_entity_id
+      description       = route_rules.value.description
+    }
+  }
+}
+{% else %}
+# Route tables are not managed by Terraform. Add to each cluster VCN's default
+# route table a rule to its peer's CIDR via its cluster LPG
+# (terraform output -json {{ side }}_extra_cluster_lpg_ids):
+{% for p in extra_pairs %}
+#   {{ p.name }}: destination {{ p.remote }} -> cluster LPG "{{ p.name }}"
+{% endfor %}
+{% endif %}
+
+resource "oci_core_network_security_group_security_rule" "dg_ingress_extra" {
+  for_each                  = var.extra_spokes
+  network_security_group_id = each.value.cluster_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = each.value.remote_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "Data Guard ingress from remote region (${each.key})"
+
+  tcp_options {
+    destination_port_range {
+      min = 1521
+      max = 1521
+    }
+  }
+}
+{% if add_ssh %}
+
+resource "oci_core_network_security_group_security_rule" "ssh_ingress_extra" {
+  for_each                  = var.extra_spokes
+  network_security_group_id = each.value.cluster_nsg_id
+  direction                 = "INGRESS"
+  protocol                  = "6"
+  source                    = each.value.remote_client_cidr
+  source_type               = "CIDR_BLOCK"
+  description               = "SSH from remote region (${each.key})"
+
+  tcp_options {
+    destination_port_range {
+      min = 22
+      max = 22
+    }
+  }
+}
+{% endif %}
+{% endif %}

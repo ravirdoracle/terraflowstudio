@@ -1,0 +1,12 @@
+output "cluster_id" {
+  description = "Resource ID of the VM cluster."
+  value       = azurerm_oracle_cloud_vm_cluster.this.id
+}
+output "cluster_name" {
+  description = "Name of the VM cluster resource."
+  value       = azurerm_oracle_cloud_vm_cluster.this.name
+}
+output "ocid" {
+  description = "OCI ID of the VM cluster (used by OCI provider for DB Home)."
+  value       = azurerm_oracle_cloud_vm_cluster.this.ocid
+}

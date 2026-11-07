@@ -1,0 +1,133 @@
+variable "exadb_vm_cluster_id" {
+  description = "Cluster ID: 1-63 lowercase letters, digits or hyphens; starts with a letter."
+  type        = string
+}
+
+variable "display_name" {
+  type    = string
+  default = null
+}
+
+variable "location" {
+  description = "GCP region (e.g. us-east4)."
+  type        = string
+}
+
+variable "project" {
+  description = "GCP project ID. Defaults to provider project if null."
+  type        = string
+  default     = null
+}
+
+variable "odb_network" {
+  description = "ODB Network name (the ODB network module's odb_network_name output)."
+  type        = string
+}
+
+variable "odb_subnet" {
+  description = "Client ODB Subnet name."
+  type        = string
+}
+
+variable "backup_odb_subnet" {
+  description = "Backup ODB Subnet name."
+  type        = string
+}
+
+variable "exascale_db_storage_vault" {
+  description = "Full resource name of the Exascale Database Storage Vault."
+  type        = string
+}
+
+variable "grid_image_id" {
+  description = "Oracle Grid Infrastructure image OCID (ocid1.dbpatch...). Oracle publishes no API for it: read it in the OCI Console."
+  type        = string
+  validation {
+    condition     = startswith(var.grid_image_id, "ocid1.dbpatch.")
+    error_message = "grid_image_id must be an Oracle Grid Infrastructure image OCID, starting ocid1.dbpatch."
+  }
+}
+
+variable "shape_attribute" {
+  description = "SMART_STORAGE for Oracle AI Database 26ai and later; BLOCK_STORAGE for 19c."
+  type        = string
+  validation {
+    condition     = contains(["SMART_STORAGE", "BLOCK_STORAGE"], var.shape_attribute)
+    error_message = "shape_attribute must be SMART_STORAGE or BLOCK_STORAGE."
+  }
+}
+
+variable "node_count" {
+  description = "Number of VMs: 1 to 10."
+  type        = number
+}
+
+variable "enabled_ecpu_count_per_node" {
+  description = "Enabled ECPUs per VM: 8 to 200, in steps of 4."
+  type        = number
+}
+
+variable "additional_ecpu_count_per_node" {
+  description = "Reserved ECPUs per VM: 0 to 192, in steps of 4. Null for none."
+  type        = number
+  default     = null
+}
+
+variable "vm_file_system_size_gbs_per_node" {
+  description = "VM file system storage per VM: 220-1100 GB (smart storage) or 260-1100 GB (block storage)."
+  type        = number
+}
+
+variable "hostname_prefix" {
+  type = string
+}
+
+variable "cluster_name" {
+  description = "1-11 letters, digits or hyphens; starts with a letter. Null to let the service name it."
+  type        = string
+  default     = null
+}
+
+variable "license_model" {
+  type    = string
+  default = "LICENSE_INCLUDED"
+}
+
+variable "ssh_public_keys" {
+  type = list(string)
+}
+
+variable "scan_listener_port_tcp" {
+  type    = number
+  default = null
+}
+
+variable "time_zone" {
+  type    = string
+  default = null
+}
+
+variable "dco_diagnostics" {
+  type    = bool
+  default = true
+}
+
+variable "dco_health" {
+  type    = bool
+  default = true
+}
+
+variable "dco_incident_logs" {
+  type    = bool
+  default = true
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+variable "labels" {
+  type    = map(string)
+  default = {}
+}

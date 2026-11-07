@@ -1,0 +1,9 @@
+output "gcp_kms_key_ring_id" {
+  description = "Relative key-ring name. ../oci/terraform.tfvars already holds this value."
+  value       = google_kms_key_ring.exadb.id
+}
+
+output "gcp_kms_crypto_key_id" {
+  description = "Select this key when creating the ExaDB-D database with a GCP customer-managed key."
+  value       = google_kms_crypto_key.exadb_tde.id
+}

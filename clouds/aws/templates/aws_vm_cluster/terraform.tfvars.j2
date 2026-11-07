@@ -1,0 +1,83 @@
+#
+# NOTE: cloud_exadata_infrastructure_id and odb_network_id are auto-wired
+# from module outputs in root main.tf:
+#   cloud_exadata_infrastructure_id = module.{{ mn1 }}.infra_id
+#   odb_network_id                  = module.{{ mn0 }}.network_id
+# Override below only if referencing resources from a different stack.
+
+display_name    = "{{ display_name }}"
+cpu_core_count  = {{ cpu_core_count }}
+gi_version      = "{{ gi_version }}"
+hostname_prefix = "{{ hostname_prefix }}"
+license_model   = "{{ license_model }}"
+
+{% if infra_id %}
+cloud_exadata_infrastructure_id = "{{ infra_id }}"
+{% else %}
+# cloud_exadata_infrastructure_id = module.{{ mn1 }}.infra_id
+{% endif %}
+{% if net_id %}
+odb_network_id                  = "{{ net_id }}"
+{% else %}
+# odb_network_id                  = module.{{ mn0 }}.network_id
+{% endif %}
+
+ssh_public_keys = [
+{% for k in ssh_public_keys %}
+  "{{ k }}",
+{% else %}
+  # "ssh-rsa AAAA...  user@host",
+{% endfor %}
+]
+
+{% if db_servers_mode == 'manual' and db_servers %}
+db_servers = [{% for s in db_servers %}"{{ s }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+{% else %}
+# db_servers = []  # auto-discovered via data.aws_odb_db_servers at plan time
+{% endif %}
+
+dco_is_diagnostics_events_enabled = {{ dco_is_diagnostics_events_enabled }}
+dco_is_health_monitoring_enabled  = {{ dco_is_health_monitoring_enabled }}
+dco_is_incident_logs_enabled      = {{ dco_is_incident_logs_enabled }}
+
+{% if cluster_name %}
+cluster_name = "{{ cluster_name }}"
+{% else %}
+# cluster_name = "gic-demo"
+{% endif %}
+{% if timezone %}
+timezone     = "{{ timezone }}"
+{% else %}
+# timezone     = "UTC"
+{% endif %}
+{% if data_storage_size_in_tbs %}
+data_storage_size_in_tbs = {{ data_storage_size_in_tbs }}
+{% else %}
+# data_storage_size_in_tbs = 2
+{% endif %}
+{% if db_node_storage_size_in_gbs %}
+db_node_storage_size_in_gbs = {{ db_node_storage_size_in_gbs }}
+{% else %}
+# db_node_storage_size_in_gbs = 120
+{% endif %}
+{% if memory_size_in_gbs %}
+memory_size_in_gbs = {{ memory_size_in_gbs }}
+{% else %}
+# memory_size_in_gbs = 60
+{% endif %}
+{% if scan_listener_port_tcp %}
+scan_listener_port_tcp = {{ scan_listener_port_tcp }}
+{% else %}
+# scan_listener_port_tcp = 1521
+{% endif %}
+
+is_local_backup_enabled     = {{ is_local_backup_enabled }}
+is_sparse_diskgroup_enabled = {{ is_sparse_diskgroup_enabled }}
+
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "ManagedBy" = "Terraform"
+{% endfor %}
+}

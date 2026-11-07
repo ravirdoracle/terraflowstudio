@@ -1,0 +1,78 @@
+cloud_exadata_infrastructure_id = "{{ cloud_exadata_infrastructure_id }}"
+location    = "{{ location }}"
+{% if display_name %}
+display_name = "{{ display_name }}"
+{% else %}
+# display_name = "my-exadb-infra"
+{% endif %}
+{% if gcp_oracle_zone %}
+gcp_oracle_zone = "{{ gcp_oracle_zone }}"
+{% else %}
+# gcp_oracle_zone = "us-east4-b-r1"
+{% endif %}
+{% if project %}
+project     = "{{ project }}"
+{% else %}
+# project     = "my-gcp-project"
+{% endif %}
+deletion_protection = {{ deletion_protection }}
+
+# properties
+shape         = "{{ shape }}"
+compute_count = {{ compute_count }}
+storage_count = {{ storage_count }}
+{% if total_storage_size_gb %}
+total_storage_size_gb = {{ total_storage_size_gb }}
+{% else %}
+# total_storage_size_gb = 0  # 0 = use shape default
+{% endif %}
+
+# customer_contacts — list of email strings
+customer_contacts = [{{ customer_contacts | map("tojson") | join(", ") }}]
+
+# maintenance_window
+mw_preference    = "{{ mw_preference }}"
+mw_patching_mode = "{{ mw_patching_mode }}"
+mw_is_custom_action_timeout_enabled = {{ mw_is_custom_action_timeout_enabled }}
+mw_custom_action_timeout_mins       = {{ mw_custom_action_timeout_mins }}
+{% if is_custom_mw %}
+{% if mw_lead_time_week %}
+mw_lead_time_week = {{ mw_lead_time_week }}
+{% else %}
+# mw_lead_time_week = null
+{% endif %}
+{% if mw_days_of_week %}
+mw_days_of_week = [{{ mw_days_of_week | map("tojson") | join(", ") }}]
+{% else %}
+# mw_days_of_week = []  # e.g. ["MONDAY", "SUNDAY"]
+{% endif %}
+{% if mw_months %}
+mw_months = [{{ mw_months | map("tojson") | join(", ") }}]
+{% else %}
+# mw_months = []  # e.g. ["JANUARY", "OCTOBER"]
+{% endif %}
+{% if mw_hours_of_day %}
+mw_hours_of_day   = [{{ mw_hours_of_day | join(", ") }}]
+{% else %}
+# mw_hours_of_day   = []  # e.g. [0, 4]
+{% endif %}
+{% if mw_weeks_of_month %}
+mw_weeks_of_month = [{{ mw_weeks_of_month | join(", ") }}]
+{% else %}
+# mw_weeks_of_month = []  # e.g. [1, 2]
+{% endif %}
+{% else %}
+# mw_lead_time_week = null
+# mw_days_of_week   = []
+# mw_months         = []
+# mw_hours_of_day   = []
+# mw_weeks_of_month = []
+{% endif %}
+
+labels = {
+{% for k, v in labels.items() %}
+  "{{ k }}" = "{{ v }}"
+{% else %}
+  "managed-by" = "terraform"
+{% endfor %}
+}

@@ -1,0 +1,16 @@
+output "adb_id" {
+  description = "Autonomous Database ID."
+  value       = aws_odb_autonomous_database.this.id
+}
+output "adb_arn" {
+  description = "Autonomous Database ARN."
+  value       = aws_odb_autonomous_database.this.arn
+}
+output "adb_ocid" {
+  description = "OCI OCID of the Autonomous Database."
+  value       = aws_odb_autonomous_database.this.ocid
+}
+output "private_endpoint" {
+  description = "Private endpoint hostname."
+  value       = aws_odb_autonomous_database.this.private_endpoint
+}

@@ -1,0 +1,12 @@
+output "pdb_id" {
+  description = "OCID of the Pluggable Database."
+  value       = oci_database_pluggable_database.this.id
+}
+output "pdb_name" {
+  description = "Name of the Pluggable Database."
+  value       = oci_database_pluggable_database.this.pdb_name
+}
+output "cdb_id" {
+  description = "OCID of the parent CDB."
+  value       = oci_database_pluggable_database.this.container_database_id
+}

@@ -1,0 +1,24 @@
+resource "oci_identity_policy" "cloud_vm_cluster_reads_gcp_keys" {
+  count    = var.create_cluster_gcp_key_policy ? 1 : 0
+  provider = oci.home
+
+  compartment_id = var.oci_compartment_ocid
+  name           = var.oci_gcp_key_policy_name
+  description    = "Permit ExaDB-D Cloud VM Clusters to use registered GCP KMS keys."
+  statements = [
+    "Allow any-user to read oracle-db-gcp-keys in compartment id ${var.oci_compartment_ocid} where all { request.principal.type = 'cloudvmcluster' }",
+  ]
+}
+
+resource "oci_dbmulticloud_oracle_db_gcp_key_ring" "exadb" {
+  provider = oci.multicloud
+
+  compartment_id = var.oci_compartment_ocid
+  display_name   = var.oci_gcp_key_ring_display_name
+  # The Identity Connector's OCID, whatever some API references say.
+  oracle_db_connector_id = var.oci_gcp_identity_connector_ocid
+  # OCI appends /cryptoKeys and needs the full Cloud KMS REST URL; the Google
+  # provider reports a relative name, so the prefix is added here.
+  gcp_key_ring_id = "https://cloudkms.googleapis.com/v1/${var.gcp_key_ring_id}"
+  location        = var.gcp_kms_location
+}

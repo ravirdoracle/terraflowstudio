@@ -1,0 +1,169 @@
+variable "cloud_vm_cluster_id" {
+  description = "Immutable unique ID for the VM cluster."
+  type        = string
+}
+
+variable "display_name" {
+  type    = string
+  default = null
+}
+
+variable "location" {
+  description = "GCP region (e.g. us-east4)."
+  type        = string
+}
+
+variable "project" {
+  description = "GCP project ID. Defaults to provider project if null."
+  type        = string
+  default     = null
+}
+
+variable "exadata_infrastructure" {
+  description = "Full resource path of the Exadata Infrastructure (the Exadata Infrastructure module's infra_self_link output)."
+  type        = string
+}
+
+variable "odb_network" {
+  description = "ODB Network name (the ODB network module's odb_network_name output)."
+  type        = string
+}
+
+variable "odb_subnet" {
+  description = "Client ODB Subnet name (the ODB network module's client_subnet_name output)."
+  type        = string
+}
+
+variable "backup_odb_subnet" {
+  description = "Backup ODB Subnet name (the ODB network module's backup_subnet_name output)."
+  type        = string
+}
+
+variable "db_server_ocids" {
+  description = "DB server OCIDs from data.google_oracle_database_db_servers.this[key]."
+  type        = list(string)
+}
+
+variable "deletion_protection" {
+  type    = bool
+  default = true
+}
+
+# ── properties ────────────────────────────────────────────────────────────────
+
+variable "gi_version" {
+  description = "Grid Infrastructure version, e.g. '23.0.0.0'."
+  type        = string
+  default     = null
+}
+
+variable "hostname_prefix" {
+  description = "Hostname prefix — max 12 chars, letters/numbers/hyphens, must start with a letter."
+  type        = string
+}
+
+variable "cpu_core_count" {
+  description = "Number of CPU cores to enable for the VM cluster."
+  type        = number
+}
+
+variable "memory_size_gb" {
+  description = "Memory size in GB per node."
+  type        = number
+}
+
+variable "db_node_storage_size_gb" {
+  description = "Local DB node storage in GB per node."
+  type        = number
+}
+
+variable "data_storage_size_tb" {
+  description = "Data storage size in TB."
+  type        = number
+}
+
+variable "local_backup_enabled" {
+  description = "Enable local backups on the VM cluster."
+  type        = bool
+  default     = false
+}
+
+variable "sparse_diskgroup_enabled" {
+  description = "Enable sparse disk group."
+  type        = bool
+  default     = false
+}
+
+variable "license_type" {
+  description = "LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE."
+  type        = string
+  default     = "LICENSE_INCLUDED"
+  validation {
+    condition     = contains(["LICENSE_INCLUDED", "BRING_YOUR_OWN_LICENSE"], var.license_type)
+    error_message = "Must be LICENSE_INCLUDED or BRING_YOUR_OWN_LICENSE."
+  }
+}
+
+variable "ssh_public_keys" {
+  description = "SSH public keys for cluster node access."
+  type        = list(string)
+}
+
+variable "cluster_name" {
+  description = "Optional cluster name — max 11 chars."
+  type        = string
+  default     = null
+}
+
+variable "node_count" {
+  description = "Number of nodes in the VM cluster."
+  type        = number
+  default     = null
+}
+
+variable "ocpu_count" {
+  description = "OCPU count (fractional CPU allocation)."
+  type        = number
+  default     = null
+}
+
+variable "disk_redundancy" {
+  description = "Disk redundancy: HIGH or NORMAL."
+  type        = string
+  default     = null
+}
+
+variable "time_zone" {
+  description = "Time zone ID, e.g. 'UTC' or 'America/New_York'."
+  type        = string
+  default     = "UTC"
+}
+
+variable "scan_listener_port_tcp" {
+  description = "TCP port for SCAN listener. Default 1521, range 1024–8999."
+  type        = number
+  default     = null
+}
+
+variable "dco_diagnostics" {
+  description = "Enable diagnostics events collection."
+  type        = bool
+  default     = true
+}
+
+variable "dco_health" {
+  description = "Enable health monitoring collection."
+  type        = bool
+  default     = true
+}
+
+variable "dco_incident_logs" {
+  description = "Enable incident logs collection."
+  type        = bool
+  default     = true
+}
+
+variable "labels" {
+  type    = map(string)
+  default = {}
+}

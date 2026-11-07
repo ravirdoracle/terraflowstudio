@@ -1,0 +1,13 @@
+resource_group_name   = "{{ resource_group_name }}"
+location              = "{{ location }}"
+vnet_name             = "{{ vnet_name }}"
+address_space         = "{{ address_space }}"
+subnet_name           = "{{ subnet_name }}"
+subnet_address_prefix = "{{ subnet_address_prefix }}"
+{% if tags %}
+tags = {
+{% for k, v in tags.items() %}
+  "{{ k }}" = "{{ v }}"
+{% endfor %}
+}
+{% endif %}

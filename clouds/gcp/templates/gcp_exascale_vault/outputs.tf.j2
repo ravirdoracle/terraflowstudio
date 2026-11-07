@@ -1,0 +1,6 @@
+output "vault_id" {
+  description = "Full resource name of the vault — what an Exascale VM Cluster references."
+  value       = google_oracle_database_exascale_db_storage_vault.this.id
+}
+output "vault_name" { value = google_oracle_database_exascale_db_storage_vault.this.name }
+output "ocid" { value = google_oracle_database_exascale_db_storage_vault.this.properties[0].ocid }

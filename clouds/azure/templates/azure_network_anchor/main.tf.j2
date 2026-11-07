@@ -1,0 +1,86 @@
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.9.0" }
+    azapi   = { source = "azure/azapi", version = ">= {{ azapi_floor }}" }
+  }
+}
+
+# Oracle Network Anchor — the network bridge between this Azure subscription and
+# OCI. It is not tied to one database service: it takes its own subnet delegated to
+# Oracle.Database/networkAttachments, and OCI builds a VCN and subnet behind it in
+# the Resource Anchor's compartment.
+#
+# azurerm has no resource for it (5.12.0 is the latest checked), so it goes
+# through azapi against the GA API version. azapi validates the body against
+# Azure's published schema at `terraform validate`, offline.
+
+data "azurerm_resource_group" "this" {
+  name = var.resource_group_name
+}
+
+# The Network Anchor's own delegated subnet — never the one the VM clusters use.
+resource "azurerm_subnet" "network_anchor" {
+  name                 = var.subnet_name
+  resource_group_name  = var.resource_group_name
+  virtual_network_name = var.virtual_network_name
+  address_prefixes     = [var.subnet_address_prefix]
+
+  delegation {
+    name = "Oracle.Database.networkAttachments"
+    service_delegation {
+      name = "Oracle.Database/networkAttachments"
+      actions = [
+        "Microsoft.Network/networkinterfaces/*",
+        "Microsoft.Network/virtualNetworks/subnets/join/action",
+      ]
+    }
+  }
+}
+
+resource "azapi_resource" "this" {
+  type      = "Oracle.Database/networkAnchors@{{ api_version }}"
+  name      = var.name
+  parent_id = data.azurerm_resource_group.this.id
+  location  = var.location
+  tags      = var.tags
+
+  # Unset optionals stay out of the request, so the service applies its own
+  # defaults rather than receiving an explicit null.
+  ignore_null_property = true
+
+  body = {
+    zones = var.zone == null ? null : [var.zone]
+    properties = {
+      resourceAnchorId                     = var.resource_anchor_id
+      subnetId                             = azurerm_subnet.network_anchor.id
+      ociVcnDnsLabel                       = var.oci_vcn_dns_label
+      ociBackupCidrBlock                   = var.oci_backup_cidr_block
+      isOracleToAzureDnsZoneSyncEnabled    = var.dns_zone_sync_enabled
+      isOracleDnsListeningEndpointEnabled  = var.dns_listening_endpoint_enabled
+      isOracleDnsForwardingEndpointEnabled = var.dns_forwarding_endpoint_enabled
+      # The API takes both of these as comma-separated strings.
+      dnsListeningEndpointAllowedCidrs = length(var.dns_listening_allowed_cidrs) > 0 ? join(",", var.dns_listening_allowed_cidrs) : null
+      dnsForwardingRules = length(var.dns_forwarding_rules) > 0 ? [
+        for r in var.dns_forwarding_rules : {
+          domainNames         = join(",", r.domain_names)
+          forwardingIpAddress = r.forwarding_ip_address
+        }
+      ] : null
+    }
+  }
+
+  response_export_values = [
+    "properties.provisioningState",
+    "properties.cidrBlock",
+    "properties.ociVcnId",
+    "properties.ociSubnetId",
+    "properties.dnsListeningEndpointIpAddress",
+    "properties.dnsForwardingEndpointIpAddress",
+  ]
+
+  timeouts {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
+}

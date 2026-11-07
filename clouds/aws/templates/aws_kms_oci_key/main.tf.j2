@@ -1,0 +1,29 @@
+terraform {
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = ">= 7.27.0"
+    }
+  }
+}
+
+# The AWS key registered in OCI ("Register AWS keys" in the console). Its OCID is
+# what a database's encryption_key_location_details.aws_encryption_key_id takes.
+resource "oci_dbmulticloud_oracle_db_aws_key" "this" {
+  compartment_id         = var.compartment_id
+  display_name           = var.display_name
+  oracle_db_connector_id = var.identity_connector_id
+  aws_key_arn            = var.aws_key_arn
+  freeform_tags          = var.freeform_tags
+
+  lifecycle {
+    precondition {
+      condition     = var.identity_connector_id != null && var.identity_connector_id != ""
+      error_message = "No AWS identity connector on cluster \"${var.via_cluster}\". OCI attaches one after the IAM role association reaches CONNECTED, which can lag the association itself — re-run apply in a few minutes. If it still fails, check association_status in the outputs, or set identity_connector_id on the cluster explicitly."
+    }
+    precondition {
+      condition     = var.compartment_id != ""
+      error_message = "No compartment for the registered key: set oci_compartment_id on the key, or make sure a cluster references it."
+    }
+  }
+}

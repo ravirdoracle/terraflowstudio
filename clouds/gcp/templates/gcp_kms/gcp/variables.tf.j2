@@ -1,0 +1,39 @@
+variable "gcp_project_id" {
+  description = "Google Cloud project that owns the KMS key ring."
+  type        = string
+}
+
+variable "gcp_kms_location" {
+  description = "Cloud KMS location - the same location as the ExaDB-D VM cluster."
+  type        = string
+}
+
+variable "gcp_key_ring_name" {
+  description = "Key ring name. Key rings cannot be deleted, so the name stays taken in this project and location."
+  type        = string
+}
+
+variable "gcp_crypto_key_name" {
+  description = "Crypto key holding the Oracle TDE master encryption keys."
+  type        = string
+}
+
+variable "key_protection_level" {
+  description = "HSM or SOFTWARE."
+  type        = string
+  default     = "HSM"
+  validation {
+    condition     = contains(["SOFTWARE", "HSM"], var.key_protection_level)
+    error_message = "key_protection_level must be SOFTWARE or HSM."
+  }
+}
+
+variable "oracle_kms_role_id" {
+  description = "Custom role ID - unique in the project, so one per key ring when several share a project."
+  type        = string
+}
+
+variable "oracle_workload_resource_service_agent" {
+  description = "Workload resource service agent email, from the VM cluster's GCP Identity Connector in the OCI console. Not the account running Terraform."
+  type        = string
+}
