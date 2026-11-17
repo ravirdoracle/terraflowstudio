@@ -1,0 +1,42 @@
+# OCI CLI — {% if mode == 'create' %}create standby and associate{% else %}check existing database pair{% endif %}
+
+Requires Bash, Python 3 and an installed, configured OCI CLI. Use your normal OCI
+CLI authentication profile (`oci setup config`, or supported OCI CLI environment
+variables). Run from your workstation or OCI Cloud Shell.
+
+Review `request.json` and `run.sh`, then run:
+
+```sh
+bash run.sh
+```
+
+The script locates request.json relative to itself, so it also runs from another directory.
+{% if mode == 'create' %}
+
+**Running this script creates a new standby database.** Apply and verify networking
+first. Ensure the primary and target support this configuration, have compatible
+database versions, sufficient capacity, IAM permissions and licensing entitlement.
+{% if creation_type == 'ExistingDbSystem' %}
+The existing DB system target is for bare metal / Exadata, not Base Database VM systems.
+{% endif %}
+Active Data Guard defaults to enabled. MAXIMUM_PERFORMANCE and ASYNC are used.
+The same admin password as the primary is requested securely at runtime and sent
+to the CLI through standard input. It is not in the generated JSON, shell history,
+process arguments or a temporary file. Run from an interactive terminal; do not
+use OCI debug logging with sensitive requests.
+
+A successful command returns the association request details; standby creation
+continues in OCI. Verify completion and replication health in the OCI console.
+This script has no Terraform state or prevent_destroy protection. Do not run it
+and the Terraform creation configuration for the same standby; choose one workflow.
+The script does not check for an existing association and is not intended for repeated creation.
+{% else %}
+
+Read-only: lists all association API records for the primary, selects the peer,
+and displays the association details, including Active Data Guard status and apply lag.
+No database password is needed. No unique match returns a nonzero exit code.
+This cannot associate two independent databases, change an association, or query
+configurations using the newer Data Guard Group API.
+{% endif %}
+
+[OCI CLI association commands](https://docs.oracle.com/en-us/iaas/tools/oci-cli/latest/oci_cli_docs/cmdref/db/data-guard-association.html).

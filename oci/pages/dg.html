@@ -45,17 +45,6 @@ header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:ce
 .tsw-btn.sel-tofu{color:#f5a623;background:rgba(245,166,35,.15);}
 .tsw-btn:hover:not(.sel-tf):not(.sel-tofu){color:#999;}
 .cust-bar{background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:44px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
-.llm-bar{background:#000000;border-bottom:2px solid #4e4840;padding:0 28px;height:40px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.llm-bar-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#999;white-space:nowrap;flex-shrink:0;}
-.llm-bar-input{flex:1;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#eee;font-family:var(--font-m);font-size:11px;padding:5px 12px;outline:none;transition:border-color .15s;min-width:0;}
-.llm-bar-input:focus{border-color:#555;}.llm-bar-input::placeholder{color:#444;}
-.llm-bar-btn{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:28px;border-radius:var(--radius);cursor:pointer;border:1.5px solid;white-space:nowrap;flex-shrink:0;transition:all .15s;}
-.llm-bar-btn.send{background:rgba(123,66,188,.15);border-color:#7b42bc;color:#b080e0;}
-.llm-bar-btn.send:hover{background:#7b42bc;color:#fff;}
-.llm-bar-btn.send:disabled{opacity:.35;cursor:not-allowed;}
-.llm-prov{font-family:var(--font-m);font-size:9px;color:#888;letter-spacing:.04em;flex-shrink:0;white-space:nowrap;}
-.llm-prov.ok{color:#2a7a4a;}.llm-prov.err{color:#7a2a2a;}
-.llm-reply{font-family:var(--font-m);font-size:10px;color:#aaa;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cust-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#C9A227;white-space:nowrap;}
 .cust-input{font-family:var(--font-b);font-size:13px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:var(--white);padding:5px 12px;min-width:220px;outline:none;transition:border-color .15s;}
 .cust-input:focus{border-color:var(--accent2);}
@@ -299,17 +288,6 @@ pre.code-editor::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3
   <span class="backend-pill" id="backend-pill"></span>
 </div>
 
-<div class="llm-bar" id="llm-bar">
-  <span class="llm-bar-label">✦ AI</span>
-  <input class="llm-bar-input" type="text" id="llm-input"
-    placeholder="Describe what you want… e.g. 'Cross-region DG from Ashburn to Phoenix'"
-    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
-  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
-  <span class="llm-reply" id="llm-reply"></span>
-  <span class="llm-prov" id="llm-prov-badge">checking…</span>
-  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
-  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
-</div>
 
 <!-- ── Spreadsheet Import Bar ── -->
 <div style="background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:38px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
@@ -392,6 +370,7 @@ pre.code-editor::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3
   <div class="tgroup show" id="dg-tabs">
     <div class="tab active" onclick="switchTab(0)"><span class="tab-num">A</span><span class="tab-label">DG Multi-AZ</span></div>
     <div class="tab" onclick="switchTab(1)"><span class="tab-num">B</span><span class="tab-label">DG Cross-Region</span></div>
+    <div class="tab" onclick="switchTab(2)"><span class="tab-num">C</span><span class="tab-label">Active Data Guard</span></div>
   </div>
 </div>
 
@@ -434,6 +413,13 @@ pre.code-editor::-webkit-scrollbar-thumb{background:var(--line2);border-radius:3
   <button class="vbtn" style="margin-top:14px" onclick="vgen(1)">Validate &amp; Generate All</button>
 </div>
 
+<div class="page" id="dg-page-2">
+  <div class="page-hero"><div class="page-resource-name" style="font-size:22px">Active Data Guard — <em>Association</em></div></div>
+  <div class="notice">Create a standby database on existing Exadata infrastructure, or check an existing database pair. Apply and verify networking first. Choose Terraform, OCI CLI, or both on each association card.</div>
+  <div id="dg-assoc-list" class="inst-list"></div>
+  <div class="inst-add-row"><button class="inst-add-btn" onclick="addDgAssociation()">＋ Add Data Guard Association</button></div>
+  <button class="vbtn" style="margin-top:14px" onclick="vgen(2)">Validate &amp; Generate All</button>
+</div>
 </div><!-- /form-panel -->
 
 <div class="resizer" id="panel-resizer" title="Drag to resize"></div>
@@ -495,7 +481,7 @@ function ociRegionSelectHTML(id, val, onchange) {
 
 // ── State ─────────────────────────────────────────────────────────────────────
 const cloud = 'dg';
-let dgMazs = [], dgCrs = [];
+let dgMazs = [], dgCrs = [], dgAssociations = [];
 let iacTool = 'terraform';
 let activeFile = null;
 let cur = 0;
@@ -517,6 +503,52 @@ function defDgCr(i) {
     primary_route_table_id:'', primary_hub_cidr:'10.15.0.0/24',
     standby_vcn_id:'', standby_nsg_id:'', standby_client_cidr:'10.30.1.0/24',
     standby_route_table_id:'', standby_hub_cidr:'10.16.0.0/24', add_ssh:false, manage_route_table:false};
+}
+
+function defDgAssociation(i) {
+  return {module_name: i ? `primary_${i+1}` : 'primary', mode:'create', output_format:'terraform',
+    oci_region:'us-ashburn-1', database_id:'', creation_type:'ExistingVmCluster',
+    peer_vm_cluster_id:'', peer_db_system_id:'', peer_db_home_id:'',
+    peer_db_unique_name:'', peer_sid_prefix:'', peer_database_id:'', is_active_data_guard_enabled:true};
+}
+function addDgAssociation() {
+  let i = dgAssociations.length;
+  while (dgAssociations.some(d => d.module_name === defDgAssociation(i).module_name)) i++;
+  dgAssociations.push(defDgAssociation(i)); renderDgAssociations(); refresh();
+}
+function readDgAssociation(i) {
+  const p = `da${i}_`, d = dgAssociations[i];
+  for (const field of Object.keys(defDgAssociation(i))) {
+    const el = document.getElementById(p+field);
+    if (el) d[field] = el.type === 'checkbox' ? el.checked : el.value.trim();
+  }
+  d.module_name = d.module_name.replace(/[^A-Za-z0-9_-]/g,'').slice(0,32);
+}
+function changeDgAssociation(i) { readDgAssociation(i); renderDgAssociations(); refresh(); }
+function renderDgAssociations() {
+  const attr = value => esc(String(value ?? '')).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  _safeRender('dg-assoc-list', dgAssociations.map((d,i) => {
+    const p = `da${i}_`;
+    const input = (key,label,hint='') => `<div class="field"><div class="field-lbl">${label}</div><div class="field-hint">${hint}</div><input type="text" id="${p}${key}" value="${attr(d[key])}" oninput="readDgAssociation(${i});refresh()"></div>`;
+    const select = (key, choices) => `<select id="${p}${key}" onchange="changeDgAssociation(${i})">${choices.map(([v,l]) => `<option value="${v}" ${d[key]===v?'selected':''}>${l}</option>`).join('')}</select>`;
+    return `<div class="inst-card open" id="da-card-${i}">
+      <div class="inst-card-head"><span class="inst-num">${i+1}</span><span class="inst-modname">dg_association_${attr(d.module_name)}</span><button class="inst-rm" onclick="removeInst(dgAssociations,${i},renderDgAssociations)">Remove</button></div>
+      <div class="inst-body">
+        ${input('module_name','Module name')}
+        <div class="field"><div class="field-lbl">Generate</div>${select('output_format',[['terraform','Terraform / OpenTofu'],['cli','OCI CLI'],['both','Terraform and OCI CLI']])}</div>
+        <div class="field"><div class="field-lbl">Workflow</div>${select('mode',[['create','Create standby and associate'],['existing','Check existing database pair (read only)']])}</div>
+        <div class="field"><div class="field-lbl">Primary database OCI region</div>${ociRegionSelectHTML(p+'oci_region',d.oci_region,`readDgAssociation(${i});refresh()`)}</div>
+        ${input('database_id','Primary database OCID')}
+        ${d.mode==='existing' ? `<div class="notice">Checks an existing association and its Active Data Guard status. OCI Terraform cannot associate two independently created databases or import an existing association. No association found causes a clear plan error. Data Guard Group configurations use a separate API.</div>${input('peer_database_id','Existing peer database OCID')}` : `
+          <div class="field"><div class="field-lbl">Standby target</div>${select('creation_type',[['ExistingVmCluster','Existing Exadata VM cluster'],['ExistingDbSystem','Existing bare metal / Exadata DB system']])}</div>
+          ${d.creation_type==='ExistingVmCluster' ? input('peer_vm_cluster_id','Target VM cluster OCID') : input('peer_db_system_id','Target DB system OCID','Base Database VM systems require a new DB system and are outside this option.')}
+          ${input('peer_db_home_id','Target DB Home OCID (optional)','Leave blank to let OCI create a DB Home.')}
+          ${input('peer_db_unique_name','Standby DB_UNIQUE_NAME (optional)')}
+          ${input('peer_sid_prefix','Standby SID prefix (optional)')}
+          <label><input type="checkbox" id="${p}is_active_data_guard_enabled" ${d.is_active_data_guard_enabled?'checked':''} onchange="readDgAssociation(${i});refresh()"> Enable Active Data Guard</label>
+          <div class="notice">Creates a new standby using MAXIMUM_PERFORMANCE / ASYNC. Ensure compatible versions, network connectivity, capacity and licensing. Generated Terraform or CLI prompts for the existing primary admin password; the app does not collect it. Deleting the association terminates the standby DB Home/system; generated Terraform includes prevent_destroy.</div>`}
+      </div></div>`;
+  }).join(''));
 }
 
 // ── Add helpers ───────────────────────────────────────────────────────────────
@@ -783,6 +815,7 @@ function switchTab(i) {
   document.getElementById('dg-page-'+i).classList.add('active');
   if (i === 0 && dgMazs.length) activeFile = 'dg_maz:' + dgMazs[0].module_name + ':main';
   else if (i === 1 && dgCrs.length) activeFile = 'dg_cr:' + dgCrs[0].module_name + ':main';
+  else if (i === 2 && dgAssociations.length) activeFile = 'dg_assoc:' + dgAssociations[0].module_name + ':main';
   updateTree(); renderEditor();
 }
 
@@ -790,12 +823,14 @@ function switchTab(i) {
 function buildPayload() {
   dgMazs.forEach((d,i) => readDgMaz(i));
   dgCrs.forEach((d,i) => readDgCr(i));
+  dgAssociations.forEach((d,i) => readDgAssociation(i));
   return {
     cloud,
     iac_tool: iacTool,
     customer_name: getCustName(),
     dg_multi_az:    dgMazs,
     dg_cross_region: dgCrs,
+    dg_associations: dgAssociations.map(d => Object.fromEntries(Object.keys(defDgAssociation(0)).map(k => [k,d[k]]))),
   };
 }
 
@@ -809,6 +844,7 @@ function applyConfig(doc) {
   // leave the previous customer's cards on screen.
   dgMazs = mazs.map((d, i) => ({...defDgMaz(i), ...d}));
   dgCrs  = crs.map((d, i)  => ({...defDgCr(i),  ...d}));
+  dgAssociations = (doc.dg_associations || []).map((d,i) => Object.fromEntries(Object.entries(defDgAssociation(i)).map(([k,v]) => [k,d[k] ?? v])));
   activeFile = null;  // reset so updateTree auto-selects the first available file
   renderAll();
   renderEditor();
@@ -817,6 +853,7 @@ function applyConfig(doc) {
 function renderAll() {
   renderDgMazs();
   renderDgCrs();
+  renderDgAssociations();
   updateTree();
 }
 
@@ -892,6 +929,20 @@ function updateTree() {
     });
   }
 
+  dgAssociations.forEach(dg => {
+    // A module name is also used in inline file-selection handlers.
+    if (!/^[A-Za-z][A-Za-z0-9_-]{0,31}$/.test(dg.module_name)) return;
+    h += '<div class="ft-dir">dg_association_' + dg.module_name + '/</div>';
+    const associationFiles = [];
+    if (dg.output_format !== 'cli') associationFiles.push(['main','main.tf'],['variables','variables.tf'],['outputs','outputs.tf'],['tfvars','terraform.tfvars'],['readme','README.md']);
+    if (dg.output_format === 'cli' || dg.output_format === 'both') associationFiles.push(['cli_script','cli/run.sh'],['cli_request','cli/request.json'],['cli_readme','cli/README.md']);
+    associationFiles.forEach(([key,file]) => {
+      const fk = 'dg_assoc:' + dg.module_name + ':' + key;
+      if (!firstFile) firstFile = fk;
+      h += `<div class="ft-file ${activeFile===fk?'active':''}" onclick="selFile('${fk}')">${file}</div>`;
+    });
+  });
+
   // Auto-select first available file when nothing is selected yet
   if (!activeFile && firstFile) { activeFile = firstFile; }
   // If activeFile points to a config that was cleared, reset it
@@ -903,6 +954,7 @@ function updateTree() {
 
 // ── File key helpers ──────────────────────────────────────────────────────────
 function fkToPath(k) {
+  if (k.startsWith('dg_assoc:')) return esc(fkToApiPath(k));
   const m1 = k.match(/^dg_maz:([^:]+):(main|variables|outputs|tfvars|readme)$/);
   if (m1) {
     const f = m1[2]==='tfvars'?'terraform.tfvars': m1[2]==='readme'?'README.md': m1[2]+'.tf';
@@ -920,6 +972,8 @@ function fkToPath(k) {
 }
 
 function fkToApiPath(k) {
+  const association = k.match(/^dg_assoc:([A-Za-z][A-Za-z0-9_-]{0,31}):(main|variables|outputs|tfvars|readme|cli_script|cli_request|cli_readme)$/);
+  if (association) return 'dg_association_'+association[1]+'/'+({tfvars:'terraform.tfvars',readme:'README.md',cli_script:'cli/run.sh',cli_request:'cli/request.json',cli_readme:'cli/README.md'}[association[2]] || association[2]+'.tf');
   const m1 = k.match(/^dg_maz:([^:]+):(main|variables|outputs|tfvars|readme)$/);
   if (m1) {
     const f = m1[2]==='tfvars'?'terraform.tfvars': m1[2]==='readme'?'README.md': m1[2]+'.tf';
@@ -1089,7 +1143,7 @@ async function onLoadZipFile(inp) {
     if (doc.error) { showToast(doc.error, true); return; }
     const cld = doc.cloud || cloud;
     // Accept 'dg' cloud, or any cloud that has dg_* / aws_dg_* / gcp_dg_* keys
-    const hasDgData = doc.dg_multi_az || doc.dg_cross_region ||
+    const hasDgData = doc.dg_associations || doc.dg_multi_az || doc.dg_cross_region ||
                       doc.aws_dg_multi_az || doc.aws_dg_cross_region ||
                       doc.gcp_dg_multi_az || doc.gcp_dg_cross_region ||
                       doc.azure_dg_multi_az || doc.azure_dg_cross_region;
@@ -1333,29 +1387,6 @@ async function runTroubleshooter() {
 function renderAiError(id, msg) { const el=document.getElementById(id); el.innerHTML=`<div class="ai-err-box">Error: ${esc(msg)}</div>`; el.classList.add('visible'); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── LLM bar ───────────────────────────────────────────────────────────────────
-async function initLlmBar() {
-  try {
-    const r = await fetch('/api/llm/info'), d = await r.json();
-    const badge = document.getElementById('llm-prov-badge');
-    if (d.configured) { badge.textContent=`${d.provider} · ${d.model}`; badge.className='llm-prov ok'; }
-    else { badge.textContent='LLM not configured'; badge.className='llm-prov err'; document.getElementById('llm-send-btn').disabled=true; }
-  } catch(e) { const b=document.getElementById('llm-prov-badge'); if(b) b.textContent='unavailable'; }
-}
-async function sendLlmPrompt() {
-  const inp=document.getElementById('llm-input'), reply=document.getElementById('llm-reply'), btn=document.getElementById('llm-send-btn');
-  const prompt=inp.value.trim(); if(!prompt) return;
-  btn.disabled=true; btn.textContent='…'; reply.textContent='Thinking…'; reply.style.color='#555';
-  try {
-    const r=await fetch('/api/llm/fill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,cloud,current:buildPayload()})});
-    const d=await r.json();
-    if(d.error){reply.textContent='✗ '+d.error;reply.style.color='#c0392b';}
-    else{if(d.payload&&Object.keys(d.payload).length)applyConfig(d.payload);reply.textContent='✓ '+(d.explanation||'Done');reply.style.color='#1a7a4a';inp.value='';}
-  } catch(e){reply.textContent='✗ Network error: '+e.message;reply.style.color='#c0392b';}
-  finally{btn.disabled=false;btn.textContent='Ask';}
-}
-
-// ── GitHub ────────────────────────────────────────────────────────────────────
 async function initGithub() {
   try {
     const r=await fetch('/api/github/info'), d=await r.json();
@@ -1382,7 +1413,6 @@ async function pushToGithub() {
 initStorage();
 renderAll();
 renderEditor();
-initLlmBar();
 initGithub();
 </script>
 </body>

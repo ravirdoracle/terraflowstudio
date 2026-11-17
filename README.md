@@ -38,7 +38,8 @@ A Python/Flask web app that generates production-ready, modular Terraform/OpenTo
 | `/aws` | Oracle AI DB@AWS — ODB networks, Exadata, VM Clusters, AVMC, DB Home/CDB/PDB |
 | `/gcp` | Oracle AI DB@GCP — ODB networks, Exadata, VM Clusters, DB Home/CDB/PDB |
 | `/azure` | Oracle AI DB@Azure — Virtual Networks, Oracle-delegated Subnets, Exadata, VM Clusters |
-| `/dg` | OCI Data Guard — Multi-AZ (LPG) and Cross-Region (DRG + RPC) networking |
+| `/dg` | OCI Data Guard — networking, standby creation, and existing association lookup |
+| `/tutorial` | Interactive HTML tutorial with playback, chapters, captions and offline download |
 | `/cidr` | CIDR Planner — IP requirement calculator for ExaCS deployments |
 | `/rag` | RAG admin — upload docs, manage index, test search |
 | `/hub` | Info Hub — RAG-powered Q&A across all clouds |
@@ -81,8 +82,51 @@ A Python/Flask web app that generates production-ready, modular Terraform/OpenTo
 |-----|------|-------------------|
 | A | Multi-AZ | LPG pair, NSG rules (TCP 1521), default route table entries — standalone dir |
 | B | Cross-Region | Hub VCNs, LPGs, DRGs, DRG attachments, Remote Peering Connections, transit route tables — 3-module structure |
+| C | Active Data Guard | Create a standby on an existing Exadata VM cluster / bare metal or Exadata DB system, or check an existing pair (OCI provider ≥ 9.11.0) |
+
+The association tab generates `dg_association_<name>/` with `main.tf`,
+`variables.tf`, `terraform.tfvars`, `outputs.tf`, and an apply guide. Apply and verify
+networking first. Creation enables Active Data Guard by default with
+MAXIMUM_PERFORMANCE / ASYNC and prompts for the primary database admin password
+at Terraform runtime. No database password is collected by the form.
+
+Existing-pair mode is read only: it looks up the association and reports status.
+OCI Terraform cannot associate two independently created databases or import an
+existing association. Data Guard Groups use a separate API. Creation includes
+`prevent_destroy` because provider deletion terminates the standby DB Home/system.
+Review the generated README before applying.
+
+On each Active Data Guard card, **Generate** offers Terraform/OpenTofu, OCI CLI,
+or both. CLI output lives in `dg_association_<name>/cli/`: review `request.json`
+and run `bash run.sh` with Bash, Python 3, and a configured OCI CLI. The creation
+script securely prompts for the existing primary password. The existing-pair
+script only reads association status. Choose one creation workflow for each
+standby; CLI commands are not tracked by Terraform state.
+
 
 ---
+
+Latest container release: [v2026.11.17](https://github.com/ravirdoracle/terraflowstudio-images/releases/tag/v2026.11.17). See [release notes](RELEASE_NOTES_v2026.11.17.md).
+
+## Interactive tutorial
+
+Open **Interactive Tutorial** from the home page or visit `/tutorial`. Choose a separate AWS, GCP, Azure, OCI Data Guard or OCI DB walkthrough. Each
+walkthrough includes play/pause, replay, a seek bar, playback speed, chapter
+navigation, keyboard controls and a complete written walkthrough. It covers
+customer configurations, spreadsheet import, resource forms, validation, downloads,
+and Active Data Guard Terraform/CLI workflows. Each track uses workspace-specific
+forms, preview examples and run instructions; OCI DB covers DB Home, CDB and PDB.
+GCP and Azure include actual workspace captures and dedicated infrastructure and
+VM-cluster steps. The five walkthroughs contain 57 scenes in total.
+
+The self-contained `tutorial.html` also opens directly in a browser and can be
+shared offline using **Download HTML**. Screens are illustrative and use sample
+data; playback never runs cloud commands or changes saved configurations.
+
+To run the browser checks, install `playwright-core` in a temporary directory and
+set `NODE_PATH` to its `node_modules` directory, then run
+`node tests/tutorial_playback.cjs`. Set `CHROME_BIN` when Chrome/Chromium is outside
+the standard paths. No browser-testing dependencies are required to use the tutorial.
 
 ## Generated Output Structure
 

@@ -1,0 +1,58 @@
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    oci = {
+      source  = "oracle/oci"
+      version = ">= 9.11.0"
+    }
+  }
+}
+
+# Uses your OCI SDK configuration or supported provider environment variables.
+provider "oci" {
+  region = var.oci_region
+}
+
+{% if mode == 'create' %}
+# Creates a NEW standby database on the existing target infrastructure.
+resource "oci_database_data_guard_association" "this" {
+  database_id                       = var.database_id
+  creation_type                     = "{{ creation_type }}"
+  database_admin_password           = var.database_admin_password
+  protection_mode                   = "MAXIMUM_PERFORMANCE"
+  transport_type                    = "ASYNC"
+  is_active_data_guard_enabled      = var.is_active_data_guard_enabled
+  delete_standby_db_home_on_delete   = true
+{% if creation_type == 'ExistingVmCluster' %}
+  peer_vm_cluster_id                = var.peer_vm_cluster_id
+{% else %}
+  peer_db_system_id                 = var.peer_db_system_id
+{% endif %}
+  peer_db_home_id                   = var.peer_db_home_id != "" ? var.peer_db_home_id : null
+  peer_db_unique_name               = var.peer_db_unique_name != "" ? var.peer_db_unique_name : null
+  peer_sid_prefix                   = var.peer_sid_prefix != "" ? var.peer_sid_prefix : null
+
+  # Provider deletion terminates the standby DB home/system. Review before removing.
+  lifecycle {
+    prevent_destroy = true
+  }
+
+  timeouts {
+    create = "2h"
+    update = "2h"
+    delete = "2h"
+  }
+}
+{% else %}
+# Read-only: this cannot associate two independently created databases.
+data "oci_database_data_guard_associations" "existing" {
+  database_id = var.database_id
+}
+
+locals {
+  matching_associations = [
+    for association in data.oci_database_data_guard_associations.existing.data_guard_associations :
+    association if association.peer_database_id == var.peer_database_id
+  ]
+}
+{% endif %}

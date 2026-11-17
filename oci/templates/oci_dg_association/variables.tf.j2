@@ -1,0 +1,23 @@
+{% for key in keys %}
+variable "{{ key }}" {
+  type        = string
+  description = "{% if key == 'oci_region' %}OCI region of the reporting primary database{% elif key == 'database_id' %}OCID of the existing primary database{% elif key == 'peer_database_id' %}OCID of the existing peer database to look up{% elif key == 'peer_vm_cluster_id' %}OCID of the existing target VM cluster for the new standby{% elif key == 'peer_db_system_id' %}OCID of the existing target bare metal or Exadata DB system{% else %}Optional {{ key }} for the new standby database{% endif %}"
+{% if key in ['peer_db_home_id', 'peer_db_unique_name', 'peer_sid_prefix'] %}
+  default     = ""
+{% endif %}
+}
+
+{% endfor %}
+{% if mode == 'create' %}
+variable "database_admin_password" {
+  type        = string
+  description = "Existing primary SYS/admin password; must match the primary database"
+  sensitive   = true
+}
+
+variable "is_active_data_guard_enabled" {
+  type        = bool
+  description = "Enable Active Data Guard on the new standby; ensure licensing entitlement"
+  default     = true
+}
+{% endif %}

@@ -629,6 +629,11 @@ def index():
     return resp
 
 
+@app.route('/tutorial')
+def tutorial_page():
+    return send_file(os.path.join(app.root_path, 'tutorial.html'), mimetype='text/html', max_age=0)
+
+
 @app.route('/cidr')
 def cidr_page():
     resp = make_response(render_template('cidr.html'))

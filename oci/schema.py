@@ -2,10 +2,26 @@
 
 Taken from `terraform providers schema -json`, not from the docs: `required` is
 what the provider marks Required (or a block with min_items > 0), outputs are the
-Computed-only attributes.
+Computed attributes and configured attributes exposed by generated outputs.
 """
 
 OCI_SCHEMAS = {
+    'oci_database_data_guard_association': {
+        'required': ['creation_type', 'database_admin_password', 'database_id',
+                     'delete_standby_db_home_on_delete', 'protection_mode', 'transport_type'],
+        'optional': ['availability_domain', 'backup_network_nsg_ids',
+                     'cluster_placement_group_id', 'compute_count', 'compute_model',
+                     'cpu_core_count', 'create_async', 'database_defined_tags',
+                     'database_freeform_tags', 'database_software_image_id',
+                     'db_system_defined_tags', 'db_system_freeform_tags',
+                     'db_system_security_attributes', 'display_name', 'domain', 'fault_domains',
+                     'hostname', 'id', 'is_active_data_guard_enabled', 'license_model',
+                     'migrate_trigger', 'node_count', 'nsg_ids', 'peer_db_home_id',
+                     'peer_db_system_id', 'peer_db_unique_name', 'peer_sid_prefix',
+                     'peer_vm_cluster_id', 'private_ip', 'private_ip_v6', 'shape',
+                     'storage_volume_performance_mode', 'subnet_id', 'subscription_id',
+                     'time_zone'],
+    },
     # ── Data Guard networking ────────────────────────────────────────────────
     'oci_core_vcn': {
         'required': ['compartment_id'],
@@ -75,6 +91,9 @@ OCI_SCHEMAS = {
 }
 
 OCI_RESOURCE_OUTPUTS = {
+    'oci_database_data_guard_association': ['id', 'database_id', 'is_active_data_guard_enabled',
+        'apply_lag', 'apply_rate', 'lifecycle_details', 'peer_data_guard_association_id',
+        'peer_database_id', 'peer_role', 'role', 'state', 'time_created'],
     'oci_core_vcn': ['id', 'state', 'time_created', 'default_route_table_id',
                      'default_security_list_id', 'default_dhcp_options_id',
                      'vcn_domain_name', 'cidr_blocks'],

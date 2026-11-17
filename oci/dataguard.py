@@ -3,6 +3,7 @@ import datetime
 import os
 
 from core.helpers import make_renderer
+from .association import association_files
 
 # This package renders only its own templates. Reaching for another cloud's
 # raises TemplateNotFound rather than quietly working.
@@ -321,7 +322,7 @@ def _dg_entries(data, key):
 
 def generate_oci_dg_tf(data: dict) -> dict:
     """Return a files dict for all OCI Data Guard modules present in data."""
-    files = {}
+    files = association_files(data)
 
     for dg in _dg_entries(data, 'dg_multi_az'):
         if not _dg_maz_filled(dg):   # check raw data before defaults fill in placeholders

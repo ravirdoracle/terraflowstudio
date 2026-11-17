@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -eu
+set +x
+SCRIPT_DIR="$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)"
+# OCI credentials are read from your normal CLI profile/environment.
+python3 - "$SCRIPT_DIR/request.json" {{ region }} {{ peer_database_id }} <<'PY'
+import json
+import shutil
+import subprocess
+import sys
+
+if not shutil.which('oci'):
+    sys.exit('OCI CLI is required. Install and configure it before running this script.')
+with open(sys.argv[1], encoding='utf-8') as source:
+    request = json.load(source)
+{% if mode == 'create' %}
+required = ['databaseId', '{% if creation_type == 'ExistingVmCluster' %}peerVmClusterId{% else %}peerDbSystemId{% endif %}']
+{% else %}
+required = ['databaseId']
+{% endif %}
+for field in required:
+    if not request.get(field):
+        sys.exit('Fill in ' + field + ' in request.json before running.')
+{% if mode == 'create' %}
+import getpass
+import warnings
+
+# Pass the password through a pipe, never a command argument or generated file.
+try:
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', getpass.GetPassWarning)
+        password = getpass.getpass('Existing primary database admin password: ')
+except (getpass.GetPassWarning, EOFError):
+    sys.exit('Run this script from an interactive terminal to enter the password securely.')
+if not password:
+    sys.exit('A primary database admin password is required.')
+request['databaseAdminPassword'] = password
+command = ['oci', 'db', 'data-guard-association', 'create',
+           '{% if creation_type == 'ExistingVmCluster' %}from-existing-vm-cluster{% else %}from-existing-db-system{% endif %}',
+           '--region', sys.argv[2], '--from-json', 'file:///dev/stdin', '--output', 'json']
+result = subprocess.run(command, input=json.dumps(request), text=True)
+sys.exit(result.returncode)
+{% else %}
+if not sys.argv[3] or sys.argv[3] == request['databaseId']:
+    sys.exit('Configure a different, non-empty peer database OCID in the app and regenerate.')
+command = ['oci', 'db', 'data-guard-association', 'list', '--all',
+           '--region', sys.argv[2], '--from-json', 'file:///dev/stdin', '--output', 'json']
+result = subprocess.run(command, input=json.dumps(request), text=True, capture_output=True)
+if result.returncode:
+    sys.stderr.write(result.stderr)
+    sys.exit(result.returncode)
+response = json.loads(result.stdout)
+matches = [item for item in response.get('data', []) if item.get('peer-database-id') == sys.argv[3]]
+if len(matches) != 1:
+    sys.exit('No unique association found for this pair. OCI cannot associate two independently created databases. Data Guard Groups use a separate API.')
+print(json.dumps(matches[0], indent=2))
+{% endif %}
+PY

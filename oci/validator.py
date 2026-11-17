@@ -29,6 +29,43 @@ def validate(data, errors):
         mn = cr.get('module_name') or 'dg'
         _check_pairs(cr, mn, _err)
 
+    seen = set()
+    for card in data.get('dg_associations') or []:
+        mn = card.get('module_name') or 'primary'
+        if not _NAME.fullmatch(mn):
+            _err(mn, 'module_name', 'Use a letter, then letters, digits, _ or - (max 32)')
+        if mn.lower() in seen:
+            _err(mn, 'module_name', 'Association module names must be unique')
+        seen.add(mn.lower())
+        mode = card.get('mode', 'create')
+        if card.get('output_format', 'terraform') not in ('terraform', 'cli', 'both'):
+            _err(mn, 'output_format', 'Choose Terraform, OCI CLI, or both')
+        if mode not in ('create', 'existing'):
+            _err(mn, 'mode', 'Choose create standby or check existing pair')
+        if not re.fullmatch(r'[a-z][a-z0-9-]+', card.get('oci_region') or ''):
+            _err(mn, 'oci_region', 'Choose the primary database OCI region')
+        ids = {'database_id': ('database',)}
+        if mode == 'existing':
+            ids['peer_database_id'] = ('database',)
+            if card.get('database_id') == card.get('peer_database_id'):
+                _err(mn, 'peer_database_id', 'Primary and peer must be different databases')
+        else:
+            creation = card.get('creation_type', 'ExistingVmCluster')
+            if creation == 'ExistingVmCluster':
+                ids['peer_vm_cluster_id'] = ('cloudvmcluster', 'vmcluster')
+            elif creation == 'ExistingDbSystem':
+                ids['peer_db_system_id'] = ('dbsystem',)
+            else:
+                _err(mn, 'creation_type', 'Choose an existing VM cluster or DB system')
+            if card.get('peer_db_home_id'):
+                ids['peer_db_home_id'] = ('dbhome',)
+            if not isinstance(card.get('is_active_data_guard_enabled', True), bool):
+                _err(mn, 'is_active_data_guard_enabled', 'Active Data Guard must be true or false')
+        for field, kinds in ids.items():
+            value = (card.get(field) or '').strip()
+            if not any(value.startswith(f'ocid1.{kind}.') for kind in kinds) or any(c.isspace() for c in value):
+                _err(mn, field, f'Enter a valid {" or ".join(kinds)} OCID')
+
 
 def _check_pairs(cr, mn, _err):
     pairs = cr.get('additional_pairs') or []

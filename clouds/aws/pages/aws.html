@@ -35,6 +35,23 @@
   </div>
 </header>
 
+
+<!-- ── Customer bar ── -->
+<div class="cust-bar">
+  <span class="cust-label">Customer</span>
+  <input class="cust-input" type="text" id="cust-name" placeholder="Enter customer name…" oninput="onCustInput()">
+  <button class="cust-btn save" id="save-btn" onclick="saveConfig()" title="Save current config for this customer">💾 Save</button>
+  <button class="cust-btn load" id="load-btn" onclick="loadConfig()" title="Load saved config for this customer">📂 Load</button>
+  <button class="cust-btn del" id="del-btn" onclick="deleteConfig()" title="Delete saved config for this customer" disabled>🗑 Delete</button>
+  <button class="cust-btn test" id="test-btn" onclick="runCustomerTests()" title="Run Terraform generation tests for this customer" disabled>🧪 Test</button>
+  <div class="cust-sep"></div>
+  <select class="cust-select" id="cust-select" onchange="onCustSelect()" title="Switch to a saved customer">
+    <option value="">— saved customers —</option>
+  </select>
+  <span class="save-toast" id="save-toast"></span>
+  <span class="backend-pill" id="backend-pill"></span>
+</div>
+
 <!-- ── Spreadsheet Import Bar ── -->
 <div style="background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:38px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
   <span style="font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#ff6b2b;white-space:nowrap;flex-shrink:0;">📊 Spreadsheet</span>
@@ -53,45 +70,6 @@
   <span id="import-reply" style="font-family:var(--font-m);font-size:11px;white-space:nowrap;display:none;"></span>
 </div>
 
-<!-- ── Customer bar ── -->
-<div class="cust-bar">
-  <span class="cust-label">Customer</span>
-  <input class="cust-input" type="text" id="cust-name" placeholder="Enter customer name…" oninput="onCustInput()">
-  <button class="cust-btn save" id="save-btn" onclick="saveConfig()" title="Save current config for this customer">💾 Save</button>
-  <button class="cust-btn load" id="load-btn" onclick="loadConfig()" title="Load saved config for this customer">📂 Load</button>
-  <button class="cust-btn del" id="del-btn" onclick="deleteConfig()" title="Delete saved config for this customer" disabled>🗑 Delete</button>
-  <button class="cust-btn test" id="test-btn" onclick="runCustomerTests()" title="Run Terraform generation tests for this customer" disabled>🧪 Test</button>
-  <div class="cust-sep"></div>
-  <select class="cust-select" id="cust-select" onchange="onCustSelect()" title="Switch to a saved customer">
-    <option value="">— saved customers —</option>
-  </select>
-  <span class="save-toast" id="save-toast"></span>
-  <span class="backend-pill" id="backend-pill"></span>
-</div>
-
-<!-- ── LLM Prompt Bar ── -->
-<div class="llm-bar" id="llm-bar">
-  <span class="llm-bar-label">✦ AI</span>
-  <button class="llm-bar-btn" id="llm-templates-btn" onclick="toggleTemplates()" style="background:rgba(255,255,255,.04);border-color:#333;color:#666;padding:0 10px">⚡ Templates</button>
-  <input class="llm-bar-input" type="text" id="llm-input"
-    placeholder="Describe what you want… e.g. 'Production ExaDB in us-east-1 with 19c database'"
-    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
-  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
-  <span class="llm-reply" id="llm-reply"></span>
-  <span class="llm-prov" id="llm-prov-badge">checking…</span>
-  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
-  <button class="llm-bar-btn" onclick="openAiTool('plan')" title="Paste terraform plan output and get an AI analysis" style="background:rgba(201,162,39,.1);border-color:#5a4a10;color:#C9A227;">📋 Plan</button>
-  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" title="Paste a terraform error and get a fix" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
-  <button class="llm-bar-btn" onclick="openAiTool('security')" title="AI security review of current config" style="background:rgba(26,122,74,.1);border-color:#1a4a2a;color:#6dd4a0;">🔒 Security</button>
-</div>
-<div id="llm-templates-panel" style="display:none;position:fixed;top:98px;left:28px;right:28px;z-index:600;background:#111;border:1.5px solid #2a2a2a;border-radius:10px;padding:16px 20px 12px;box-shadow:0 8px 32px rgba(0,0,0,.6)">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-    <span style="font-family:var(--font-d);font-weight:700;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#666">⚡ Prompt Templates</span>
-    <button onclick="toggleTemplates()" style="background:none;border:none;color:#444;cursor:pointer;font-size:16px;line-height:1;padding:0 4px">✕</button>
-  </div>
-  <div id="llm-tpl-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px"></div>
-  <div id="llm-template-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:8px"></div>
-</div>
 
 <!-- ── Test Modal ── -->
 <div class="test-modal-overlay" id="test-modal-overlay" onclick="if(event.target===this)closeTestModal()">
@@ -2409,171 +2387,6 @@ function showDeployGuide(){
 }
 function closeDeployGuide(){document.getElementById('guide-panel').style.display='none';}
 
-// ── LLM Prompt Templates ──────────────────────────────────────────────────────
-const LLM_TEMPLATES = [
-  // ── AWS — Networking ──
-  {cloud:'aws',tag:'aws',cat:'Networking',title:'Quick start — AWS prod',desc:'Network + X11M infra + 16-core VM cluster in us-east-1',prompt:'Set up a production ODB@AWS environment in us-east-1 (AZ use1-az6). ODB network CIDRs 10.2.0.0/24 and 10.2.1.0/24. Exadata.X11M infra 2 compute 3 storage. VM cluster prod-vmcluster 16 CPU cores GI 23.0.0.0 hostname vm LICENSE_INCLUDED.'},
-  {cloud:'aws',tag:'aws',cat:'Networking',title:'S3 + Zero-ETL access',desc:'Network with S3 and Zero-ETL enabled for data lake',prompt:'Create an ODB network in us-east-1 AZ use1-az6 CIDRs 10.4.0.0/24 and 10.4.1.0/24. Enable s3_access and zero_etl_access. Add Exadata.X11M infra and VM cluster 32 cores GI 23.0.0.0 hostname dl LICENSE_INCLUDED.'},
-  {cloud:'aws',tag:'aws',cat:'Networking',title:'Custom DNS prefix',desc:'ODB network with custom_domain_name',prompt:'Create an ODB network in us-east-1 AZ use1-az6 CIDRs 10.8.0.0/24 and 10.8.1.0/24. Set custom_domain_name to odb.corp.example.com. Add Exadata.X11M infra 2 compute 3 storage and VM cluster 16 cores GI 23.0.0.0.'},
-  {cloud:'aws',tag:'aws',cat:'Networking',title:'VPC peering connection',desc:'Peer the ODB network to an existing VPC',prompt:'Add a network peering connection named prod-peering connecting the ODB network to peer VPC vpc-0abc123456def7890. Add peer CIDR ranges 172.16.0.0/16 and 172.17.0.0/16.'},
-  {cloud:'aws',tag:'aws',cat:'Networking',title:'Multi-region DR',desc:'Second stack in us-west-2 for disaster recovery',prompt:'Create a second ODB@AWS disaster recovery stack in us-west-2 (AZ usw2-az3). Network CIDRs 10.3.0.0/24 and 10.3.1.0/24. Exadata.X11M infra named dr-exaInfra 2 compute 3 storage. VM cluster dr-vmcluster 16 cores GI 23.0.0.0 hostname drvm LICENSE_INCLUDED.'},
-
-  // ── AWS — Infra ──
-  {cloud:'aws',tag:'aws',cat:'Infra',title:'X11M — 4 compute nodes',desc:'High-compute X11M with 4 compute 6 storage servers',prompt:'Update the Exadata infrastructure to Exadata.X11M shape with 4 compute nodes and 6 storage nodes.'},
-  {cloud:'aws',tag:'aws',cat:'Infra',title:'Maintenance window — Sunday 2am',desc:'Custom weekly maintenance ROLLING patching',prompt:'Update the Exadata infrastructure maintenance window to CUSTOM_PREFERENCE patching mode ROLLING. Schedule Sunday hours_of_day 2 week 1 of month lead time 1 week.'},
-  {cloud:'aws',tag:'aws',cat:'Infra',title:'Maintenance window — Saturday off-hours',desc:'Custom Saturday 10pm maintenance window',prompt:'Set the Exadata infrastructure maintenance window to CUSTOM_PREFERENCE ROLLING. Schedule Saturday hours_of_day 22 every week of month.'},
-  {cloud:'aws',tag:'aws',cat:'Infra',title:'Customer contact for patching alerts',desc:'Add ops team email to infra customer_contacts',prompt:'Add customer contact alerts@mycompany.com to the Exadata infrastructure.'},
-
-  // ── AWS — VM Cluster ──
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Dev/test — small footprint',desc:'Minimal X9M + 8 cores for dev workloads',prompt:'Create a dev/test ODB@AWS setup in us-west-2 (AZ usw2-az3). Network CIDRs 10.10.0.0/24 and 10.10.1.0/24. Exadata.X9M infra 2 compute 3 storage. VM cluster dev-cluster 8 CPU cores GI 19.0.0.0 hostname dev BRING_YOUR_OWN_LICENSE.'},
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'32-core production cluster',desc:'X11M 4c/6s with 32 CPU cores, 23c GI',prompt:'Add a second ODB network in us-east-1 AZ use1-az6 CIDRs 10.12.0.0/24 and 10.12.1.0/24. Add Exadata.X11M infra 4 compute 6 storage. VM cluster named prod-large 32 CPU cores GI 23.0.0.0 hostname plvm data_storage_size_in_tbs 20 memory_size_in_gbs 720 LICENSE_INCLUDED.'},
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Custom SCAN listener port',desc:'Set scan_listener_port_tcp to 1522',prompt:'Set the VM cluster scan_listener_port_tcp to 1522.'},
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'BYOL — switch all clusters',desc:'Change all clusters to Bring Your Own License',prompt:'Change the license model on all VM clusters and Autonomous VM clusters to BRING_YOUR_OWN_LICENSE.'},
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Enable DCO diagnostics',desc:'Turn on all three diagnostic/monitoring flags',prompt:'Enable dco_is_diagnostics_events_enabled, dco_is_health_monitoring_enabled, and dco_is_incident_logs_enabled on all VM clusters.'},
-  {cloud:'aws',tag:'aws',cat:'VM Cluster',title:'Large storage cluster',desc:'64 cores, 40TB data, 900GB node storage',prompt:'Create a VM cluster named dwh-cluster 64 CPU cores GI 23.0.0.0 hostname dwh data_storage_size_in_tbs 40 db_node_storage_size_in_gbs 900 memory_size_in_gbs 1440 LICENSE_INCLUDED.'},
-
-  // ── AWS — Autonomous VM Cluster ──
-  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'Autonomous VM Cluster',desc:'40 cores/node, 5TB ADS, 2 CDBs',prompt:'Add an Autonomous VM Cluster named odb-avmcluster on the first infra and network. 40 CPU cores per node 5TB autonomous data storage 2 container databases memory 2GB per OCU LICENSE_INCLUDED. mTLS disabled.'},
-  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'Large AVMC — 80 cores/node',desc:'80 cores, 20TB ADS, 4 CDBs, mTLS on',prompt:'Add an Autonomous VM Cluster named avmc-large on the first infra and network. 80 CPU cores per node 20TB autonomous data storage 4 container databases memory 4GB per OCU LICENSE_INCLUDED. Enable mTLS.'},
-  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'Autonomous DB Serverless',desc:'ADB-S on the first network, 4 ECPU, 2 TB',prompt:'Add a Serverless Autonomous Database named sales-adb on the first ODB network. OLTP workload, 4 ECPUs, 2 TB storage, LICENSE_INCLUDED, compute auto-scaling on. ADMIN password from a write-only variable.'},
-  {cloud:'aws',tag:'aws',cat:'Autonomous',title:'AVMC — BYOL dev',desc:'16 cores, 2TB ADS, minimal dev AVMC',prompt:'Add an Autonomous VM Cluster named avmc-dev 16 CPU cores per node 2TB autonomous data storage 1 container database memory 2GB per OCU BRING_YOUR_OWN_LICENSE mTLS disabled.'},
-
-  // ── AWS — Database ──
-  {cloud:'aws',tag:'aws',cat:'Database',title:'19c DB + PDB + auto-backup',desc:'DB Home, CDB PROD19, PDB SALESDB, 14-day retention',prompt:'Add a 19c Oracle database on the first VM cluster. DB home display name dbhome19. CDB name PROD19 character set AL32UTF8 PDB name SALESDB. Enable auto-backup SLOT_TWO 14 day recovery window.'},
-  {cloud:'aws',tag:'aws',cat:'Database',title:'23c DB on VM Cluster',desc:'Latest Oracle 23c DB Home + CDB + PDB',prompt:'Add a 23c Oracle database on the first VM cluster. DB home named dbhome23. CDB name MYDB23 PDB name MYPDB23. No auto-backup.'},
-  {cloud:'aws',tag:'aws',cat:'Database',title:'19c BYOL + custom SID',desc:'19c DB with SID prefix and BYOL licensing',prompt:'Add a 19c Oracle database on the first VM cluster. DB home dbhome-byol. CDB name BYOLDB SID prefix BY PDB name BYLPDB. Auto-backup disabled. Use BRING_YOUR_OWN_LICENSE on the cluster.'},
-  {cloud:'aws',tag:'aws',cat:'Database',title:'Multi-PDB setup',desc:'CDB with 3 different PDB configurations',prompt:'Add three Oracle database entries on the first VM cluster. First: DB home dbhome1 CDB COREDB PDB COREAPP 23c auto-backup 7 days. Second: DB home dbhome2 CDB ANALYTDB PDB ANALYTIC 19c no backup. Third: DB home dbhome3 CDB DEVDB PDB DEVAPP 19c no backup.'},
-
-  // ── GCP — Networking ──
-  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'Quick start — GCP prod',desc:'ODB network + X9M infra + ExaDB cluster in us-east4',prompt:'Set up a production AI DB@GCP environment. ODB network my-odb-network in us-east4 project my-gcp-project VPC projects/my-gcp-project/global/networks/default CIDRs 10.5.0.0/24 and 10.5.1.0/24. Exadata.X9M infra gcp-infra 2 compute 3 storage. ExaDB cluster gcp-cluster 2 nodes 8 ECPU per node GI 23.0.0.0 hostname vm LICENSE_INCLUDED.'},
-  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'EU region — GCP',desc:'AI DB@GCP in europe-west4',prompt:'Create a AI DB@GCP setup in europe-west4 project eu-project. ODB network eu-odb-net CIDRs 10.6.0.0/24 and 10.6.1.0/24. Exadata.X9M infra eu-exaInfra 2 compute 3 storage. ExaDB cluster eu-cluster 2 nodes 8 ECPU GI 23.0.0.0 hostname eu LICENSE_INCLUDED.'},
-  {cloud:'gcp',tag:'gcp',cat:'Networking',title:'Asia Pacific — GCP',desc:'AI DB@GCP in asia-east1 (Taiwan)',prompt:'Create a AI DB@GCP setup in asia-east1 project apac-project. ODB network apac-odb-net CIDRs 10.7.0.0/24 and 10.7.1.0/24. Exadata.X9M infra apac-infra 2 compute 3 storage. ExaDB cluster apac-cluster 2 nodes 8 ECPU GI 23.0.0.0 hostname apac LICENSE_INCLUDED.'},
-
-  // ── GCP — Infra ──
-  {cloud:'gcp',tag:'gcp',cat:'Infra',title:'Dev cluster — GCP',desc:'Minimal GCP setup for development',prompt:'Create a minimal AI DB@GCP dev setup in us-central1 project dev-project. ODB network dev-odb-net CIDRs 10.20.0.0/24 and 10.20.1.0/24. Exadata.X9M infra 2 compute 3 storage. ExaDB cluster dev-cluster 2 nodes 4 ECPU GI 19.0.0.0 hostname dev BRING_YOUR_OWN_LICENSE.'},
-  {cloud:'gcp',tag:'gcp',cat:'Infra',title:'GCP maintenance window',desc:'Custom Saturday off-hours maintenance',prompt:'Set the GCP Exadata infrastructure maintenance window to CUSTOM_PREFERENCE ROLLING patching mode. Schedule Saturday hours_of_day 22 every week of month.'},
-
-  // ── GCP — VM Cluster ──
-  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'4-node high availability',desc:'4 nodes, 16 ECPU each — HA setup',prompt:'Set the ExaDB VM cluster to 4 nodes with 16 enabled ECPU per node. Keep all other settings. This is for a high-availability production workload.'},
-  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'Memory-optimized cluster',desc:'High memory_per_node_in_gbs for in-memory workloads',prompt:'Set the GCP ExaDB cluster to 2 nodes 16 ECPU per node memory_per_node_in_gbs 240 data_storage_size_in_tbs 10 vm_file_system_storage_size_gbs 200 GI 23.0.0.0 LICENSE_INCLUDED.'},
-  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'Custom SCAN listener port',desc:'Set scan listener port on GCP cluster',prompt:'Set the GCP ExaDB cluster scan_listener_port_tcp to 1522.'},
-  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'BYOL — GCP cluster',desc:'Switch GCP cluster to Bring Your Own License',prompt:'Change the GCP ExaDB VM cluster license_type to BRING_YOUR_OWN_LICENSE.'},
-  {cloud:'gcp',tag:'gcp',cat:'VM Cluster',title:'HIGH disk redundancy',desc:'Set disk_redundancy to HIGH (3-way mirror)',prompt:'Set disk_redundancy on the GCP ExaDB cluster to HIGH.'},
-
-  // ── GCP — Database ──
-  {cloud:'gcp',tag:'gcp',cat:'Database',title:'19c DB on GCP cluster',desc:'DB Home + CDB + PDB with auto-backup',prompt:'Add a 19c Oracle database on the first GCP ExaDB cluster. DB home dbhome19. CDB name GCPDB PDB name GCPPDB character set AL32UTF8. Enable auto-backup SLOT_TWO 14 day recovery.'},
-  {cloud:'gcp',tag:'gcp',cat:'Database',title:'23c DB on GCP cluster',desc:'Latest Oracle 23c on GCP ExaDB',prompt:'Add a 23c Oracle database on the first GCP ExaDB cluster. DB home dbhome23. CDB name GCP23DB PDB name GCP23PDB. No auto-backup.'},
-
-  // ── Both clouds ──
-  {cloud:'aws',tag:'both',cat:'Utility',title:'Reset to blank',desc:'Clear all resources and start fresh',prompt:'Remove all configured resources and reset to a blank configuration with no networks infras clusters or databases.'},
-  {cloud:'aws',tag:'both',cat:'Utility',title:'Enable all diagnostics',desc:'Turn on DCO monitoring across all resources',prompt:'Enable all diagnostic settings: dco_is_diagnostics_events_enabled, dco_is_health_monitoring_enabled, and dco_is_incident_logs_enabled on every VM cluster and infra.'},
-];
-
-let _tplCat = 'All';
-function renderTemplates() {
-  const grid = document.getElementById('llm-template-grid');
-  const pills = document.getElementById('llm-tpl-pills');
-  if (!grid) return;
-  const forCloud = LLM_TEMPLATES.filter(t => t.tag === 'both' || t.cloud === cloud);
-  const cats = ['All', ...new Set(forCloud.map(t => t.cat))];
-  if (pills) pills.innerHTML = cats.map(c =>
-    `<button class="llm-tpl-pill${c===_tplCat?' active':''}" onclick="_tplCat='${c}';renderTemplates()">${c}</button>`
-  ).join('');
-  const show = _tplCat === 'All' ? forCloud : forCloud.filter(t => t.cat === _tplCat);
-  grid.innerHTML = show.map(t => `
-    <button class="llm-tpl-card" onclick="useTemplate(${JSON.stringify(t.prompt).replace(/"/g,'&quot;')})">
-      <div><span class="llm-tpl-tag ${t.tag}">${t.cat}</span></div>
-      <div class="llm-tpl-title">${t.title}</div>
-      <div class="llm-tpl-desc">${t.desc}</div>
-    </button>`).join('');
-}
-
-function toggleTemplates() {
-  const panel = document.getElementById('llm-templates-panel');
-  const btn   = document.getElementById('llm-templates-btn');
-  const open  = panel.style.display === 'none' || !panel.style.display;
-  panel.style.display = open ? 'block' : 'none';
-  btn.style.borderColor = open ? '#7b42bc' : '#333';
-  btn.style.color       = open ? '#b080e0' : '#666';
-  if (open) { _tplCat = 'All'; renderTemplates(); }
-}
-
-function useTemplate(prompt) {
-  const inp = document.getElementById('llm-input');
-  if (inp) inp.value = prompt;
-  document.getElementById('llm-templates-panel').style.display = 'none';
-  document.getElementById('llm-templates-btn').style.borderColor = '#333';
-  document.getElementById('llm-templates-btn').style.color = '#666';
-  inp && inp.focus();
-}
-
-document.addEventListener('click', function(e) {
-  const panel = document.getElementById('llm-templates-panel');
-  const btn   = document.getElementById('llm-templates-btn');
-  if (panel && panel.style.display !== 'none') {
-    if (!panel.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-      panel.style.display = 'none';
-      btn.style.borderColor = '#333'; btn.style.color = '#666';
-    }
-  }
-});
-
-// ── LLM Prompt Bar ────────────────────────────────────────────────────────────
-async function initLlmBar() {
-  try {
-    const r = await fetch('/api/llm/info');
-    const d = await r.json();
-    const badge = document.getElementById('llm-prov-badge');
-    if (d.configured) {
-      badge.textContent = `${d.provider} · ${d.model}`;
-      badge.className = 'llm-prov ok';
-    } else {
-      badge.textContent = 'LLM not configured';
-      badge.className = 'llm-prov err';
-      document.getElementById('llm-send-btn').disabled = true;
-      document.getElementById('llm-input').placeholder = 'Set LLM_PROVIDER and LLM_API_KEY in .env to enable AI';
-    }
-  } catch(e) {
-    const badge = document.getElementById('llm-prov-badge');
-    if (badge) { badge.textContent = 'unavailable'; }
-  }
-}
-
-async function sendLlmPrompt() {
-  const inp   = document.getElementById('llm-input');
-  const reply = document.getElementById('llm-reply');
-  const btn   = document.getElementById('llm-send-btn');
-  const prompt = inp.value.trim();
-  if (!prompt) return;
-  btn.disabled = true; btn.textContent = '…';
-  reply.textContent = 'Thinking…'; reply.style.color = '#555';
-  try {
-    const r = await fetch('/api/llm/fill', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({prompt, cloud, current: buildPayload()}),
-    });
-    const d = await r.json();
-    console.log('[LLM fill] response:', JSON.stringify(d, null, 2));
-    if (d.error) {
-      reply.textContent = '✗ ' + d.error; reply.style.color = '#c0392b';
-    } else {
-      if (d.payload && Object.keys(d.payload).length) {
-        console.log('[LLM fill] applying payload keys:', Object.keys(d.payload));
-        applyConfig(d.payload);
-      } else {
-        console.warn('[LLM fill] payload empty or missing:', d.payload);
-      }
-      reply.textContent = '✓ ' + (d.explanation || 'Done');
-      reply.style.color = '#1a7a4a'; inp.value = '';
-    }
-  } catch(e) {
-    reply.textContent = '✗ Network error: ' + e.message; reply.style.color = '#c0392b';
-  } finally {
-    btn.disabled = false; btn.textContent = 'Ask';
-  }
-}
-
-// ── GitHub Integration ────────────────────────────────────────────────────────
 async function initGithub() {
   try {
     const r = await fetch('/api/github/info');
@@ -3134,7 +2947,6 @@ awsPeerings.push(defAwsPeering(0));
 
 // NOTE: renderAll() is called AFTER TOOLTIPS is defined above
 renderAll();
-initLlmBar();
 initGithub();
 
 </script>

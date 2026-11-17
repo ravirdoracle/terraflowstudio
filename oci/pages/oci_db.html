@@ -42,17 +42,6 @@ header{background:#000000;padding:0 28px;height:54px;display:flex;align-items:ce
 .tsw-btn.sel-tofu{color:#f5a623;background:rgba(245,166,35,.15);}
 .tsw-btn:hover:not(.sel-tf):not(.sel-tofu){color:#999;}
 .cust-bar{background:#000000;border-bottom:1px solid #4e4840;padding:0 28px;height:44px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
-.llm-bar{background:#000000;border-bottom:2px solid #4e4840;padding:0 28px;height:40px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
-.llm-bar-label{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#999;white-space:nowrap;flex-shrink:0;}
-.llm-bar-input{flex:1;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:#eee;font-family:var(--font-m);font-size:11px;padding:5px 12px;outline:none;transition:border-color .15s;min-width:0;}
-.llm-bar-input:focus{border-color:#555;}.llm-bar-input::placeholder{color:#444;}
-.llm-bar-btn{font-family:var(--font-d);font-weight:700;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:0 14px;height:28px;border-radius:var(--radius);cursor:pointer;border:1.5px solid;white-space:nowrap;flex-shrink:0;transition:all .15s;}
-.llm-bar-btn.send{background:rgba(123,66,188,.15);border-color:#7b42bc;color:#b080e0;}
-.llm-bar-btn.send:hover{background:#7b42bc;color:#fff;}
-.llm-bar-btn.send:disabled{opacity:.35;cursor:not-allowed;}
-.llm-prov{font-family:var(--font-m);font-size:9px;color:#888;letter-spacing:.04em;flex-shrink:0;white-space:nowrap;}
-.llm-prov.ok{color:#2a7a4a;}.llm-prov.err{color:#7a2a2a;}
-.llm-reply{font-family:var(--font-m);font-size:10px;color:#aaa;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cust-label{font-family:var(--font-d);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#C9A227;white-space:nowrap;}
 .cust-input{font-family:var(--font-b);font-size:13px;background:#1c1916;border:1.5px solid #5a5248;border-radius:var(--radius);color:var(--white);padding:5px 12px;min-width:220px;outline:none;transition:border-color .15s;}
 .cust-input:focus{border-color:var(--accent2);}
@@ -248,17 +237,6 @@ pre.code-editor{flex:1;min-height:80px;overflow-y:auto;padding:18px 20px;font-fa
   <span class="backend-pill" id="backend-pill"></span>
 </div>
 
-<div class="llm-bar">
-  <span class="llm-bar-label">✦ AI</span>
-  <input class="llm-bar-input" type="text" id="llm-input"
-    placeholder="Describe what you want… e.g. 'ORCL 19c CDB with MYPDB on vmcluster odb_vmcluster'"
-    onkeydown="if(event.key==='Enter')sendLlmPrompt()">
-  <button class="llm-bar-btn send" id="llm-send-btn" onclick="sendLlmPrompt()">Ask</button>
-  <span class="llm-reply" id="llm-reply"></span>
-  <span class="llm-prov" id="llm-prov-badge">checking…</span>
-  <div style="width:1px;height:20px;background:#2a2a2a;margin:0 4px;flex-shrink:0;"></div>
-  <button class="llm-bar-btn" onclick="openAiTool('troubleshoot')" style="background:rgba(192,57,43,.1);border-color:#5a2020;color:#e07060;">🔧 Fix Error</button>
-</div>
 
 <!-- AI Troubleshoot Modal -->
 <div class="ai-modal-overlay" id="ai-troubleshoot-overlay" onclick="if(event.target===this)closeAiTool('troubleshoot')">
@@ -663,8 +641,6 @@ function closeAiTool(tool){document.getElementById('ai-'+tool+'-overlay').classL
 async function runTroubleshooter(){const text=document.getElementById('ai-error-input').value.trim();if(!text){alert('Paste your terraform error first.');return;}const btn=document.getElementById('ai-error-btn');btn.disabled=true;btn.innerHTML='<span class="ai-spinner"></span>Diagnosing…';document.getElementById('ai-error-result').classList.remove('visible');try{const r=await fetch('/api/ai/troubleshoot',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({error_text:text,cloud})});const d=await r.json();if(d.error){document.getElementById('ai-error-result').innerHTML=`<div class="ai-err-box">Error: ${esc(d.error)}</div>`;document.getElementById('ai-error-result').classList.add('visible');return;}document.getElementById('ai-error-root').textContent=d.root_cause||'';document.getElementById('ai-error-explanation').textContent=d.explanation||'';const sl=document.getElementById('ai-error-steps');sl.innerHTML='';(d.fix_steps||[]).forEach((s,i)=>{sl.innerHTML+=`<div class="ai-step-row"><span class="ai-step-num">${i+1}</span><span class="ai-step-text">${esc(s)}</span></div>`;});document.getElementById('ai-error-result').classList.add('visible');}catch(e){document.getElementById('ai-error-result').innerHTML=`<div class="ai-err-box">Network error: ${esc(e.message)}</div>`;document.getElementById('ai-error-result').classList.add('visible');}finally{btn.disabled=false;btn.textContent='Diagnose Error';}}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-async function initLlmBar(){try{const r=await fetch('/api/llm/info'),d=await r.json();const badge=document.getElementById('llm-prov-badge');if(d.configured){badge.textContent=`${d.provider} · ${d.model}`;badge.className='llm-prov ok';}else{badge.textContent='LLM not configured';badge.className='llm-prov err';document.getElementById('llm-send-btn').disabled=true;}}catch(e){const b=document.getElementById('llm-prov-badge');if(b)b.textContent='unavailable';}}
-async function sendLlmPrompt(){const inp=document.getElementById('llm-input'),reply=document.getElementById('llm-reply'),btn=document.getElementById('llm-send-btn');const prompt=inp.value.trim();if(!prompt)return;btn.disabled=true;btn.textContent='…';reply.textContent='Thinking…';reply.style.color='#555';try{const r=await fetch('/api/llm/fill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt,cloud,current:buildPayload()})});const d=await r.json();if(d.error){reply.textContent='✗ '+d.error;reply.style.color='#c0392b';}else{if(d.payload&&Object.keys(d.payload).length)applyConfig(d.payload);reply.textContent='✓ '+(d.explanation||'Done');reply.style.color='#1a7a4a';inp.value='';}}catch(e){reply.textContent='✗ '+e.message;reply.style.color='#c0392b';}finally{btn.disabled=false;btn.textContent='Ask';}}
 async function initGithub(){try{const r=await fetch('/api/github/info'),d=await r.json();const btn=document.getElementById('gh-push-btn'),badge=document.getElementById('gh-status-badge');if(d.configured){btn.dataset.configured='true';btn.classList.remove('muted');btn.classList.add('green');badge.textContent=`${d.repo} / ${d.branch}`;badge.style.color='#2a7a4a';}}catch(e){}}
 async function pushToGithub(){const btn=document.getElementById('gh-push-btn'),badge=document.getElementById('gh-status-badge');if(btn.dataset.configured!=='true'){badge.textContent='✗ Not configured';badge.style.color='#c0392b';return;}const prev=btn.textContent;btn.disabled=true;btn.textContent='↑ Pushing…';const payload=buildPayload();try{const r=await fetch('/api/github/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const d=await r.json();if(d.error){badge.textContent='✗ '+d.error;badge.style.color='#c0392b';}else{badge.textContent=`✓ ${d.pushed?.length||0} files pushed`;badge.style.color='#1a7a4a';}}catch(e){badge.textContent='✗ Network error';badge.style.color='#c0392b';}finally{btn.disabled=false;btn.textContent=prev;}}
 
@@ -674,7 +650,6 @@ initStorage();
 ociDbs.push(defOciDb(0));
 renderAll();
 renderEditor();
-initLlmBar();
 initGithub();
 </script>
 </body>

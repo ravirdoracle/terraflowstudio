@@ -1,0 +1,17 @@
+{% if mode == 'create' %}
+{% for key in ['id', 'database_id', 'peer_database_id', 'peer_data_guard_association_id', 'state', 'role', 'peer_role', 'is_active_data_guard_enabled'] %}
+output "{{ key }}" {
+  value = oci_database_data_guard_association.this.{{ key }}
+}
+
+{% endfor %}
+{% else %}
+output "association" {
+  description = "Existing association details, including roles, apply lag and Active Data Guard status"
+  value       = try(local.matching_associations[0], null)
+  precondition {
+    condition     = length(local.matching_associations) == 1
+    error_message = "No unique Data Guard association found for this database pair. OCI Terraform cannot pair two independently created databases. Use the create-standby workflow or consult your DBA for an existing configuration. Data Guard Groups use a separate API."
+  }
+}
+{% endif %}
