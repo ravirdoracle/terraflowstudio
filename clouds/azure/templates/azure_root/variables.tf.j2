@@ -18,6 +18,17 @@ variable "tags" {
   default = {}
 }
 
+{% for resource in vnets + infras + clusters + adbs %}
+{% if (resource.infra_mode is not defined or resource.infra_mode != 'existing') and (resource.vnet_mode is not defined or resource.vnet_mode != 'existing') %}
+{% for field in ['resource_group_name', 'location'] if resource[field] %}
+variable "{{ resource.module_name }}_{{ field }}" {
+  type    = string
+  default = {{ resource[field] | tojson }}
+}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
 {% for anc in anchors %}
 # ── {{ anc.module_name }} ─────────────────────────────────────────────────────
 variable "{{ anc.module_name }}_name" {
@@ -28,6 +39,12 @@ variable "{{ anc.module_name }}_name" {
 
 {% for net in vnets %}
 # ── {{ net.module_name }} ─────────────────────────────────────────────────────
+{% if net.vnet_mode == 'existing' %}
+variable "{{ net.module_name }}_existing_subnet_id" {
+  description = "Existing client subnet Azure resource ID. The parent VNet ID is derived automatically."
+  type        = string
+}
+{% else %}
 variable "{{ net.module_name }}_vnet_name" {
   type    = string
   default = "{{ net.vnet_name }}"
@@ -44,10 +61,17 @@ variable "{{ net.module_name }}_subnet_address_prefix" {
   type    = string
   default = "{{ net.subnet_address_prefix }}"
 }
+{% endif %}
 {% endfor %}
 
 {% for inf in infras %}
 # ── {{ inf.module_name }} ─────────────────────────────────────────────────────
+{% if inf.infra_mode == 'existing' %}
+variable "{{ inf.module_name }}_existing_infrastructure_id" {
+  description = "Azure resource ID of the existing Exadata infrastructure; reused without managing its lifecycle."
+  type        = string
+}
+{% else %}
 variable "{{ inf.module_name }}_name" {
   type    = string
   default = "{{ inf.name }}"
@@ -84,6 +108,7 @@ variable "{{ inf.module_name }}_zone" {
   type    = string
   default = "{{ inf.zone }}"
 }
+{% endif %}
 {% endfor %}
 
 {% for cl in clusters %}
@@ -148,6 +173,18 @@ variable "{{ cl.module_name }}_scan_listener_port_tcp" {
   type    = number
   default = {{ cl.scan_listener_port_tcp }}
 }
+{% for field in (['network_anchor_id', 'resource_anchor_id'] if cl.use_network_anchor else []) + ['cloud_exadata_infrastructure_id', 'subnet_id', 'virtual_network_id'] %}
+variable "{{ cl.module_name }}_{{ field }}" {
+  type    = string
+  default = {{ cl[field] | tojson }}
+{% if (field in ['subnet_id', 'virtual_network_id'] and not cl.vnet_ref) or (field == 'cloud_exadata_infrastructure_id' and not cl.infra_ref) %}
+  validation {
+    condition     = trimspace(var.{{ cl.module_name }}_{{ field }}) != ""
+    error_message = "{{ field }} is required when no configured {{ 'VNet' if field in ['subnet_id', 'virtual_network_id'] else 'Exadata infrastructure' }} card is selected. Enter the existing Azure resource ID."
+  }
+{% endif %}
+}
+{% endfor %}
 {% endfor %}
 
 {% for adb in adbs %}
@@ -227,6 +264,13 @@ variable "{{ adb.module_name }}_admin_password" {
 
 # ── {{ na.module_name }}: Oracle Network Anchor ───────────────────────────────
 variable "{{ na.module_name }}" {
+{% if na.anchor_mode == 'existing' %}
+  description = "Existing Network Anchor IDs; this configuration does not manage the anchor or its subnet."
+  type = object({
+    network_anchor_id  = string
+    resource_anchor_id = optional(string, "")
+  })
+{% else %}
   description = "Network Anchor {{ na.module_name }}. resource_anchor_id / virtual_network_name are read only when this configuration does not build the Resource Anchor / VNet."
   type = object({
     name                            = string
@@ -246,5 +290,6 @@ variable "{{ na.module_name }}" {
       forwarding_ip_address = string
     })), [])
   })
+{% endif %}
 }
 {% endfor %}

@@ -1,0 +1,14 @@
+variable "network_anchor_id" {
+  type        = string
+  description = "Full Azure resource ID of the existing Network Anchor."
+  validation {
+    condition     = can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\\.Database/networkAnchors/[^/]+$", var.network_anchor_id))
+    error_message = "Enter the full Azure resource ID of an Oracle.Database/networkAnchors resource."
+  }
+}
+
+variable "resource_anchor_id" {
+  type        = string
+  default     = ""
+  description = "Optional Resource Anchor ID associated with the existing Network Anchor."
+}

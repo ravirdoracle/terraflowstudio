@@ -32,7 +32,7 @@ group, which Terraflow does not surface.
 - `terraform validate` checks the request body against Azure's published schema
   offline, so a misspelt property fails validation, not apply.
 - `ignore_null_property = true` keeps unset optional settings out of the request.
-- azapi is added to `required_providers`, with a `provider "azapi"` block, only when
+- azapi is added to `required_providers`, with a `provider "azapi"` block, when
   a configuration has a Network Anchor. Configurations without one are unchanged.
 - Oracle's documentation describes creation through the Azure Portal only; the
   generated Terraform calls the same Azure Resource Manager API the portal uses.
@@ -73,3 +73,26 @@ Read-only results exported as outputs: `ociVcnId`, `ociSubnetId`, `cidrBlock`,
 ## Sources
 - Oracle: Network Anchor — https://docs.oracle.com/en-us/iaas/Content/database-at-azure/azucr-create-network-anchor.html
 - Azure REST API specs: Oracle.Database, stable 2025-09-01 and 2026-06-01 (`networkAnchors`)
+
+
+## Provision a VM cluster with a Network Anchor
+
+On **Azure → cloud_vm_cluster → References**, enable **Provision with Network Anchor**.
+Choose a Network Anchor card from this configuration or enter an existing anchor's
+full Azure resource ID. A selected card wires both `networkAnchorId` and its
+`resourceAnchorId`; an existing anchor can optionally take an explicit Resource
+Anchor ID. Keep selecting the VM cluster's client VNet/subnet: the anchor has a
+separate delegated subnet and is not a replacement for the client subnet.
+
+This option generates `azapi_resource` with type
+`Oracle.Database/cloudVmClusters@2026-06-01` and requires `azure/azapi >= 2.14.0`.
+AzAPI 2.13.0 does not have this API version in its embedded schema. The exported
+`cluster_id`, `cluster_name`, and OCI `ocid` outputs remain available. The generated
+cluster has `prevent_destroy` protection.
+
+Use this provisioning path for new clusters. Existing saved configurations keep
+the AzureRM path unless the option is explicitly enabled. Changing the Terraform
+resource type for an already managed cluster requires a reviewed state migration;
+do not apply a plan that destroys and recreates a production cluster.
+
+Reference: https://learn.microsoft.com/en-us/azure/templates/oracle.database/2026-06-01/cloudvmclusters?pivots=deployment-language-terraform

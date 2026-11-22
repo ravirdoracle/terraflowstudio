@@ -23,7 +23,7 @@ def _coerce(val, field):
         return None
     s = str(val).strip()
     if field in ('add_ssh', 'manage_route_table', 'create_pdb', 'auto_backup_enabled',
-                 'local_backup_enabled', 'sparse_diskgroup_enabled', 'deletion_protection',
+                 'local_backup_enabled', 'sparse_diskgroup_enabled', 'deletion_protection', 'use_network_anchor',
                  's3_access', 'zero_etl_access', 'is_local_backup_enabled',
                  'is_sparse_diskgroup_enabled', 'is_mtls_enabled_vm_cluster',
                  'delete_associated_resources', 'mw_is_custom_action_timeout_enabled',
@@ -478,6 +478,10 @@ _TEMPLATES = {
     ('hostname',               '',                'Hostname prefix'),
     ('infra_ref',              '',                'Exadata infra module_name'),
     ('vnet_ref',               '',                'VNet module_name'),
+    ('use_network_anchor',    'false',           'true to create a new cluster through AzAPI 2026-06-01'),
+    ('network_anchor_ref',     '',                'Network Anchor module_name from this configuration'),
+    ('network_anchor_id',      '',                'Existing Azure Network Anchor ID when no module reference is used'),
+    ('resource_anchor_id',     '',                'Optional Azure Resource Anchor ID'),
     ('time_zone',              'UTC',             'Time zone'),
 ]),
 

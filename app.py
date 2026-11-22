@@ -39,6 +39,7 @@ import rag as rag_module
 import regions
 import shapes
 import clouds.registry as cloud_registry
+from core.import_guidance import add_import_guidance
 from core.selftest import Recorder
 import clouds.aws.routes as aws_routes
 import clouds.gcp.routes as gcp_routes
@@ -106,7 +107,8 @@ def generate_all(data: dict) -> dict:
     # before the registry: it only applies to AWS and produces a single file.
     if data.get('iac_tool') == 'cloudformation':
         return {'cfn': generate_cfn(data)}
-    return cloud_registry.get(data.get('cloud', 'aws')).generate(data)
+    files = cloud_registry.get(data.get('cloud', 'aws')).generate(data)
+    return add_import_guidance(files, data.get('iac_tool', 'terraform'))
 
 # ─────────────────────────────────────────────
 #  ROUTES

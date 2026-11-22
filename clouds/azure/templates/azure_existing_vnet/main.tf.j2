@@ -1,0 +1,4 @@
+# Reference the existing client subnet; no networking resources are managed here.
+locals {
+  vnet_id = try(regex("(?i)^(.+)/subnets/[^/]+$", var.subnet_id)[0], "")
+}

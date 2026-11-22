@@ -9,6 +9,7 @@ so a rule change cannot affect AWS or GCP.
 """
 import ipaddress
 import re
+from clouds.azure.configuration import configured_payload
 
 
 def validate(data, errors):
@@ -43,6 +44,14 @@ def _validate_azure(data, errors):
     if tab == 20:  # Azure VNet + Subnet
         for vnet in data.get('azure_vnets', []):
             mn = vnet.get('module_name', 'azure_vnet')
+            mode = vnet.get('vnet_mode', 'create')
+            if mode not in ('create', 'existing'):
+                _err(mn, 'vnet_mode', 'Choose Create new or Use existing')
+            if mode == 'existing':
+                value = (vnet.get('existing_subnet_id') or '').strip()
+                if not re.fullmatch(r'(?i:/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\.Network/virtualNetworks/[^/]+/subnets/[^/]+)', value):
+                    _err(mn, 'existing_subnet_id', 'Enter the full Azure resource ID of the existing client subnet')
+                continue
             if not vnet.get('resource_group_name'): _err(mn, 'resource_group_name', 'Required')
             if not vnet.get('location'):             _err(mn, 'location',            'Required')
             if not vnet.get('vnet_name'):            _err(mn, 'vnet_name',           'Required')
@@ -54,6 +63,14 @@ def _validate_azure(data, errors):
     elif tab == 21:  # Azure Exadata Infrastructure
         for inf in data.get('azure_infras', []):
             mn = inf.get('module_name', 'azure_exainfra')
+            mode = inf.get('infra_mode', 'create')
+            if mode not in ('create', 'existing'):
+                _err(mn, 'infra_mode', 'Choose Create new or Use existing')
+            if mode == 'existing':
+                resource_id = (inf.get('existing_infrastructure_id') or '').strip()
+                if not re.fullmatch(r'(?i:/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/cloudExadataInfrastructures/[^/]+)', resource_id):
+                    _err(mn, 'existing_infrastructure_id', 'Enter the full Azure resource ID of an existing Exadata infrastructure')
+                continue
             if not inf.get('resource_group_name'): _err(mn, 'resource_group_name', 'Required')
             if not inf.get('location'):             _err(mn, 'location',            'Required')
             if not inf.get('name'):                 _err(mn, 'name',                'Required')
@@ -85,7 +102,7 @@ def _validate_azure(data, errors):
         # Delegated subnet is shared by design — several VM clusters attach to the
         # same one. The backup range is not: Oracle carves it inside the VNet per
         # cluster, so two clusters on one delegated subnet must not collide.
-        vnets_by_name = {v.get('module_name'): v for v in data.get('azure_vnets', [])}
+        vnets_by_name = {v.get('module_name'): v for v in data.get('azure_vnets', []) if v.get('vnet_mode') != 'existing'}
         sharing = {}
         for cl in clusters:
             sharing.setdefault(cl.get('vnet_ref'), []).append(cl)
@@ -107,6 +124,9 @@ def _validate_azure(data, errors):
                 _err(mn, 'data_storage_size_in_tbs', 'Minimum 2 TiB')
             if not cl.get('ssh_public_keys'):
                 _err(mn, 'ssh_public_keys', 'At least one SSH key required')
+
+            if cl.get('use_network_anchor', bool(cl.get('network_anchor_ref') or cl.get('network_anchor_id'))):
+                _check_cluster_anchor(data, cl, mn, _err)
 
             vnet_ref = cl.get('vnet_ref')
             backup   = (cl.get('backup_subnet_cidr') or '').strip()
@@ -167,11 +187,22 @@ def _check_network_anchors(data, _err):
     Not tied to one database service, so nothing here looks at clusters or ADBs.
     """
     anchors = {a.get('module_name') for a in data.get('azure_resource_anchors', [])}
-    vnets = {v.get('module_name'): v for v in data.get('azure_vnets', [])}
+    vnets = {v.get('module_name'): v for v in data.get('azure_vnets', []) if v.get('vnet_mode') != 'existing'}
     claimed = {}   # vnet_ref -> [(module_name, ip_network)] accepted so far
 
     for na in data.get('azure_network_anchors', []):
         mn = na.get('module_name', 'azure_netanchor')
+        mode = na.get('anchor_mode', 'create')
+        if mode not in ('create', 'existing'):
+            _err(mn, 'anchor_mode', 'Choose Create new or Use existing')
+        if mode == 'existing':
+            existing_id = (na.get('existing_network_anchor_id') or '').strip()
+            if not re.fullmatch(r'(?i:/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/networkAnchors/[^/]+)', existing_id):
+                _err(mn, 'existing_network_anchor_id', 'Enter the full Azure resource ID of an existing Network Anchor')
+            resource_id = (na.get('existing_resource_anchor_id') or '').strip()
+            if resource_id and not re.fullmatch(r'(?i:/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/resourceAnchors/[^/]+)', resource_id):
+                _err(mn, 'existing_resource_anchor_id', 'Enter the full Azure Resource Anchor ID, or leave blank')
+            continue
         name = (na.get('name') or '').strip()
         if not name:
             _err(mn, 'name', 'Required')
@@ -253,3 +284,32 @@ def _check_network_anchors(data, _err):
             if not domains or not ip_ok:
                 _err(mn, 'dns_forwarding_rules', 'Each rule needs domain names and a forwarding IP address')
                 break
+
+
+def _check_cluster_anchor(data, cl, mn, err):
+    """Anchor-enabled creation uses AzAPI; all client network IDs are still required."""
+    data = configured_payload(data)
+    anchors = {a.get('module_name'): a for a in data.get('azure_network_anchors', [])}
+    ref = cl.get('network_anchor_ref') or ''
+    if ref:
+        if ref not in anchors:
+            err(mn, 'network_anchor_ref', 'Selected Network Anchor no longer exists in this configuration')
+    else:
+        value = (cl.get('network_anchor_id') or '').strip()
+        if not re.match(r'(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/networkAnchors/[^/]+$', value):
+            err(mn, 'network_anchor_id', 'Select a Network Anchor card or supply its full Azure resource ID')
+    value = (cl.get('resource_anchor_id') or '').strip()
+    if value and not re.match(r'(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/resourceAnchors/[^/]+$', value):
+        err(mn, 'resource_anchor_id', 'Must be an Oracle.Database/resourceAnchors Azure resource ID')
+    infras = {i.get('module_name') for i in data.get('azure_infras', [])}
+    vnets = {v.get('module_name') for v in data.get('azure_vnets', [])}
+    first_infra = next((i.get('module_name') for i in data.get('azure_infras', [])), '')
+    infra_ref = cl.get('infra_ref') or first_infra
+    if not cl.get('cloud_exadata_infrastructure_id') and infra_ref not in infras:
+        err(mn, 'infra_ref', 'Select Exadata infrastructure or supply its existing Azure resource ID')
+    vref = cl.get('vnet_ref') or next((v.get('module_name') for v in data.get('azure_vnets', [])), '')
+    if vref not in vnets:
+        if not cl.get('subnet_id'):
+            err(mn, 'subnet_id', 'Required client subnet ID when no VNet card is selected')
+        if not (cl.get('virtual_network_id') or cl.get('vnet_id')):
+            err(mn, 'virtual_network_id', 'Required client VNet ID when no VNet card is selected')

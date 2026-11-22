@@ -1,0 +1,89 @@
+terraform {
+  required_providers {
+    azurerm = { source = "hashicorp/azurerm", version = ">= 4.9.0" }
+    azapi   = { source = "azure/azapi", version = ">= {{ azapi_floor }}" }
+  }
+}
+
+data "azurerm_resource_group" "this" {
+  name = var.resource_group_name
+}
+
+# Network Anchor provisioning for NEW clusters. Do not switch an existing
+# AzureRM-managed cluster to this resource without a reviewed state migration.
+# API reference: https://learn.microsoft.com/azure/templates/oracle.database/2026-06-01/cloudvmclusters
+resource "azapi_resource" "this" {
+  type                 = "Oracle.Database/cloudVmClusters@{{ api_version }}"
+  name                 = var.name
+  parent_id            = data.azurerm_resource_group.this.id
+  location             = var.location
+  tags                 = var.tags
+  ignore_null_property = true
+
+  body = {
+    properties = {
+      cloudExadataInfrastructureId = var.cloud_exadata_infrastructure_id
+      # Client networking stays separate from the Network Anchor's own subnet.
+      subnetId                 = var.subnet_id
+      vnetId                   = var.virtual_network_id
+      networkAnchorId          = var.network_anchor_id
+      resourceAnchorId         = var.resource_anchor_id != "" ? var.resource_anchor_id : null
+      displayName              = var.display_name
+      hostname                 = var.hostname
+      cpuCoreCount             = var.cpu_core_count
+      dataStorageSizeInTbs     = var.data_storage_size_in_tbs
+      dbNodeStorageSizeInGbs   = var.db_node_storage_size_in_gbs
+      memorySizeInGbs          = var.memory_size_in_gbs
+      sshPublicKeys            = var.ssh_public_keys
+      giVersion                = var.gi_version
+      licenseModel             = var.license_model
+      clusterName              = var.cluster_name != "" ? var.cluster_name : null
+      domain                   = var.domain != "" ? var.domain : null
+      backupSubnetCidr         = var.backup_subnet_cidr
+      dataStoragePercentage    = var.data_storage_percentage
+      timeZone                 = var.time_zone != "" ? var.time_zone : null
+      scanListenerPortTcp      = var.scan_listener_port_tcp
+      scanListenerPortTcpSsl   = var.scan_listener_port_tcp_ssl
+      systemVersion            = var.system_version != "" ? var.system_version : null
+      zoneId                   = var.zone_id != "" ? var.zone_id : null
+      isLocalBackupEnabled     = var.local_backup_enabled
+      isSparseDiskgroupEnabled = var.sparse_diskgroup_enabled
+      dbServers                = length(var.db_servers) > 0 ? var.db_servers : null
+      fileSystemConfigurationDetails = length(var.file_system_configuration) > 0 ? [
+        for fs in var.file_system_configuration : {
+          mountPoint       = fs.mount_point
+          fileSystemSizeGb = fs.size_in_gb
+        }
+      ] : null
+      dataCollectionOptions = {
+        isDiagnosticsEventsEnabled = var.dco_diagnostics_events_enabled
+        isHealthMonitoringEnabled  = var.dco_health_monitoring_enabled
+        isIncidentLogsEnabled      = var.dco_incident_logs_enabled
+      }
+    }
+  }
+
+  response_export_values = ["properties.ocid"]
+
+  timeouts {
+    create = "3h"
+    update = "3h"
+    delete = "1h"
+  }
+
+  lifecycle {
+    prevent_destroy = true
+    # Preserve the service-resolved GI version and backup range after creation.
+    ignore_changes = [
+      body.properties.giVersion,
+      body.properties.backupSubnetCidr,
+{% if 'scan_listener_port_tcp_ssl' in lifecycle_ignore %}
+      body.properties.scanListenerPortTcpSsl,
+{% endif %}
+    ]
+    precondition {
+      condition     = trimspace(var.network_anchor_id) != ""
+      error_message = "Select a Network Anchor module or supply its existing Azure resource ID."
+    }
+  }
+}

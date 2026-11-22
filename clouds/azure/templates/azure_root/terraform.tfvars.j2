@@ -12,6 +12,15 @@ tags = {
 }
 {% endif %}
 
+{% for resource in vnets + infras + clusters + adbs %}
+{% if (resource.infra_mode is not defined or resource.infra_mode != 'existing') and (resource.vnet_mode is not defined or resource.vnet_mode != 'existing') %}
+{% for field in ['resource_group_name', 'location'] if resource[field] %}
+
+{{ resource.module_name }}_{{ field }} = {{ resource[field] | tojson }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
 {% for anc in anchors %}
 # ── {{ anc.module_name }} ─────────────────────────────────────────────────────
 {{ anc.module_name }}_name = "{{ anc.name }}"
@@ -19,14 +28,21 @@ tags = {
 
 {% for net in vnets %}
 # ── {{ net.module_name }} ─────────────────────────────────────────────────────
+{% if net.vnet_mode == 'existing' %}
+{{ net.module_name }}_existing_subnet_id = {{ net.existing_subnet_id | tojson }}
+{% else %}
 {{ net.module_name }}_vnet_name             = "{{ net.vnet_name }}"
 {{ net.module_name }}_address_space         = "{{ net.address_space }}"
 {{ net.module_name }}_subnet_name           = "{{ net.subnet_name }}"
 {{ net.module_name }}_subnet_address_prefix = "{{ net.subnet_address_prefix }}"
+{% endif %}
 {% endfor %}
 
 {% for inf in infras %}
 # ── {{ inf.module_name }} ─────────────────────────────────────────────────────
+{% if inf.infra_mode == 'existing' %}
+{{ inf.module_name }}_existing_infrastructure_id = {{ inf.existing_infrastructure_id | tojson }}
+{% else %}
 {% set tw = (inf.module_name | length) + (21 if (inf.database_server_type or inf.storage_server_type) else 14) %}
 {{ (inf.module_name ~ "_name").ljust(tw) }} = "{{ inf.name }}"
 {{ (inf.module_name ~ "_display_name").ljust(tw) }} = "{{ inf.display_name }}"
@@ -40,6 +56,7 @@ tags = {
 {{ (inf.module_name ~ "_compute_count").ljust(tw) }} = {{ inf.compute_count }}
 {{ (inf.module_name ~ "_storage_count").ljust(tw) }} = {{ inf.storage_count }}
 {{ (inf.module_name ~ "_zone").ljust(tw) }} = "{{ inf.zone }}"
+{% endif %}
 {% endfor %}
 
 {% for cl in clusters %}
@@ -86,4 +103,11 @@ tags = {
 
 # ── Oracle Network Anchor ─────────────────────────────────────────────────────
 {{ entry }}
+{% endfor %}
+
+{% for cl in clusters %}
+# Existing resource IDs; module references are wired in main.tf.
+{% for field in (['network_anchor_id', 'resource_anchor_id'] if cl.use_network_anchor else []) + ['cloud_exadata_infrastructure_id', 'subnet_id', 'virtual_network_id'] %}
+{{ (cl.module_name ~ "_" ~ field).ljust((cl.module_name | length) + 32) }} = {{ cl[field] | tojson }}
+{% endfor %}
 {% endfor %}

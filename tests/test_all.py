@@ -736,8 +736,8 @@ class TestGenerateAll(unittest.TestCase):
                          'cloud_exadata_infrastructure_id': '',
                          'odb_network_id': ''},
         })
-        # 4 shared modules × 3 files + 3 root + README.md = 16
-        self.assertEqual(len(files), 16)
+        # 4 shared modules × 3 files + 3 root + README.md + IMPORT.md = 17
+        self.assertEqual(len(files), 17)
         self.assertIn('main.tf', files)
         self.assertIn('variables.tf', files)
         self.assertIn('modules/aws-odb-network/main.tf', files)
@@ -751,8 +751,8 @@ class TestGenerateAll(unittest.TestCase):
             'aws_peerings':  [aws_peer('p1', network_ref='n1')],
             'aws_clusters':  [aws_cluster('c1', infra_ref='i1', network_ref='n1')],
         })
-        # 4 shared modules × 3 files + 3 root + README.md = 16, regardless of instance count
-        self.assertEqual(len(files), 16)
+        # 4 shared modules × 3 files + 3 root + README.md + IMPORT.md = 17, regardless of instance count
+        self.assertEqual(len(files), 17)
         self.assertIn('modules/aws-odb-network/main.tf', files)
         self.assertIn('"n1"', files['terraform.auto.tfvars'])
         self.assertIn('"n2"', files['terraform.auto.tfvars'])
@@ -827,8 +827,8 @@ class TestGenerateAll(unittest.TestCase):
             'gcp_module_3': gcp_infra('ginf'),
             'gcp_module_4': {**gcp_cluster('gcl', 'gnet', 'ginf'), 'odb_network': '', 'odb_subnet': '', 'backup_odb_subnet': '', 'exadata_infrastructure': ''},
         })
-        # subnets inline in network module, no per-module tfvars: 1 net + 1 infra + 1 cluster = 3 modules × 3 + 3 root + README.md = 13
-        self.assertEqual(len(files), 13)
+        # subnets inline in network module, no per-module tfvars: 1 net + 1 infra + 1 cluster = 3 modules × 3 + 3 root + README.md + IMPORT.md = 14
+        self.assertEqual(len(files), 14)
         self.assertIn('main.tf', files)
         self.assertIn('variables.tf', files)
 
@@ -842,8 +842,8 @@ class TestGenerateAll(unittest.TestCase):
             'gcp_infras':   [gcp_infra('ginf1')],
             'gcp_clusters': [gcp_cluster('gcl1', 'gnet1', 'ginf1')],
         })
-        # 3 shared modules (9 files) + 3 root files + README.md = 13, regardless of instance count
-        self.assertEqual(len(files), 13)
+        # 3 shared modules (9 files) + 3 root files + README.md + IMPORT.md = 14, regardless of instance count
+        self.assertEqual(len(files), 14)
         self.assertIn(f'modules/{_GCP_MOD_NET}/main.tf', files)
         self.assertIn(f'modules/{_GCP_MOD_INFRA}/main.tf', files)
 
@@ -3897,14 +3897,14 @@ class TestGenerateAllAzure(unittest.TestCase):
 
     def test_file_count_one_of_each(self):
         # 3 modules × 3 files + 3 root files = 12
-        self.assertEqual(len(generate_all(self._base())), 12)
+        self.assertEqual(len(generate_all(self._base())), 13)
 
     def test_file_count_two_vnets(self):
         # 4 modules × 3 files + 3 root = 15
-        self.assertEqual(len(generate_all(self._base(vnet_count=2))), 15)
+        self.assertEqual(len(generate_all(self._base(vnet_count=2))), 16)
 
     def test_file_count_two_clusters(self):
-        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 15)
+        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 16)
 
     def test_root_main_has_azurerm_provider(self):
         files = generate_all(self._base())
@@ -4420,16 +4420,16 @@ class TestGenerateAllGcp(unittest.TestCase):
             self.assertIn(f'modules/{_GCP_MOD_CLUSTER}/{f}', files)
 
     def test_file_count_one_of_each(self):
-        # 3 shared modules (9 files) + 3 root files + README.md = 13, regardless of instance count
-        self.assertEqual(len(generate_all(self._base())), 13)
+        # 3 shared modules (9 files) + 3 root files + README.md + IMPORT.md = 14, regardless of instance count
+        self.assertEqual(len(generate_all(self._base())), 14)
 
     def test_file_count_two_networks(self):
         # with for_each: additional networks are tfvars entries, not extra module files → still 13
-        self.assertEqual(len(generate_all(self._base(net_count=2))), 13)
+        self.assertEqual(len(generate_all(self._base(net_count=2))), 14)
 
     def test_file_count_two_clusters(self):
         # with for_each: additional clusters are tfvars entries, not extra module files → still 13
-        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 13)
+        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 14)
 
     def test_root_main_has_google_provider(self):
         files = generate_all(self._base())

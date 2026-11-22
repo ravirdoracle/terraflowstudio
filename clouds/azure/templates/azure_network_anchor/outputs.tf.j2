@@ -22,3 +22,8 @@ output "dns_forwarding_endpoint_ip" {
   description = "IP of the OCI DNS forwarding endpoint, when enabled."
   value       = try(azapi_resource.this.output.properties.dnsForwardingEndpointIpAddress, null)
 }
+
+output "resource_anchor_id" {
+  description = "Azure Resource Anchor ID associated with this Network Anchor."
+  value       = var.resource_anchor_id
+}

@@ -5,6 +5,7 @@ shared for_each module, so the expected file paths depend on the configured
 module names and the content checks look for per-instance module blocks.
 """
 import re
+from clouds.azure.configuration import configured_payload
 
 from clouds.azure.generator import (
     _azure_vnet_defaults, _azure_infra_defaults, _azure_cluster_defaults,
@@ -22,6 +23,7 @@ PAYLOAD_KEYS = {
 
 
 def derive(payload):
+    payload = configured_payload(payload)
     raw_nets     = payload.get('azure_vnets') or []
     raw_infras   = payload.get('azure_infras') or []
     raw_clusters = payload.get('azure_clusters') or []
@@ -30,12 +32,17 @@ def derive(payload):
     first_vnet = nets[0]['module_name'] if nets else 'azure_vnet'
     first_inf  = infras[0]['module_name'] if infras else 'azure_exainfra'
     anchors = [_azure_anchor_defaults(a) for a in (payload.get('azure_resource_anchors') or [])]
+    clusters = [_azure_cluster_defaults(c, first_vnet, first_inf) for c in raw_clusters]
+    for cluster in clusters:
+        if cluster['vnet_ref'] not in {n['module_name'] for n in nets}:
+            cluster['vnet_ref'] = ''
+        if cluster['infra_ref'] not in {i['module_name'] for i in infras}:
+            cluster['infra_ref'] = ''
     return {
         'raw_nets': raw_nets, 'raw_infras': raw_infras,
         'raw_peerings': [], 'raw_clusters': raw_clusters,
         'nets': nets, 'infras': infras, 'peerings': [],
-        'clusters': [_azure_cluster_defaults(c, first_vnet, first_inf)
-                     for c in raw_clusters],
+        'clusters': clusters,
         'adbs': [_azure_adb_defaults(a, first_vnet)
                  for a in (payload.get('azure_autonomous_dbs') or [])],
         'resource_anchors': anchors,
@@ -48,6 +55,10 @@ def derive(payload):
 def check_inputs(d, t):
     for net in d['raw_nets']:
         mn = net.get('module_name', '?')
+        if net.get('vnet_mode') == 'existing':
+            t.check(f'VNet "{mn}": existing client subnet ID present',
+                    lambda n=net: bool(n.get('existing_subnet_id')), 'Client subnet ID missing')
+            continue
         t.check(f'VNet "{mn}": resource_group_name present',
                 lambda n=net: bool(n.get('resource_group_name')),
                 'resource_group_name missing')
@@ -57,6 +68,11 @@ def check_inputs(d, t):
                     lambda n=net, f=field: f'Invalid CIDR: {n.get(f)}')
     for inf in d['raw_infras']:
         mn = inf.get('module_name', '?')
+        if inf.get('infra_mode') == 'existing':
+            t.check(f'Infra "{mn}": existing Azure resource ID present',
+                    lambda i=inf: bool(re.fullmatch(r'(?i:/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\.Database/cloudExadataInfrastructures/[^/]+)', (i.get('existing_infrastructure_id') or '').strip())),
+                    'Existing Exadata infrastructure resource ID missing or invalid')
+            continue
         t.check(f'Infra "{mn}": compute_count >= 2',
                 lambda i=inf: int(i.get('compute_count', 0) or 0) >= 2,
                 lambda i=inf: f'compute_count={i.get("compute_count")} < 2')
@@ -92,12 +108,17 @@ def check_content(d, files, t):
     for cl in d['clusters']:
         mn = cl['module_name']
         ir, vr = cl.get('infra_ref', ''), cl.get('vnet_ref', '')
-        if ir:
+        if ir and not cl.get('cloud_exadata_infrastructure_id'):
             t.check(f'Cluster "{mn}" wired to infra "{ir}"',
                     lambda i=ir: f'module.{i}.infra_id' in root, 'infra_id ref missing')
-        if vr:
+        if vr and not cl.get('subnet_id'):
             t.check(f'Cluster "{mn}" wired to VNet "{vr}"',
                     lambda v=vr: f'module.{v}.subnet_id' in root, 'subnet_id ref missing')
+        if cl.get('use_network_anchor'):
+            mod = files.get(f'modules/{mn}/main.tf', '')
+            t.check(f'Cluster "{mn}": Network Anchor API provisioning',
+                    lambda m=mod: 'Oracle.Database/cloudVmClusters@2026-06-01' in m and 'networkAnchorId' in m,
+                    'Network Anchor VM cluster properties missing')
     for adb in d['adbs']:
         mn = adb['module_name']
         t.check(f'root main.tf references Autonomous DB "{mn}"',
@@ -109,12 +130,19 @@ def check_content(d, files, t):
         if vr:
             t.check(f'Autonomous DB "{mn}" wired to VNet "{vr}"',
                     lambda v=vr: f'module.{v}.subnet_id' in root, 'subnet_id ref missing')
-    if d['network_anchors']:
+    if any(na['anchor_mode'] != 'existing' for na in d['network_anchors']):
         t.check('root main.tf requires azure/azapi (Network Anchor)',
                 lambda: 'azure/azapi' in root, 'azure/azapi missing from required_providers')
     for na in d['network_anchors']:
         mn = na['module_name']
         mod = files.get(f'modules/{mn}/main.tf', '')
+        if na['anchor_mode'] == 'existing':
+            outputs = files.get(f'modules/{mn}/outputs.tf', '')
+            t.check(f'Network Anchor "{mn}": reuses the existing ID',
+                    lambda o=outputs: 'var.network_anchor_id' in o, 'existing ID output missing')
+            t.check(f'Network Anchor "{mn}": does not create resources',
+                    lambda m=mod: not re.search(r'\bresource\s+"', m), 'unexpected managed resource')
+            continue
         t.check(f'Network Anchor "{mn}": Oracle.Database/networkAnchors resource',
                 lambda m=mod: 'Oracle.Database/networkAnchors@' in m, 'azapi resource type missing')
         t.check(f'Network Anchor "{mn}": its own delegated subnet',
@@ -149,6 +177,8 @@ def collect_cidrs(data):
     """
     entries = []
     for i, vnet in enumerate(data.get('azure_vnets', [])):
+        if vnet.get('vnet_mode') == 'existing':
+            continue
         name = vnet.get('module_name') or vnet.get('vnet_name') or f'azure_vnet[{i}]'
         v = (vnet.get('subnet_address_prefix') or '').strip()
         if v:
@@ -156,6 +186,8 @@ def collect_cidrs(data):
     # A Network Anchor's subnet is its own: it must clear the VM-cluster subnet
     # and every other anchor's.
     for i, na in enumerate(data.get('azure_network_anchors', [])):
+        if na.get('anchor_mode') == 'existing':
+            continue
         name = na.get('module_name') or f'azure_network_anchor[{i}]'
         v = (na.get('subnet_address_prefix') or '').strip()
         if v:

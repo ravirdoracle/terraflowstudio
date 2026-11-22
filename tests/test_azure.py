@@ -514,15 +514,15 @@ class TestGenerateAllAzure(unittest.TestCase):
 
     def test_file_count_one_of_each(self):
         # 3 modules × 3 files + 3 root files = 12
-        self.assertEqual(len(generate_all(self._base())), 12)
+        self.assertEqual(len(generate_all(self._base())), 13)
 
     def test_file_count_two_vnets(self):
         # 4 modules × 3 files + 3 root = 15
-        self.assertEqual(len(generate_all(self._base(vnet_count=2))), 15)
+        self.assertEqual(len(generate_all(self._base(vnet_count=2))), 16)
 
     def test_file_count_two_clusters(self):
         # 4 modules × 3 files + 3 root = 15
-        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 15)
+        self.assertEqual(len(generate_all(self._base(cluster_count=2))), 16)
 
     def test_root_main_has_azurerm_provider(self):
         files = generate_all(self._base())

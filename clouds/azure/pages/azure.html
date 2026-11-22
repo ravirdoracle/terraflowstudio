@@ -104,12 +104,12 @@
   <div class="nav-section-label">Types</div>
   
 <div class="tgroup show" id="azure-tabs">
-  <div class="tab active" onclick="switchTab(0,true)"><span class="tab-num">A</span><span class="tab-label">virtual_network + subnet</span></div>
-  <div class="tab" onclick="switchTab(1,true)"><span class="tab-num">B</span><span class="tab-label">cloud_exadata_infrastructure</span></div>
-  <div class="tab" onclick="switchTab(2,true)"><span class="tab-num">C</span><span class="tab-label">cloud_vm_cluster</span></div>
-  <div class="tab" onclick="switchTab(3,true)"><span class="tab-num">D</span><span class="tab-label">autonomous_database</span></div>
-  <div class="tab" onclick="switchTab(4,true)"><span class="tab-num">E</span><span class="tab-label">resource_anchor</span></div>
-  <div class="tab" onclick="switchTab(5,true)"><span class="tab-num">F</span><span class="tab-label">network_anchor</span></div>
+  <div class="tab" onclick="switchTab(5,true)"><span class="tab-num">A</span><span class="tab-label">network_anchor</span></div>
+  <div class="tab active" onclick="switchTab(0,true)"><span class="tab-num">B</span><span class="tab-label">virtual_network + subnet</span></div>
+  <div class="tab" onclick="switchTab(1,true)"><span class="tab-num">C</span><span class="tab-label">cloud_exadata_infrastructure</span></div>
+  <div class="tab" onclick="switchTab(2,true)"><span class="tab-num">D</span><span class="tab-label">cloud_vm_cluster</span></div>
+  <div class="tab" onclick="switchTab(3,true)"><span class="tab-num">E</span><span class="tab-label">autonomous_database</span></div>
+  <div class="tab" onclick="switchTab(4,true)"><span class="tab-num">F</span><span class="tab-label">resource_anchor</span></div>
 </div>
 
 </div>
@@ -122,7 +122,7 @@
     <div class="page-resource-name" style="font-size:20px;line-height:1.2">azurerm_<em>virtual_network</em> + azurerm_<em>subnet</em></div>
     <a class="page-doc-link" href="https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network" target="_blank">docs ↗</a>
   </div>
-  <div class="notice azure" style="background:rgba(27,127,79,0.07);border-color:rgba(27,127,79,0.25)"><span style="font-size:14px;flex-shrink:0">ℹ</span> Each VNet entry also generates an Oracle-delegated subnet (<code>Oracle.Database/networkAttachments</code>) in the same module.</div>
+  <div class="notice azure" style="background:rgba(27,127,79,0.07);border-color:rgba(27,127,79,0.25)"><span style="font-size:14px;flex-shrink:0">ℹ</span> Create a VNet with an Oracle-delegated client subnet, or reuse an existing VNet/subnet by its Azure resource ID.</div>
   <div id="azure-vnet-list" class="inst-list"></div>
   <div class="inst-add-row">
     <button class="inst-add-btn" onclick="addAzureVnet()">＋ Add VNet</button>
@@ -189,13 +189,13 @@
   <button class="vbtn" style="margin-top:14px" onclick="vgen(24)">Validate &amp; Generate All</button>
 </div>
 
-<!-- ─── AZURE PAGE F: Oracle Network Anchor (azapi) ─── -->
+<!-- ─── Oracle Network Anchor (first in navigation; stable page ID 5) ─── -->
 <div class="page" id="azure-page-5">
   <div class="page-hero">
     <div class="page-resource-name" style="font-size:18px;line-height:1.2">Oracle.Database/<em>networkAnchors</em></div>
     <a class="page-doc-link" href="https://docs.oracle.com/en-us/iaas/Content/database-at-azure/azucr-create-network-anchor.html" target="_blank">docs &#8599;</a>
   </div>
-  <div class="notice azure" style="background:rgba(27,127,79,0.07);border-color:rgba(27,127,79,0.25)"><span style="font-size:14px;flex-shrink:0">&#8505;</span> <span>The network bridge between Azure and OCI &mdash; not tied to one database service, on a delegated subnet of its own. azurerm has no resource for it yet, so it is generated with <code>azapi_resource</code> against API version 2025-09-01.</span></div>
+  <div class="notice azure" style="background:rgba(27,127,79,0.07);border-color:rgba(27,127,79,0.25)"><span style="font-size:14px;flex-shrink:0">&#8505;</span> <span>Create a new network bridge between Azure and OCI on its own delegated subnet, or reuse an existing Network Anchor by its Azure resource ID.</span></div>
   <div id="azure-na-list" class="inst-list"></div>
   <div class="inst-add-row">
     <button class="inst-add-btn" onclick="addAzureNetworkAnchor()">&#65291; Add Network Anchor</button>
@@ -319,6 +319,8 @@ function ociRegionSelectHTML(id, val, onchange) {
 function defAzureVnet(i) {
   return {
     module_name:           i === 0 ? 'azure_vnet' : `azure_vnet_${i+1}`,
+    vnet_mode:            'create',
+    existing_subnet_id:   '',
     resource_group_name:   '',
     location:              'eastus',
     vnet_name:             '',
@@ -332,6 +334,8 @@ function defAzureVnet(i) {
 function defAzureInfra(i) {
   return {
     module_name:          i === 0 ? 'azure_exainfra' : `azure_exainfra_${i+1}`,
+    infra_mode:           'create',
+    existing_infrastructure_id: '',
     resource_group_name:  '',
     location:             'eastus',
     name:                 '',
@@ -362,6 +366,10 @@ function defAzureCluster(i) {
     name:                           '',
     display_name:                   '',
     infra_ref:                      '',
+    use_network_anchor:             false,
+    network_anchor_ref:             '',
+    network_anchor_id:              '',
+    resource_anchor_id:             '',
     vnet_ref:                       '',
     cloud_exadata_infrastructure_id: '',
     subnet_id:                      '',
@@ -434,7 +442,17 @@ function removeInst(arr, i, renderFn) { arr.splice(i, 1); renderFn(); refresh();
 // ── Read card values back into state arrays ───────────────────────────────────
 function readAzureVnet(i) {
   const p = `av${i}_`;
-  azureVnets[i] = {...azureVnets[i],
+  const previous = azureVnets[i];
+  const common = {
+    module_name: fv(`${p}mn`) || previous.module_name,
+    vnet_mode: fv(`${p}mode`) || previous.vnet_mode || 'create',
+    existing_subnet_id: document.getElementById(`${p}existing_id`) ? fv(`${p}existing_id`) : (previous.existing_subnet_id || ''),
+  };
+  if (!document.getElementById(`${p}vn`)) {
+    azureVnets[i] = {...previous, ...common};
+    return;
+  }
+  azureVnets[i] = {...azureVnets[i], ...common,
     module_name:           fv(`${p}mn`) || azureVnets[i].module_name,
     resource_group_name:   fv(`${p}rg`),
     location:              fv(`${p}loc`) || 'eastus',
@@ -447,7 +465,17 @@ function readAzureVnet(i) {
 
 function readAzureInfra(i) {
   const p = `ai${i}_`;
-  azureInfras[i] = {...azureInfras[i],
+  const previous = azureInfras[i];
+  const common = {
+    module_name: fv(`${p}mn`) || previous.module_name,
+    infra_mode: fv(`${p}mode`) || previous.infra_mode || 'create',
+    existing_infrastructure_id: document.getElementById(`${p}existing_id`) ? fv(`${p}existing_id`) : (previous.existing_infrastructure_id || ''),
+  };
+  if (!document.getElementById(`${p}name`)) {
+    azureInfras[i] = {...previous, ...common};
+    return;
+  }
+  azureInfras[i] = {...azureInfras[i], ...common,
     module_name:          fv(`${p}mn`) || azureInfras[i].module_name,
     resource_group_name:  fv(`${p}rg`),
     location:             fv(`${p}loc`) || 'eastus',
@@ -479,6 +507,10 @@ function readAzureCluster(i) {
     location:                       fv(`${p}loc`) || 'eastus',
     name:                           fv(`${p}name`),
     display_name:                   fv(`${p}dn`),
+    use_network_anchor:             fcb(`${p}use_na`),
+    network_anchor_ref:             document.getElementById(`${p}na_ref`) ? fv(`${p}na_ref`) : (azureClusters[i].network_anchor_ref||''),
+    network_anchor_id:              document.getElementById(`${p}na_id`) ? fv(`${p}na_id`) : (azureClusters[i].network_anchor_id||''),
+    resource_anchor_id:             document.getElementById(`${p}ra_id`) ? fv(`${p}ra_id`) : (azureClusters[i].resource_anchor_id||''),
     infra_ref:                      fv(`${p}infra_ref`),
     vnet_ref:                       fv(`${p}vnet_ref`),
     cloud_exadata_infrastructure_id: fv(`${p}exaid`),
@@ -590,6 +622,7 @@ function addSshToAzureCluster(i) {
 // ── Card HTML builders ────────────────────────────────────────────────────────
 function azureVnetCardHTML(d, i) {
   const p = `av${i}_`, open = (_cardOpen[`av-card-${i}`] ?? i === 0) ? 'open' : '';
+  const existing = d.vnet_mode === 'existing';
   return `<div class="inst-card ${open}" id="av-card-${i}" draggable="true" ondragstart="onCardDragStart(event,azureVnets,${i},renderAzureVnets,'av-card-')" ondragover="onCardDragOver(event,azureVnets,${i})" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,azureVnets,${i},renderAzureVnets,'av-card-')" ondragend="onCardDragEnd(event)">
   <div class="inst-card-head" onclick="toggleCard('av-card-${i}')">
     <span class="drag-handle" title="Drag to reorder">⠿</span>
@@ -600,6 +633,11 @@ function azureVnetCardHTML(d, i) {
   </div>
   <div class="inst-body">
     <div class="module-path-row"><span class="mp-dir">modules/</span><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" oninput="readAzureVnet(${i});renderRefDropdowns();refresh()"><span style="color:var(--ink4)">/ {main·variables·outputs·tfvars}</span></div>
+    <div class="field"><div class="field-lbl">VNet / Subnet source</div><select id="${p}mode" onchange="readAzureVnet(${i});renderAzureVnets();refresh()"><option value="create"${existing?'':' selected'}>Create new VNet and subnet</option><option value="existing"${existing?' selected':''}>Use existing VNet / subnet</option></select></div>
+    ${existing ? `<div class="notice azure">Use the VM cluster's existing client subnet. The parent VNet ID is derived from this ID. Terraform does not create or modify the VNet, subnet, or delegation.</div>
+      <div class="field"><div class="field-lbl">Existing client subnet ID <span class="req-star">*</span></div><input type="text" id="${p}existing_id" value="${esc(d.existing_subnet_id||'')}" placeholder="/subscriptions/…/resourceGroups/…/providers/Microsoft.Network/virtualNetworks/…/subnets/…" oninput="readAzureVnet(${i});refresh()"></div>
+      <div class="field-hint">Use the client subnet delegated for Oracle Database, separate from the Network Anchor's subnet. Changing a previously applied card from Create new to Use existing requires a Terraform state migration.</div>
+    ` : `
     <div class="section"><div class="section-head"><div class="section-title">Virtual Network</div><span class="badge-req">required</span><div class="section-line"></div></div>
       <div class="g2">
         <div class="field"><div class="field-lbl">resource_group_name <span class="req-star">*</span></div><input type="text" id="${p}rg" value="${d.resource_group_name||''}" placeholder="my-resource-group" oninput="readAzureVnet(${i});refresh()"></div>
@@ -617,6 +655,7 @@ function azureVnetCardHTML(d, i) {
         <div class="field"><div class="field-lbl">subnet_address_prefix <span class="req-star">*</span></div><div class="field-hint">Must be /24 or larger within VNet CIDR</div><input type="text" id="${p}sp" value="${d.subnet_address_prefix||'10.0.1.0/24'}" placeholder="10.0.1.0/24" oninput="readAzureVnet(${i});refresh()"></div>
       </div>
     </div>
+    `}
   </div>
 </div>`;
 }
@@ -624,6 +663,7 @@ function azureVnetCardHTML(d, i) {
 function azureInfraCardHTML(d, i) {
   const p = `ai${i}_`, open = (_cardOpen[`ai-card-${i}`] ?? i === 0) ? 'open' : '';
   const isCust = d.mw_preference === 'CustomPreference';
+  const existing = d.infra_mode === 'existing';
   const _stReq = shapeRequiresServerTypes(AZURE_SHAPES, d.shape||AZURE_DEFAULT_SHAPE);
   return `<div class="inst-card ${open}" id="ai-card-${i}" draggable="true" ondragstart="onCardDragStart(event,azureInfras,${i},renderAzureInfras,'ai-card-')" ondragover="onCardDragOver(event,azureInfras,${i})" ondragleave="onCardDragLeave(event)" ondrop="onCardDrop(event,azureInfras,${i},renderAzureInfras,'ai-card-')" ondragend="onCardDragEnd(event)">
   <div class="inst-card-head" onclick="toggleCard('ai-card-${i}')">
@@ -635,6 +675,11 @@ function azureInfraCardHTML(d, i) {
   </div>
   <div class="inst-body">
     <div class="module-path-row"><span class="mp-dir">modules/</span><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" oninput="readAzureInfra(${i});renderRefDropdowns();refresh()"><span style="color:var(--ink4)">/ {main·variables·outputs·tfvars}</span></div>
+    <div class="field"><div class="field-lbl">Exadata Infrastructure source</div><select id="${p}mode" onchange="readAzureInfra(${i});renderAzureInfras();refresh()"><option value="create"${existing?'':' selected'}>Create new Exadata Infrastructure</option><option value="existing"${existing?' selected':''}>Use existing Exadata Infrastructure</option></select></div>
+    ${existing ? `<div class="notice azure">Reuse infrastructure already provisioned in Azure, including resources created outside Terraform. Terraform passes this ID to VM clusters without managing the infrastructure.</div>
+      <div class="field"><div class="field-lbl">Existing Exadata Infrastructure ID <span class="req-star">*</span></div><input type="text" id="${p}existing_id" value="${esc(d.existing_infrastructure_id||'')}" placeholder="/subscriptions/…/resourceGroups/…/providers/Oracle.Database/cloudExadataInfrastructures/…" oninput="readAzureInfra(${i});refresh()"></div>
+      <div class="field-hint">Changing a previously applied card from Create new to Use existing requires a Terraform state migration.</div>
+    ` : `
     <div class="section"><div class="section-head"><div class="section-title">Required</div><span class="badge-req">required</span><div class="section-line"></div></div>
       <div class="g2">
         <div class="field"><div class="field-lbl">resource_group_name <span class="req-star">*</span></div><input type="text" id="${p}rg" value="${d.resource_group_name||''}" placeholder="my-resource-group" oninput="readAzureInfra(${i});refresh()"></div>
@@ -682,6 +727,7 @@ function azureInfraCardHTML(d, i) {
         <button class="add-btn" style="height:32px" onclick="addContactToAzureInfra(${i})">+ Add</button>
       </div>
     </div>
+    `}
   </div>
 </div>`;
 }
@@ -690,6 +736,7 @@ function azureClusterCardHTML(d, i) {
   const p = `ac${i}_`, open = (_cardOpen[`ac-card-${i}`] ?? i === 0) ? 'open' : '';
   const infOpts = azureInfraOptions(d.infra_ref);
   const vnetOpts = azureVnetOptions(d.vnet_ref);
+  const useAnchor = d.use_network_anchor ?? !!(d.network_anchor_ref || d.network_anchor_id);
   const sshChips = (d.ssh_public_keys || []).map((k, ki) =>
     `<span class="chip"><span>${k.substring(0,40)}…</span><button class="chip-rm" onclick="azureClusters[${i}].ssh_public_keys.splice(${ki},1);renderAzureClusters();refresh()">×</button></span>`
   ).join('');
@@ -710,6 +757,13 @@ function azureClusterCardHTML(d, i) {
         <div class="field"><div class="field-lbl">Exadata Infrastructure</div><select class="ref-select" id="${p}infra_ref" onchange="readAzureCluster(${i});refresh()">${infOpts || '<option value="">— add infra first —</option>'}</select></div>
         <div class="field"><div class="field-lbl">VNet / Subnet</div><select class="ref-select" id="${p}vnet_ref" onchange="readAzureCluster(${i});refresh()">${vnetOpts || '<option value="">— add VNet first —</option>'}</select></div>
       </div>
+      <div class="field"><div class="field-lbl">Provision with Network Anchor</div><div class="field-hint">Uses Azure API 2026-06-01. Client VNet/subnet above remain separate from the anchor subnet.</div><label><input type="checkbox" id="${p}use_na" ${useAnchor?'checked':''} onchange="readAzureCluster(${i});renderAzureClusters();refresh()"> Enable Network Anchor provisioning</label></div>
+      ${useAnchor ? `<div class="notice azure">For new clusters. Changing the provisioning path for an existing cluster requires a reviewed Terraform state migration.</div>
+      <div class="field"><div class="field-lbl">Network Anchor</div><select class="ref-select" id="${p}na_ref" onchange="readAzureCluster(${i});renderAzureClusters();refresh()">${_anchorRefOptions(azureNetworkAnchors, d.network_anchor_ref||'', 'existing Network Anchor (ID below)')}</select></div>
+      <div class="g2">
+        <div class="field"><div class="field-lbl">Existing Network Anchor ID</div><input type="text" id="${p}na_id" value="${esc(d.network_anchor_id||'')}" placeholder="/subscriptions/…/providers/Oracle.Database/networkAnchors/…" oninput="readAzureCluster(${i});refresh()" ${d.network_anchor_ref?'disabled':''}></div>
+        <div class="field"><div class="field-lbl">Resource Anchor ID (optional)</div><div class="field-hint">Inherited from the selected Network Anchor card unless overridden.</div><input type="text" id="${p}ra_id" value="${esc(d.resource_anchor_id||'')}" placeholder="/subscriptions/…/providers/Oracle.Database/resourceAnchors/…" oninput="readAzureCluster(${i});refresh()"></div>
+      </div>` : ''}
       <div class="section collapsed"><div class="section-head clickable" onclick="toggleOptSection(this)"><div class="section-title">Manual ID Override</div><span class="badge-opt">optional</span><div class="section-line"></div><span class="opt-chevron">▼</span></div>
         <div class="field-hint" style="margin-bottom:8px">Leave blank to use auto-wired references from the modules above.</div>
         <div class="g2">
@@ -899,7 +953,7 @@ function defAzureResourceAnchor(i) {
 function defAzureNetworkAnchor(i) {
   const mn = i === 0 ? 'azure_netanchor' : `azure_netanchor_${i+1}`;
   return {
-    module_name: mn, name: '',
+    module_name: mn, name: '', anchor_mode: 'create', existing_network_anchor_id: '',
     resource_anchor_ref: azureResourceAnchors.length ? azureResourceAnchors[0].module_name : '',
     existing_resource_anchor_id: '',
     vnet_ref: azureVnets.length ? azureVnets[0].module_name : '',
@@ -924,11 +978,25 @@ function readAzureResourceAnchor(i) {
 }
 function readAzureNetworkAnchor(i) {
   const p = `na${i}_`;
-  azureNetworkAnchors[i] = {...azureNetworkAnchors[i],
+  const previous = azureNetworkAnchors[i];
+  const mode = fv(`${p}mode`) || previous.anchor_mode || 'create';
+  const read = (suffix, field) => document.getElementById(`${p}${suffix}`) ? fv(`${p}${suffix}`) : (previous[field] || '');
+  const common = {
+    module_name: fv(`${p}mn`) || previous.module_name,
+    anchor_mode: mode,
+    existing_network_anchor_id: read('existing_id', 'existing_network_anchor_id'),
+    existing_resource_anchor_id: read('raid', 'existing_resource_anchor_id'),
+  };
+  // Keep creation settings when switching modes, even while their inputs are hidden.
+  if (!document.getElementById(`${p}name`)) {
+    azureNetworkAnchors[i] = {...previous, ...common};
+    return;
+  }
+  azureNetworkAnchors[i] = {...azureNetworkAnchors[i], ...common,
     module_name:                     fv(`${p}mn`) || azureNetworkAnchors[i].module_name,
     name:                            fv(`${p}name`),
     resource_anchor_ref:             fv(`${p}raref`),
-    existing_resource_anchor_id:     fv(`${p}raid`),
+    existing_resource_anchor_id:     common.existing_resource_anchor_id,
     vnet_ref:                        fv(`${p}vnref`),
     existing_vnet_name:              fv(`${p}vnname`),
     subnet_name:                     fv(`${p}sn`),
@@ -986,6 +1054,7 @@ function azureNetworkAnchorCardHTML(d, i) {
   const p = `na${i}_`, open = (_cardOpen[`na-card-${i}`] ?? i === 0) ? 'open' : '';
   const on = `readAzureNetworkAnchor(${i});refresh()`;
   const onRe = `readAzureNetworkAnchor(${i});renderAzureNetworkAnchors();refresh()`;
+  const existing = d.anchor_mode === 'existing';
   const rules = (d.dns_forwarding_rules || []).map((r, ri) =>
     `<span class="chip"><span>${(r.domain_names||[]).join(', ')} &rarr; ${r.forwarding_ip_address}</span><button class="chip-rm" onclick="removeForwardingRule(${i},${ri})">&times;</button></span>`).join('');
   return `<div class="inst-card ${open}" id="na-card-${i}">
@@ -998,6 +1067,12 @@ function azureNetworkAnchorCardHTML(d, i) {
   <div class="inst-body">
     <div class="module-path-row"><span class="mp-dir">modules/</span><input class="module-name-field" type="text" id="${p}mn" value="${d.module_name}" oninput="readAzureNetworkAnchor(${i});refresh()"><span style="color:var(--ink4)">/ {main&middot;variables&middot;outputs}</span></div>
 
+    <div class="field"><div class="field-lbl">Network Anchor source</div><select id="${p}mode" onchange="${onRe}"><option value="create"${existing?'':' selected'}>Create new Network Anchor</option><option value="existing"${existing?' selected':''}>Use existing Network Anchor</option></select></div>
+    ${existing ? `<div class="notice azure">Reuse an anchor that already exists in Azure. Its subnet and DNS settings stay with its current owner.</div>
+      <div class="field-hint">Changing a previously applied card from Create new to Use existing requires a Terraform state migration.</div>
+      <div class="field"><div class="field-lbl">Existing Network Anchor ID <span class="req-star">*</span></div><input type="text" id="${p}existing_id" value="${esc(d.existing_network_anchor_id||'')}" placeholder="/subscriptions/…/resourceGroups/…/providers/Oracle.Database/networkAnchors/…" oninput="${on}"></div>
+      <div class="field"><div class="field-lbl">Resource Anchor ID (optional)</div><div class="field-hint">The Resource Anchor associated with this existing Network Anchor.</div><input type="text" id="${p}raid" value="${esc(d.existing_resource_anchor_id||'')}" placeholder="/subscriptions/…/resourceGroups/…/providers/Oracle.Database/resourceAnchors/…" oninput="${on}"></div>
+    ` : `
     <div class="section"><div class="section-head"><div class="section-title">Network Anchor</div><span class="badge-req">required</span><div class="section-line"></div></div>
       <div class="g2">
         <div class="field"><div class="field-lbl">name <span class="req-star">*</span></div><div class="field-hint">3&ndash;24 letters, digits or hyphens</div><input type="text" id="${p}name" value="${d.name||''}" placeholder="na-eastus-1" oninput="${on}"></div>
@@ -1044,6 +1119,7 @@ function azureNetworkAnchorCardHTML(d, i) {
         <div class="field"><div class="field-lbl">oci_backup_cidr_block</div><div class="field-hint">OCI backup subnet CIDR</div><input type="text" id="${p}bk" value="${d.oci_backup_cidr_block||''}" placeholder="192.168.252.0/22" oninput="${on}"></div>
       </div>
     </div>
+    `}
   </div>
 </div>`;
 }
@@ -1056,6 +1132,7 @@ function renderAzureResourceAnchors() {
   syncRefDropdowns();
 }
 function renderAzureNetworkAnchors() {
+  _syncClusterAnchorRefs();
   _safeRender('azure-na-list', azureNetworkAnchors.map((d,i) => azureNetworkAnchorCardHTML(d,i)).join(''));
   const cl = document.getElementById('azure-na-count');
   if (cl) cl.textContent = `${azureNetworkAnchors.length} network anchor${azureNetworkAnchors.length !== 1 ? 's' : ''}`;
@@ -1065,6 +1142,20 @@ function renderAzureNetworkAnchors() {
 // Follow renames by position; a ref to something removed falls back to the first
 // card, or to "existing" when there is none. An empty ref is a deliberate choice
 // of an existing resource and is left alone.
+let _refClusterAnchors = [];
+function _syncClusterAnchorRefs() {
+  const names = azureNetworkAnchors.map(a => a.module_name);
+  if (names.join(',') === _refClusterAnchors.join(',')) return;
+  const renamed = _refRenameMap(_refClusterAnchors, names);
+  _refClusterAnchors = names;
+  azureClusters.forEach((d,i) => {
+    if (renamed[d.network_anchor_ref]) d.network_anchor_ref = renamed[d.network_anchor_ref];
+    // Keep deleted references visible rather than silently targeting another anchor.
+    const missing = d.network_anchor_ref && !names.includes(d.network_anchor_ref);
+    const options = _anchorRefOptions(azureNetworkAnchors, d.network_anchor_ref||'', 'existing Network Anchor (ID below)');
+    _setRefSelect(`ac${i}_na_ref`, options + (missing ? `<option value="${esc(d.network_anchor_ref)}" selected>Missing: ${esc(d.network_anchor_ref)}</option>` : ''), 'existing anchor');
+  });
+}
 let _refAnchors = [], _refNaVnets = [];
 function _syncNetworkAnchorRefs() {
   const anchors = azureResourceAnchors.map(a => a.module_name), vnets = azureVnets.map(v => v.module_name);
@@ -1249,12 +1340,12 @@ function buildPayload() {
 function applyConfig(doc) {
   const AZURE_KEYS = ['azure_vnets', 'azure_infras', 'azure_clusters', 'azure_autonomous_dbs',
                       'azure_resource_anchors', 'azure_network_anchors'];
-  const hasNewFormat = AZURE_KEYS.some(k => doc[k] && doc[k].length);
+  const hasNewFormat = AZURE_KEYS.some(k => Array.isArray(doc[k]));
   if (hasNewFormat) {
-    if (doc.azure_vnets           && doc.azure_vnets.length)           azureVnets    = doc.azure_vnets.map((d,i)    => ({...defAzureVnet(i),    ...d}));
-    if (doc.azure_infras          && doc.azure_infras.length)          azureInfras   = doc.azure_infras.map((d,i)   => ({...defAzureInfra(i),   ...d}));
-    if (doc.azure_clusters        && doc.azure_clusters.length)        azureClusters = doc.azure_clusters.map((d,i) => ({...defAzureCluster(i), ...d}));
-    if (doc.azure_autonomous_dbs  && doc.azure_autonomous_dbs.length)  azureAdbs     = doc.azure_autonomous_dbs.map((d,i) => ({...defAzureAdb(i),  ...d}));
+    azureVnets = (doc.azure_vnets || []).map((d,i) => ({...defAzureVnet(i), ...d}));
+    azureInfras = (doc.azure_infras || []).map((d,i) => ({...defAzureInfra(i), ...d}));
+    azureClusters = (doc.azure_clusters || []).map((d,i) => ({...defAzureCluster(i), ...d, use_network_anchor: d.use_network_anchor ?? !!(d.network_anchor_ref || d.network_anchor_id)}));
+    azureAdbs = (doc.azure_autonomous_dbs || []).map((d,i) => ({...defAzureAdb(i), ...d}));
     // Anchors replace the page's list outright: zero of either is a valid config.
     azureResourceAnchors = (doc.azure_resource_anchors || []).map((d,i) => ({...defAzureResourceAnchor(i), ...d}));
     azureNetworkAnchors  = (doc.azure_network_anchors  || []).map((d,i) => ({...defAzureNetworkAnchor(i),  ...d}));
@@ -1412,20 +1503,22 @@ function addCidrToPeer(i) {
 // this map the "highlight the offending field" lookup below silently matches
 // nothing, so errors show in the card banner but no field turns red.
 const VALIDATION_FIELD_INPUT = {
-  av: {resource_group_name:'rg', location:'loc', vnet_name:'vn',
+  av: {vnet_mode:'mode', existing_subnet_id:'existing_id', resource_group_name:'rg', location:'loc', vnet_name:'vn',
        address_space:'as', subnet_address_prefix:'sp'},
-  ai: {resource_group_name:'rg', location:'loc', name:'name', display_name:'dn',
+  ai: {infra_mode:'mode', existing_infrastructure_id:'existing_id', resource_group_name:'rg', location:'loc', name:'name', display_name:'dn',
        shape:'shape', compute_count:'cc', storage_count:'sc',
        database_server_type:'dst', storage_server_type:'sst'},
   ac: {resource_group_name:'rg', location:'loc', name:'name', display_name:'dn',
        hostname:'host', gi_version:'gi', cpu_core_count:'cpu',
+       use_network_anchor:'use_na', network_anchor_ref:'na_ref', network_anchor_id:'na_id', resource_anchor_id:'ra_id',
+       infra_ref:'infra_ref', vnet_ref:'vnet_ref', cloud_exadata_infrastructure_id:'exaid', subnet_id:'subid', virtual_network_id:'vnetid',
        backup_subnet_cidr:'bsc',
        data_storage_size_in_tbs:'dstb', ssh_public_keys:'sshin'},
   ad: {resource_group_name:'rg', location:'loc', name:'name', display_name:'dn',
        compute_count:'cc', data_storage_size_in_tbs:'dstb',
        backup_retention_period_in_days:'brp', db_workload:'wl'},
   ar: {name:'name'},
-  na: {name:'name', zone:'zone', resource_anchor_ref:'raref', existing_resource_anchor_id:'raid',
+  na: {anchor_mode:'mode', existing_network_anchor_id:'existing_id', name:'name', zone:'zone', resource_anchor_ref:'raref', existing_resource_anchor_id:'raid',
        vnet_ref:'vnref', subnet_name:'sn', subnet_address_prefix:'sp',
        oci_vcn_dns_label:'dns', oci_backup_cidr_block:'bk',
        dns_listening_endpoint_enabled:'listen', dns_listening_allowed_cidrs:'lcidrs',
@@ -1847,18 +1940,30 @@ function buildDeployGuide(){
     const infras  =p.azure_infras||[];
     const clusters=p.azure_clusters||[];
     const rAnchors=p.azure_resource_anchors||[];
-    const nAnchors=p.azure_network_anchors||[];
-    if(!vnets.length&&!infras.length&&!clusters.length&&!rAnchors.length&&!nAnchors.length) return [];
+    const allNetworkAnchors=p.azure_network_anchors||[];
+    const nAnchors=allNetworkAnchors.filter(a=>a.anchor_mode!=='existing');
+    const existingAnchors=allNetworkAnchors.filter(a=>a.anchor_mode==='existing');
+    if(!vnets.length&&!infras.length&&!clusters.length&&!rAnchors.length&&!allNetworkAnchors.length) return [];
 
     const firstVnet  = vnets[0]?.module_name  ||'azure_vnet';
     const firstInfra = infras[0]?.module_name ||'azure_exainfra';
 
-    if(vnets.length) steps.push({
-      title: `Deploy Virtual Network + Delegated Subnet${vnets.length>1?' ('+vnets.length+')':''}`,
-      cmds: vnets.map(n=>`terraform apply -target=module.${n.module_name}`),
+    const newVnets=vnets.filter(v=>v.vnet_mode!=='existing');
+    const existingVnets=vnets.filter(v=>v.vnet_mode==='existing');
+    if(existingVnets.length) steps.push({
+      title: 'Use existing client VNet / subnet',
+      cmds: ['terraform plan'],
+      desc: 'Reuse the client subnet without provisioning networking. Confirm its Oracle Database delegation is already configured.',
+      resources: existingVnets.map(v=>_dgRes(v.module_name,'Existing client subnet',[
+        `Subnet ID: <b>${esc(v.existing_subnet_id||'(required)')}</b>`,
+      ],[],[`module.${v.module_name}.vnet_id`, `module.${v.module_name}.subnet_id`])),
+    });
+    if(newVnets.length) steps.push({
+      title: `Deploy Virtual Network + Delegated Subnet${newVnets.length>1?' ('+newVnets.length+')':''}`,
+      cmds: newVnets.map(n=>`terraform apply -target=module.${n.module_name}`),
       desc: 'Creates the Azure Virtual Network and Oracle-delegated subnet (Oracle.Database/networkAttachments). Required before VM Cluster creation.',
       time: '1–2 min each',
-      resources: vnets.map(n=>_dgRes(n.module_name,'VNet + Delegated Subnet',[
+      resources: newVnets.map(n=>_dgRes(n.module_name,'VNet + Delegated Subnet',[
         `VNet name: <b>${n.vnet_name||'—'}</b>`,
         `Address space: <b>${n.address_space||'—'}</b>`,
         `Subnet prefix: <b>${n.subnet_address_prefix||'—'}</b>`,
@@ -1880,6 +1985,15 @@ function buildDeployGuide(){
         `module.${a.module_name}.resource_anchor_id  →  used by Network Anchors as var.resource_anchor_id`,
         `module.${a.module_name}.linked_compartment_id  →  the OCI compartment`,
       ])),
+    });
+
+    if(existingAnchors.length) steps.push({
+      title: 'Use existing Network Anchors',
+      cmds: ['terraform plan'],
+      desc: 'Confirm the existing anchor IDs. These modules pass the IDs to VM clusters; they do not create anchors or subnets.',
+      resources: existingAnchors.map(a=>_dgRes(a.module_name,'Existing Network Anchor',[
+        `Resource ID: <b>${esc(a.existing_network_anchor_id||'(required)')}</b>`,
+      ],[],[`module.${a.module_name}.network_anchor_id`])),
     });
 
     if(nAnchors.length) steps.push({
@@ -1904,20 +2018,30 @@ function buildDeployGuide(){
       ])),
     });
 
-    if(infras.length) steps.push({
-      title: `Deploy Exadata Infrastructure${infras.length>1?' ('+infras.length+', parallel)':''}`,
-      cmds: infras.map(i=>`terraform apply -target=module.${i.module_name}`),
+    const newInfras=infras.filter(i=>i.infra_mode!=='existing');
+    const existingInfras=infras.filter(i=>i.infra_mode==='existing');
+    if(existingInfras.length) steps.push({
+      title: 'Use existing Exadata Infrastructure',
+      cmds: ['terraform plan'],
+      desc: 'These modules reuse existing infrastructure IDs for VM clusters. They do not provision or import the infrastructure.',
+      resources: existingInfras.map(i=>_dgRes(i.module_name,'Existing Exadata Infrastructure',[
+        `Resource ID: <b>${esc(i.existing_infrastructure_id||'(required)')}</b>`,
+      ],[],[`module.${i.module_name}.infra_id`])),
+    });
+    if(newInfras.length) steps.push({
+      title: `Deploy Exadata Infrastructure${newInfras.length>1?' ('+newInfras.length+', parallel)':''}`,
+      cmds: newInfras.map(i=>`terraform apply -target=module.${i.module_name}`),
       desc: 'Provisions physical Exadata hardware in the Azure region. Can run in parallel with VNet creation.',
       warn: 'Infrastructure must reach state Active before VM Cluster creation.',
       time: '15–30 min each',
-      resources: infras.map(i=>_dgRes(i.module_name,'Exadata Infrastructure',[
+      resources: newInfras.map(i=>_dgRes(i.module_name,'Exadata Infrastructure',[
         `Name: <b>${i.name||'—'}</b>`,
         `Shape: <b>${i.shape||'Exadata.X11M'}</b>`,
         `Compute nodes: <b>${i.compute_count||2}</b>`,
         `Storage nodes: <b>${i.storage_count||3}</b>`,
         `Location: <b>${i.location||'—'}</b>`,
       ],[],[
-        `module.${i.module_name}.infrastructure_id  →  used by VM Cluster as var.cloud_exadata_infrastructure_id`,
+        `module.${i.module_name}.infra_id  →  used by VM Cluster as var.cloud_exadata_infrastructure_id`,
       ])),
     });
 
@@ -1925,7 +2049,7 @@ function buildDeployGuide(){
       title: `Deploy Oracle VM Cluster${clusters.length>1?' ('+clusters.length+', parallel)':''}`,
       cmds: clusters.map(c=>`terraform apply -target=module.${c.module_name}`),
       desc: 'Provisions Oracle Grid Infrastructure and database software on the Exadata hardware.',
-      warn: 'Exadata Infrastructure must be Active and the VNet/Subnet must exist before this step.',
+      warn: 'Exadata Infrastructure must be Active and the client VNet/Subnet must exist. For anchor-enabled clusters, deploy the Network Anchor first; it has its own subnet.',
       time: '3–4 hours each',
       resources: clusters.map(c=>_dgRes(c.module_name,'VM Cluster',[
         `Name: <b>${c.name||'—'}</b>`,
@@ -1934,9 +2058,10 @@ function buildDeployGuide(){
         `Hostname: <b>${c.hostname||'—'}</b>`,
         `License: <b>${c.license_model||'LicenseIncluded'}</b>`,
       ],[
-        `var.cloud_exadata_infrastructure_id  ←  module.${c.infra_ref||firstInfra}.infrastructure_id`,
+        `var.cloud_exadata_infrastructure_id  ←  module.${c.infra_ref||firstInfra}.infra_id`,
         `var.subnet_id  ←  module.${c.vnet_ref||firstVnet}.subnet_id`,
         `var.vnet_id  ←  module.${c.vnet_ref||firstVnet}.vnet_id`,
+        ...(c.use_network_anchor ? [`var.network_anchor_id ← ${c.network_anchor_ref?'module.'+c.network_anchor_ref+'.network_anchor_id':(c.network_anchor_id||'(set existing anchor ID)')}`] : []),
       ],[])),
     });
 

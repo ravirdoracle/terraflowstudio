@@ -8,8 +8,9 @@ terraform {
       source  = "hashicorp/azurerm"
       version = ">= 4.9.0"
     }
-{% if network_anchors %}
-    # Network Anchor: no azurerm resource exists for it yet.
+{% set anchored_clusters = clusters | selectattr('use_network_anchor') | list %}
+{% if (network_anchors | rejectattr('anchor_mode', 'equalto', 'existing') | list) or anchored_clusters %}
+    # Network Anchors and anchor-enabled VM clusters use Azure REST through AzAPI.
     azapi = {
       source  = "azure/azapi"
       version = ">= {{ azapi_floor }}"
@@ -22,7 +23,7 @@ provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
 }
-{% if network_anchors %}
+{% if (network_anchors | rejectattr('anchor_mode', 'equalto', 'existing') | list) or anchored_clusters %}
 
 provider "azapi" {
   subscription_id = var.subscription_id
@@ -41,21 +42,37 @@ module "{{ anc.module_name }}" {
 {% endfor %}
 {% for net in vnets %}
 # ── VNet + Delegated Subnet: {{ net.module_name }} ─────────────────────────────
+{% if net.vnet_mode == 'existing' %}
+module "{{ net.module_name }}" {
+  source    = "./modules/{{ net.module_name }}"
+  subnet_id = var.{{ net.module_name }}_existing_subnet_id
+}
+{% else %}
 module "{{ net.module_name }}" {
   source                = "./modules/{{ net.module_name }}"
-  resource_group_name   = var.resource_group_name
-  location              = var.location
+  resource_group_name   = {% if net.resource_group_name %}var.{{ net.module_name }}_resource_group_name{% else %}var.resource_group_name{% endif %}
+
+  location              = {% if net.location %}var.{{ net.module_name }}_location{% else %}var.location{% endif %}
+
   vnet_name             = var.{{ net.module_name }}_vnet_name
   address_space         = var.{{ net.module_name }}_address_space
   subnet_name           = var.{{ net.module_name }}_subnet_name
   subnet_address_prefix = var.{{ net.module_name }}_subnet_address_prefix
   tags                  = var.tags
 }
+{% endif %}
 
 {% endfor %}
 {% for na in network_anchors %}
 # ── Oracle Network Anchor: {{ na.module_name }} ───────────────────────────────
 # The network bridge to OCI, on a delegated subnet of its own.
+{% if na.anchor_mode == 'existing' %}
+module "{{ na.module_name }}" {
+  source             = "./modules/{{ na.module_name }}"
+  network_anchor_id  = var.{{ na.module_name }}.network_anchor_id
+  resource_anchor_id = var.{{ na.module_name }}.resource_anchor_id
+}
+{% else %}
 module "{{ na.module_name }}" {
   source                          = "./modules/{{ na.module_name }}"
   resource_group_name             = var.resource_group_name
@@ -83,15 +100,24 @@ module "{{ na.module_name }}" {
   dns_forwarding_rules            = var.{{ na.module_name }}.dns_forwarding_rules
   tags                            = var.tags
 }
+{% endif %}
 
 {% endfor %}
 {% for inf in infras %}
 # ── Exadata Infrastructure: {{ inf.module_name }} ─────────────────────────────
+{% if inf.infra_mode == 'existing' %}
+module "{{ inf.module_name }}" {
+  source            = "./modules/{{ inf.module_name }}"
+  infrastructure_id = var.{{ inf.module_name }}_existing_infrastructure_id
+}
+{% else %}
 {% set w = 20 if (inf.database_server_type or inf.storage_server_type) else 19 %}
 module "{{ inf.module_name }}" {
   {{ "source".ljust(w) }} = "./modules/{{ inf.module_name }}"
-  {{ "resource_group_name".ljust(w) }} = var.resource_group_name
-  {{ "location".ljust(w) }} = var.location
+  {{ "resource_group_name".ljust(w) }} = {% if inf.resource_group_name %}var.{{ inf.module_name }}_resource_group_name{% else %}var.resource_group_name{% endif %}
+
+  {{ "location".ljust(w) }} = {% if inf.location %}var.{{ inf.module_name }}_location{% else %}var.location{% endif %}
+
   {{ "name".ljust(w) }} = var.{{ inf.module_name }}_name
   {{ "display_name".ljust(w) }} = var.{{ inf.module_name }}_display_name
   {{ "shape".ljust(w) }} = var.{{ inf.module_name }}_shape
@@ -106,14 +132,17 @@ module "{{ inf.module_name }}" {
   {{ "zone".ljust(w) }} = var.{{ inf.module_name }}_zone
   {{ "tags".ljust(w) }} = var.tags
 }
+{% endif %}
 
 {% endfor %}
 {% for cl in clusters %}
 # ── VM Cluster: {{ cl.module_name }} ──────────────────────────────────────────
 module "{{ cl.module_name }}" {
   source                          = "./modules/{{ cl.module_name }}"
-  resource_group_name             = var.resource_group_name
-  location                        = var.location
+  resource_group_name             = {% if cl.resource_group_name %}var.{{ cl.module_name }}_resource_group_name{% else %}var.resource_group_name{% endif %}
+
+  location                        = {% if cl.location %}var.{{ cl.module_name }}_location{% else %}var.location{% endif %}
+
   name                            = var.{{ cl.module_name }}_name
   display_name                    = var.{{ cl.module_name }}_display_name
   hostname                        = var.{{ cl.module_name }}_hostname
@@ -129,12 +158,33 @@ module "{{ cl.module_name }}" {
   cluster_name                    = var.{{ cl.module_name }}_cluster_name
   time_zone                       = var.{{ cl.module_name }}_time_zone
   scan_listener_port_tcp          = var.{{ cl.module_name }}_scan_listener_port_tcp
-  cloud_exadata_infrastructure_id = module.{{ cl.infra_ref }}.infra_id
-  subnet_id                       = module.{{ cl.vnet_ref }}.subnet_id
-  virtual_network_id              = module.{{ cl.vnet_ref }}.vnet_id
+{% if cl.use_network_anchor %}
+  network_anchor_id               = {% if cl.network_anchor_ref %}module.{{ cl.network_anchor_ref }}.network_anchor_id{% else %}var.{{ cl.module_name }}_network_anchor_id{% endif %}
+
+  resource_anchor_id              = {% if cl.network_anchor_ref and not cl.resource_anchor_id %}module.{{ cl.network_anchor_ref }}.resource_anchor_id{% else %}var.{{ cl.module_name }}_resource_anchor_id{% endif %}
+
+  cloud_exadata_infrastructure_id = {% if cl.infra_ref and not cl.cloud_exadata_infrastructure_id %}module.{{ cl.infra_ref }}.infra_id{% else %}var.{{ cl.module_name }}_cloud_exadata_infrastructure_id{% endif %}
+
+  subnet_id                       = {% if cl.vnet_ref and not cl.subnet_id %}module.{{ cl.vnet_ref }}.subnet_id{% else %}var.{{ cl.module_name }}_subnet_id{% endif %}
+
+  virtual_network_id              = {% if cl.vnet_ref and not cl.virtual_network_id %}module.{{ cl.vnet_ref }}.vnet_id{% else %}var.{{ cl.module_name }}_virtual_network_id{% endif %}
+
+{% else %}
+  cloud_exadata_infrastructure_id = {% if cl.infra_ref and not cl.cloud_exadata_infrastructure_id %}module.{{ cl.infra_ref }}.infra_id{% else %}var.{{ cl.module_name }}_cloud_exadata_infrastructure_id{% endif %}
+
+  subnet_id                       = {% if cl.vnet_ref and not cl.subnet_id %}module.{{ cl.vnet_ref }}.subnet_id{% else %}var.{{ cl.module_name }}_subnet_id{% endif %}
+
+  virtual_network_id              = {% if cl.vnet_ref and not cl.virtual_network_id %}module.{{ cl.vnet_ref }}.vnet_id{% else %}var.{{ cl.module_name }}_virtual_network_id{% endif %}
+
+{% endif %}
   tags                            = var.tags
 
+{% if cl.use_network_anchor and cl.network_anchor_ref %}
+  # Finish provisioning the Network Anchor before creating its VM cluster.
+  depends_on = [module.{{ cl.network_anchor_ref }}]
+{% elif not cl.use_network_anchor and cl.infra_ref and cl.vnet_ref %}
   depends_on = [module.{{ cl.infra_ref }}, module.{{ cl.vnet_ref }}]
+{% endif %}
 }
 
 {% endfor %}
@@ -144,8 +194,10 @@ module "{{ cl.module_name }}" {
 # It attaches to the same Oracle-delegated subnet the VM clusters use.
 module "{{ adb.module_name }}" {
   source                           = "./modules/{{ adb.module_name }}"
-  resource_group_name              = var.resource_group_name
-  location                         = var.location
+  resource_group_name              = {% if adb.resource_group_name %}var.{{ adb.module_name }}_resource_group_name{% else %}var.resource_group_name{% endif %}
+
+  location                         = {% if adb.location %}var.{{ adb.module_name }}_location{% else %}var.location{% endif %}
+
   name                             = var.{{ adb.module_name }}_name
   display_name                     = var.{{ adb.module_name }}_display_name
   db_workload                      = var.{{ adb.module_name }}_db_workload
@@ -182,7 +234,9 @@ output "{{ anc.module_name }}_linked_compartment_id" { value = module.{{ anc.mod
 {% endfor %}
 {% for na in network_anchors %}
 output "{{ na.module_name }}_network_anchor_id" { value = module.{{ na.module_name }}.network_anchor_id }
+{% if na.anchor_mode != 'existing' %}
 output "{{ na.module_name }}_oci_vcn_id" { value = module.{{ na.module_name }}.oci_vcn_id }
+{% endif %}
 {% endfor %}
 {% for net in vnets %}
 output "{{ net.module_name }}_vnet_id" { value = module.{{ net.module_name }}.vnet_id }

@@ -10,6 +10,8 @@ A Python/Flask web app that generates production-ready, modular Terraform/OpenTo
 
 - **Multi-cloud** — AWS, GCP, Azure, and OCI Data Guard pages; cloud switcher in header
 - **Multi-instance** — add as many networks, infras, peerings, and clusters as needed; all auto-wired in root `main.tf`
+- **Existing Azure resources** - reuse Network Anchors, Exadata infrastructure, and client VNets/subnets by Azure resource ID; VM clusters reference them without creating or importing them.
+- **Import guidance** — generated `IMPORT.md` lists resource address templates, provider import documentation, and state import/review steps for each Terraform root
 - **Live output** — Terraform HCL generates in real time as you fill in fields; file tree + syntax-highlighted code viewer
 - **✦ AI fill** — describe your infrastructure in plain English and the AI fills the entire form
 - **✦ Explain** — click Explain on any file for an AI explanation of what that Terraform does and why
@@ -75,6 +77,14 @@ A Python/Flask web app that generates production-ready, modular Terraform/OpenTo
 | A | `azurerm_virtual_network` | `azure_vnet` |
 | B | `azurerm_oracle_exadata_infrastructure` | `azure_exainfra` |
 | C | `azurerm_oracle_cloud_vm_cluster` | `azure_vmcluster` |
+
+For VM clusters created with a Network Anchor, open **Azure → cloud_vm_cluster →
+References** and enable **Provision with Network Anchor**. Select a Network Anchor
+card or enter an existing Azure Network Anchor ID. The generated Terraform uses
+`Oracle.Database/cloudVmClusters@2026-06-01` through `azure/azapi >= 2.14.0`, while
+keeping the client VNet/subnet separate from the anchor subnet. Existing saved
+configurations retain the AzureRM path. See [Network Anchor provisioning details](rag_docs/azure_network_anchor.md#provision-a-vm-cluster-with-a-network-anchor)
+for dependencies and migration considerations.
 
 ### OCI Data Guard (`oracle/oci ≥ 6.0.0`)
 

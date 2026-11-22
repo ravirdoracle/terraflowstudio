@@ -1,0 +1,8 @@
+variable "subnet_id" {
+  type        = string
+  description = "Full Azure resource ID of the existing Oracle-delegated client subnet."
+  validation {
+    condition     = can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Microsoft\\.Network/virtualNetworks/[^/]+/subnets/[^/]+$", var.subnet_id))
+    error_message = "Enter the full Azure resource ID of the client subnet, including /virtualNetworks/<vnet>/subnets/<subnet>."
+  }
+}

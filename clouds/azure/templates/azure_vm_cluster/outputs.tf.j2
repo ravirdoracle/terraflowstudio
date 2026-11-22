@@ -1,3 +1,17 @@
+{% if use_network_anchor %}
+output "cluster_id" {
+  description = "Azure resource ID of the VM cluster."
+  value       = azapi_resource.this.id
+}
+output "cluster_name" {
+  description = "Name of the VM cluster resource."
+  value       = azapi_resource.this.name
+}
+output "ocid" {
+  description = "OCI ID used by the OCI DB Home provider."
+  value       = azapi_resource.this.output.properties.ocid
+}
+{% else %}
 output "cluster_id" {
   description = "Resource ID of the VM cluster."
   value       = azurerm_oracle_cloud_vm_cluster.this.id
@@ -10,3 +24,4 @@ output "ocid" {
   description = "OCI ID of the VM cluster (used by OCI provider for DB Home)."
   value       = azurerm_oracle_cloud_vm_cluster.this.ocid
 }
+{% endif %}

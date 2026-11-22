@@ -1,0 +1,8 @@
+variable "infrastructure_id" {
+  type        = string
+  description = "Full Azure resource ID of existing Exadata infrastructure."
+  validation {
+    condition     = can(regex("(?i)^/subscriptions/[^/]+/resourceGroups/[^/]+/providers/Oracle\\.Database/cloudExadataInfrastructures/[^/]+$", var.infrastructure_id))
+    error_message = "Enter the full Azure resource ID of an Oracle.Database/cloudExadataInfrastructures resource."
+  }
+}

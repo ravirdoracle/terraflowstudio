@@ -1,0 +1,9 @@
+output "infra_id" {
+  description = "Azure resource ID of the existing Exadata infrastructure."
+  value       = var.infrastructure_id
+}
+
+output "infra_name" {
+  description = "Name from the existing infrastructure's Azure resource ID."
+  value       = basename(var.infrastructure_id)
+}

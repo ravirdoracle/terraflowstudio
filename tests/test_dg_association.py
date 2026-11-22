@@ -32,7 +32,7 @@ class TestAssociation(unittest.TestCase):
         self.assertIn('is_active_data_guard_enabled = true', files[BASE+'terraform.tfvars'])
         self.assertIn('sensitive   = true', files[BASE+'variables.tf'])
         self.assertNotIn('DO_NOT_EXPORT_THIS', '\n'.join(files.values()))
-        self.assertEqual(len(files), 5)
+        self.assertEqual(len(files), 6)
         self.assertEqual(tf_roots(files), ['dg_association_payroll'])
 
     def test_existing_db_system_omits_vm_cluster(self):
@@ -60,7 +60,8 @@ class TestAssociation(unittest.TestCase):
         self.assertEqual(generate_all(data), generate_all({**data, 'dg_associations':[]}))
         combined = generate_all({**data, **payload(), 'dg_multi_az':data['dg_multi_az']})
         for path, text in generate_all(data).items():
-            self.assertEqual(combined[path], text)
+            if path != 'IMPORT.md':  # The guide inventories all roots, including the association.
+                self.assertEqual(combined[path], text)
 
     def test_invalid_names_and_duplicates_rejected_during_generation(self):
         for name in ('../escape', 'a/b', 'bad:name'):

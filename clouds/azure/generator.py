@@ -2,6 +2,8 @@
 import os
 
 import shapes
+from clouds.azure.tfvars import comment_tfvars_samples
+from clouds.azure.configuration import configured_payload, deployment_defaults
 
 from core.helpers import make_renderer
 from core.helpers import tf_bool
@@ -15,6 +17,8 @@ from oci import generate_oci_dg_tf
 def _azure_vnet_defaults(d):
     return {
         'module_name':           d.get('module_name') or 'azure_vnet',
+        'vnet_mode':             d.get('vnet_mode', 'create'),
+        'existing_subnet_id':    (d.get('existing_subnet_id') or '').strip(),
         'resource_group_name':   d.get('resource_group_name') or '',
         'location':              d.get('location') or 'eastus',
         'vnet_name':             d.get('vnet_name') or '',
@@ -28,6 +32,8 @@ def _azure_vnet_defaults(d):
 def _azure_infra_defaults(d):
     return {
         'module_name':           d.get('module_name') or 'azure_exainfra',
+        'infra_mode':            d.get('infra_mode', 'create'),
+        'existing_infrastructure_id': (d.get('existing_infrastructure_id') or '').strip(),
         'resource_group_name':   d.get('resource_group_name') or '',
         'location':              d.get('location') or 'eastus',
         'name':                  d.get('name') or '',
@@ -61,6 +67,10 @@ def _azure_cluster_defaults(d, first_vnet_name='', first_infra_name=''):
         'name':                  d.get('name') or '',
         'display_name':          d.get('display_name') or '',
         'cloud_exadata_infrastructure_id': d.get('cloud_exadata_infrastructure_id') or '',
+        'use_network_anchor':   bool(d.get('use_network_anchor', bool(d.get('network_anchor_ref') or d.get('network_anchor_id')))),
+        'network_anchor_ref':   d.get('network_anchor_ref') or '',
+        'network_anchor_id':    (d.get('network_anchor_id') or '').strip(),
+        'resource_anchor_id':   (d.get('resource_anchor_id') or '').strip(),
         'subnet_id':             d.get('subnet_id') or '',
         'virtual_network_id':    d.get('virtual_network_id') or d.get('vnet_id') or '',
         'hostname':              d.get('hostname') or '',
@@ -147,6 +157,9 @@ def _azure_anchor_defaults(d):
 # 2.5.0-2.7.0 reject the type, 2.4.0 has no ignore_null_property.
 NETWORK_ANCHOR_API_VERSION = '2025-09-01'
 AZAPI_FLOOR = '2.8.0'
+VM_CLUSTER_API_VERSION = '2026-06-01'
+# 2.13.0 lacks cloudVmClusters@2026-06-01 in its embedded schema.
+VM_CLUSTER_AZAPI_FLOOR = '2.14.0'
 
 # Optional settings in the order they are written to tfvars. Unset ones are left
 # out, so the module passes null and azapi drops them from the request.
@@ -167,6 +180,8 @@ def _azure_na_defaults(d, anchor_names, vnet_names):
     mn = d.get('module_name') or 'azure_netanchor'
     existing_ra = (d.get('existing_resource_anchor_id') or '').strip()
     existing_vnet = (d.get('existing_vnet_name') or '').strip()
+    if d.get('anchor_mode') == 'existing':
+        anchor_names, vnet_names = [], []
     ra_ref = d.get('resource_anchor_ref') or ''
     if ra_ref not in anchor_names:
         ra_ref = '' if existing_ra or not anchor_names else anchor_names[0]
@@ -181,6 +196,8 @@ def _azure_na_defaults(d, anchor_names, vnet_names):
             rules.append({'domain_names': domains, 'forwarding_ip_address': ip})
     return {
         'module_name':                 mn,
+        'anchor_mode':                 d.get('anchor_mode', 'create'),
+        'existing_network_anchor_id':  (d.get('existing_network_anchor_id') or '').strip(),
         'name':                        (d.get('name') or '').strip(),
         'resource_anchor_ref':         ra_ref,
         'existing_resource_anchor_id': '' if ra_ref else existing_ra,
@@ -211,6 +228,12 @@ def _azure_na_tfvars_entry(na):
     longest key. The forwarding rules are multi-line, so they go last, after a
     blank line, and never shift the column of the run above.
     """
+    if na['anchor_mode'] == 'existing':
+        run = [('network_anchor_id', _hcl_str(na['existing_network_anchor_id'])),
+               ('resource_anchor_id', _hcl_str(na['existing_resource_anchor_id']))]
+        width = max(len(k) for k, _ in run)
+        return '\n'.join([f'{na["module_name"]} = {{'] +
+                         [f'  {k.ljust(width)} = {v}' for k, v in run] + ['}'])
     run = [('name', _hcl_str(na['name']))]
     if na['existing_resource_anchor_id']:
         run.append(('resource_anchor_id', _hcl_str(na['existing_resource_anchor_id'])))
@@ -369,6 +392,11 @@ def _azure_cluster_ctx(d):
     dbs = d.get('db_servers') or []
     db_servers_tf = '[' + ', '.join(f'"{s}"' for s in dbs) + ']'
     return dict(
+        use_network_anchor=d.get('use_network_anchor', False),
+        network_anchor_id=d.get('network_anchor_id', ''),
+        resource_anchor_id=d.get('resource_anchor_id', ''),
+        api_version=VM_CLUSTER_API_VERSION,
+        azapi_floor=VM_CLUSTER_AZAPI_FLOOR,
         resource_group_name=d['resource_group_name'],
         location=d['location'],
         name=d['name'],
@@ -455,6 +483,8 @@ def azure_infra_tfvars(mn, d):
 
 
 def azure_cluster_main(mn, d):
+    if d.get('use_network_anchor'):
+        return render_tf('azure_vm_cluster/azapi_main.tf.j2', module_name=mn, **_azure_cluster_ctx(d))
     return render_tf('azure_vm_cluster/main.tf.j2', module_name=mn, **_azure_cluster_ctx(d))
 
 
@@ -462,8 +492,9 @@ def azure_cluster_vars(mn, d):
     return render_tf('azure_vm_cluster/variables.tf.j2', module_name=mn, **_azure_cluster_ctx(d))
 
 
-def azure_cluster_outputs(mn):
-    return render_tf('azure_vm_cluster/outputs.tf.j2', module_name=mn)
+def azure_cluster_outputs(mn, d=None):
+    return render_tf('azure_vm_cluster/outputs.tf.j2', module_name=mn,
+                     use_network_anchor=bool((d or {}).get('use_network_anchor')))
 
 
 def azure_cluster_tfvars(mn, d):
@@ -490,7 +521,8 @@ def azure_build_root_main(vnets, infras, clusters, anchors=None, iac_tool='terra
                           network_anchors=None):
     return render_tf('azure_root/main.tf.j2', vnets=vnets, infras=infras, clusters=clusters,
                      anchors=anchors or [], adbs=adbs or [], iac_tool=iac_tool,
-                     network_anchors=network_anchors or [], azapi_floor=AZAPI_FLOOR)
+                     network_anchors=network_anchors or [],
+                     azapi_floor=VM_CLUSTER_AZAPI_FLOOR if any(c.get('use_network_anchor') for c in clusters) else AZAPI_FLOOR)
 
 
 def azure_build_root_vars(vnets, infras, clusters, subscription_id='', resource_group_name='', location='eastus', tags=None, anchors=None, adbs=None,
@@ -519,6 +551,7 @@ def azure_build_root_tfvars(vnets, infras, clusters, subscription_id='', resourc
 
 
 def generate_azure_tf(data: dict) -> dict:
+    data = deployment_defaults(configured_payload(data))
     raw_anchors  = data.get('azure_resource_anchors', [])
     raw_vnets    = data.get('azure_vnets', [])
     raw_infras   = data.get('azure_infras', [])
@@ -549,6 +582,12 @@ def generate_azure_tf(data: dict) -> dict:
     network_anchors = [_azure_na_defaults(n, [a['module_name'] for a in anchors],
                                           [v['module_name'] for v in vnets]) for n in raw_nas]
 
+    for cl in clusters:
+        if cl['infra_ref'] not in {i['module_name'] for i in infras}:
+            cl['infra_ref'] = ''
+        if cl['vnet_ref'] not in vnet_names:
+            cl['vnet_ref'] = ''
+
     subscription_id     = data.get('subscription_id', '')
     resource_group_name = data.get('resource_group_name', '')
     location            = data.get('location', 'eastus')
@@ -567,16 +606,28 @@ def generate_azure_tf(data: dict) -> dict:
         files[f'modules/{mn}/outputs.tf']   = azure_anchor_outputs(mn)
     for na in network_anchors:
         mn = na['module_name']
+        if na['anchor_mode'] == 'existing':
+            for filename in ('main.tf', 'variables.tf', 'outputs.tf'):
+                files[f'modules/{mn}/{filename}'] = render_tf(f'azure_network_anchor_existing/{filename}.j2')
+            continue
         files[f'modules/{mn}/main.tf']      = azure_na_main(mn)
         files[f'modules/{mn}/variables.tf'] = azure_na_vars(mn)
         files[f'modules/{mn}/outputs.tf']   = azure_na_outputs(mn)
     for net in vnets:
         mn = net['module_name']
+        if net['vnet_mode'] == 'existing':
+            for filename in ('main.tf', 'variables.tf', 'outputs.tf'):
+                files[f'modules/{mn}/{filename}'] = render_tf(f'azure_existing_vnet/{filename}.j2')
+            continue
         files[f'modules/{mn}/main.tf']          = azure_vnet_main(mn, net)
         files[f'modules/{mn}/variables.tf']     = azure_vnet_vars(mn, net)
         files[f'modules/{mn}/outputs.tf']       = azure_vnet_outputs(mn)
     for inf in infras:
         mn = inf['module_name']
+        if inf['infra_mode'] == 'existing':
+            for filename in ('main.tf', 'variables.tf', 'outputs.tf'):
+                files[f'modules/{mn}/{filename}'] = render_tf(f'azure_existing_infra/{filename}.j2')
+            continue
         files[f'modules/{mn}/main.tf']          = azure_infra_main(mn, inf)
         files[f'modules/{mn}/variables.tf']     = azure_infra_vars(mn, inf)
         files[f'modules/{mn}/outputs.tf']       = azure_infra_outputs(mn)
@@ -584,12 +635,14 @@ def generate_azure_tf(data: dict) -> dict:
         mn = cl['module_name']
         files[f'modules/{mn}/main.tf']          = azure_cluster_main(mn, cl)
         files[f'modules/{mn}/variables.tf']     = azure_cluster_vars(mn, cl)
-        files[f'modules/{mn}/outputs.tf']       = azure_cluster_outputs(mn)
+        files[f'modules/{mn}/outputs.tf']       = azure_cluster_outputs(mn, cl)
     for adb in adbs:
         mn = adb['module_name']
         files[f'modules/{mn}/main.tf']          = azure_adb_main(mn, adb)
         files[f'modules/{mn}/variables.tf']     = azure_adb_vars(mn, adb)
         files[f'modules/{mn}/outputs.tf']       = azure_adb_outputs(mn)
+
+    files['terraform.auto.tfvars'] = comment_tfvars_samples(files['terraform.auto.tfvars'], data)
 
     files.update(generate_oci_dg_tf({
         'dg_multi_az':     data.get('azure_dg_multi_az', []),
