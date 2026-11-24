@@ -1,0 +1,187 @@
+terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws", version = ">= 6.68.0" }
+  }
+}
+
+data "aws_caller_identity" "current" {}
+
+data "aws_odb_network" "selected" {
+  region = var.region
+  id     = reverse(split("/", var.odb_network_id))[0]
+  lifecycle {
+    postcondition {
+      condition     = split(":", self.arn)[4] == data.aws_caller_identity.current.account_id
+      error_message = "The transit VPC must be provisioned in the ODB network owner account."
+    }
+    postcondition {
+      condition     = toset(var.config.odb_cidrs) == toset(compact([self.client_subnet_cidr, self.backup_subnet_cidr]))
+      error_message = "ODB CIDRs must match the selected network's client and backup subnet CIDRs."
+    }
+  }
+}
+
+data "aws_vpc" "existing" {
+  count  = var.config.vpc_mode == "existing" ? 1 : 0
+  region = var.region
+  id     = var.config.vpc_id
+  lifecycle {
+    postcondition {
+      condition     = self.owner_id == data.aws_caller_identity.current.account_id
+      error_message = "The existing transit VPC must belong to the current ODB network owner account."
+    }
+  }
+}
+
+data "aws_subnet" "existing" {
+  count  = var.config.vpc_mode == "existing" ? 1 : 0
+  region = var.region
+  id     = var.config.subnet_id
+  lifecycle {
+    postcondition {
+      condition     = self.vpc_id == var.config.vpc_id && self.availability_zone_id == data.aws_odb_network.selected.availability_zone_id
+      error_message = "Use one attachment subnet in the selected transit VPC and the same AZ ID as the ODB network."
+    }
+  }
+}
+
+resource "aws_vpc" "transit" {
+  count                = var.config.vpc_mode == "create" ? 1 : 0
+  region               = var.region
+  cidr_block           = var.config.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags                 = merge(var.tags, { Name = var.name })
+  depends_on           = [data.aws_odb_network.selected]
+}
+
+resource "aws_subnet" "attachment" {
+  count                   = var.config.vpc_mode == "create" ? 1 : 0
+  region                  = var.region
+  vpc_id                  = aws_vpc.transit[0].id
+  cidr_block              = var.config.subnet_cidr
+  availability_zone_id    = data.aws_odb_network.selected.availability_zone_id
+  map_public_ip_on_launch = false
+  tags                    = merge(var.tags, { Name = "${var.name}-tgw" })
+}
+
+locals {
+  vpc_id    = var.config.vpc_mode == "create" ? aws_vpc.transit[0].id : data.aws_vpc.existing[0].id
+  subnet_id = var.config.vpc_mode == "create" ? aws_subnet.attachment[0].id : data.aws_subnet.existing[0].id
+  application_routes = var.config.peering_mode == "existing" || var.config.register_peer_cidrs ? {
+    for pair in setproduct(toset(var.config.application_route_table_ids), toset(var.config.odb_cidrs)) :
+    "${pair[0]}|${pair[1]}" => { route_table_id = pair[0], cidr = pair[1] }
+  } : {}
+}
+
+resource "aws_route_table" "transit" {
+  count  = var.config.vpc_mode == "create" ? 1 : 0
+  region = var.region
+  vpc_id = local.vpc_id
+  tags   = merge(var.tags, { Name = "${var.name}-tgw" })
+}
+
+resource "aws_route_table_association" "transit" {
+  count          = var.config.vpc_mode == "create" ? 1 : 0
+  region         = var.region
+  subnet_id      = local.subnet_id
+  route_table_id = aws_route_table.transit[0].id
+}
+
+data "aws_route_table" "existing" {
+  count     = var.config.vpc_mode == "existing" ? 1 : 0
+  region    = var.region
+  subnet_id = local.subnet_id
+}
+
+locals {
+  route_table_id = var.config.vpc_mode == "create" ? aws_route_table.transit[0].id : data.aws_route_table.existing[0].id
+}
+
+resource "aws_ec2_transit_gateway_vpc_attachment" "transit" {
+  count                                           = var.config.attachment_mode == "create" ? 1 : 0
+  region                                          = var.region
+  transit_gateway_id                              = var.config.transit_gateway_id
+  vpc_id                                          = local.vpc_id
+  subnet_ids                                      = [local.subnet_id]
+  transit_gateway_default_route_table_association = !var.config.manage_tgw_routes
+  transit_gateway_default_route_table_propagation = false
+  tags                                            = merge(var.tags, { Name = var.name })
+}
+
+data "aws_ec2_transit_gateway_vpc_attachment" "existing" {
+  count  = var.config.attachment_mode == "existing" ? 1 : 0
+  region = var.region
+  id     = var.config.attachment_id
+  lifecycle {
+    postcondition {
+      condition     = self.vpc_id == local.vpc_id && self.transit_gateway_id == var.config.transit_gateway_id && toset(self.subnet_ids) == toset([local.subnet_id])
+      error_message = "The existing attachment must connect this VPC to the selected TGW using only the matching-AZ attachment subnet."
+    }
+  }
+}
+
+locals {
+  attachment_id = var.config.attachment_mode == "create" ? aws_ec2_transit_gateway_vpc_attachment.transit[0].id : data.aws_ec2_transit_gateway_vpc_attachment.existing[0].id
+}
+
+resource "aws_ec2_transit_gateway_route_table_association" "transit" {
+  count                          = var.config.manage_tgw_routes && var.config.attachment_mode == "create" ? 1 : 0
+  region                         = var.region
+  transit_gateway_attachment_id  = local.attachment_id
+  transit_gateway_route_table_id = var.config.transit_gateway_route_table_id
+}
+
+resource "aws_odb_network_peering_connection" "transit" {
+  count           = var.config.peering_mode == "create" ? 1 : 0
+  region          = var.region
+  display_name    = var.name
+  odb_network_id  = data.aws_odb_network.selected.id
+  peer_network_id = local.vpc_id
+  # Update-only: leave false on the first apply; enable after attachment/peering exist.
+  peer_network_cidrs = var.config.register_peer_cidrs ? var.config.client_cidrs : null
+  tags               = var.tags
+  depends_on         = [aws_ec2_transit_gateway_vpc_attachment.transit, data.aws_ec2_transit_gateway_vpc_attachment.existing]
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+data "aws_odb_network_peering_connection" "existing" {
+  count  = var.config.peering_mode == "existing" ? 1 : 0
+  region = var.region
+  id     = var.config.peering_id
+  lifecycle {
+    postcondition {
+      condition     = self.odb_network_arn == data.aws_odb_network.selected.arn && reverse(split("/", self.peer_network_arn))[0] == local.vpc_id
+      error_message = "The existing ODB peering must connect the selected ODB network to this transit VPC."
+    }
+  }
+}
+
+resource "aws_route" "transit_to_odb" {
+  for_each               = var.config.manage_vpc_routes ? toset(var.config.odb_cidrs) : toset([])
+  region                 = var.region
+  route_table_id         = local.route_table_id
+  destination_cidr_block = each.value
+  odb_network_arn        = data.aws_odb_network.selected.arn
+  depends_on             = [aws_odb_network_peering_connection.transit, data.aws_odb_network_peering_connection.existing]
+}
+
+resource "aws_ec2_transit_gateway_route" "to_odb" {
+  for_each                       = var.config.manage_tgw_routes ? toset(var.config.odb_cidrs) : toset([])
+  region                         = var.region
+  destination_cidr_block         = each.value
+  transit_gateway_route_table_id = var.config.transit_gateway_route_table_id
+  transit_gateway_attachment_id  = local.attachment_id
+  depends_on                     = [aws_route.transit_to_odb, aws_odb_network_peering_connection.transit, data.aws_odb_network_peering_connection.existing]
+}
+
+resource "aws_route" "application_to_odb" {
+  for_each               = local.application_routes
+  region                 = var.region
+  route_table_id         = each.value.route_table_id
+  destination_cidr_block = each.value.cidr
+  transit_gateway_id     = var.config.transit_gateway_id
+  depends_on             = [aws_ec2_transit_gateway_route.to_odb, aws_route.transit_to_odb, aws_odb_network_peering_connection.transit, data.aws_odb_network_peering_connection.existing]
+}

@@ -91,7 +91,7 @@ const document={getElementById:key=>elements[key]||null};
 const fv=key=>elements[key]?.value||'';
 const esc=s=>String(s).replace(/"/g,'&quot;');
 const soleServerType=()=>'', shapeRequiresServerTypes=()=>false, normaliseServerTypes=()=>{};
-const shapeSelectHTML=()=>'', serverTypeSelectHTML=()=>'', azureRegionSelectHTML=()=>'', azureZoneOptions=()=>'';
+const shapeSelectHTML=()=>'', serverTypeSelectHTML=()=>'', azureRegionSelectHTML=()=>'', azureZoneOptions=()=>'', azureZoneHint=()=>'';
 '''
         checks = '''
 azureInfras.push(defAzureInfra(0));

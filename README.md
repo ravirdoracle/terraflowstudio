@@ -6,9 +6,12 @@ A Python/Flask web app that generates production-ready, modular Terraform/OpenTo
 
 ---
 
+Latest source release: [v2026.11.24](RELEASE_NOTES_v2026.11.24.md).
+
 ## Features
 
 - **Multi-cloud** — AWS, GCP, Azure, and OCI Data Guard pages; cloud switcher in header
+- **AWS Transit VPC** - create or reuse a transit VPC with an existing Transit Gateway, optional route management, existing peering/attachment IDs, same-AZ checks, and staged peered-CIDR guidance.
 - **Multi-instance** — add as many networks, infras, peerings, and clusters as needed; all auto-wired in root `main.tf`
 - **Existing Azure resources** - reuse Network Anchors, Exadata infrastructure, and client VNets/subnets by Azure resource ID; VM clusters reference them without creating or importing them.
 - **Import guidance** — generated `IMPORT.md` lists resource address templates, provider import documentation, and state import/review steps for each Terraform root
@@ -510,9 +513,9 @@ odb_terraform_app/
 
 | AWS Region | Location | AZ IDs |
 |------------|----------|--------|
-| `us-east-1` | N. Virginia | `use1-az4`, `use1-az6` |
+| `us-east-1` | N. Virginia | `use1-az4`, `use1-az6`, `use1-az2`, `use1-az1` |
 | `us-east-2` | Ohio | `use2-az1`, `use2-az2` |
-| `us-west-2` | Oregon | `usw2-az3`, `usw2-az4` |
+| `us-west-2` | Oregon | `usw2-az3`, `usw2-az4`, `usw2-az2` |
 | `eu-central-1` | Frankfurt | `euc1-az1`, `euc1-az2` |
 | `ap-northeast-1` | Tokyo | `apne1-az1`, `apne1-az4` |
 
@@ -523,8 +526,8 @@ Source: [Oracle Regional Availability for ODB@AWS](https://docs.oracle.com/en-us
 | OCI Region | Location |
 |------------|----------|
 | `us-ashburn-1` | US East (Ashburn) |
-| `us-chicago-1` | US Central (Columbus / Ohio) |
-| `us-portland-1` | US West (Portland) |
+| `us-columbus-1` | US East (Columbus) |
+| `us-boardman-1` | US West (Boardman) |
 | `eu-frankfurt-1` | EU (Frankfurt) |
 | `ap-singapore-1` | Asia Pacific (Singapore) |
 | `ap-tokyo-1` | Asia Pacific (Tokyo) |
@@ -545,3 +548,36 @@ Source: [Oracle Regional Availability for ODB@AWS](https://docs.oracle.com/en-us
 | `southamerica-east1` | São Paulo |
 
 Source: [Oracle Regional Availability for AI DB@GCP](https://docs.oracle.com/en-us/iaas/Content/database-at-gcp/get-started-regions.htm)
+
+### Region catalogue verification (2026-11-23)
+
+The editable catalogues in `config/*_regions.json` were checked against Oracle's
+[AWS](https://docs.oracle.com/en-us/iaas/Content/database-at-aws/oaaws-regions.htm),
+[Azure](https://docs.oracle.com/en-us/iaas/Content/database-at-azure/oaa_regions.htm), and
+[Google Cloud](https://docs.oracle.com/en-us/iaas/Content/database-at-gcp/get-started-regions.htm)
+regional availability tables: 22 AWS, 33 Azure, and 17 Google Cloud live regions.
+These placements cover Exadata Dedicated; other services can have narrower availability
+(for example, Turin and Querétaro currently list Exadata Dedicated only).
+
+Azure `physical_zones` stores Oracle's exact placement names. `planned_zones` keeps
+Italy North's planned third placement separate. `zones` lists logical input candidates
+1–3, not confirmed availability for a subscription. Map a supported physical zone to
+its logical zone using your Azure subscription before selecting a value; see
+[Azure zone mapping](https://learn.microsoft.com/azure/availability-zones/az-overview).
+Regional placements without an `-az` suffix do not establish logical zone 1.
+
+### Exadata shape catalogue verification (2026-11-23)
+
+The AWS, Azure and Google Cloud Exadata Dedicated catalogues now list X9M, X11M
+and X11MV, based on Oracle's current provisioning guides:
+[AWS](https://docs.oracle.com/en-us/iaas/Content/database-at-aws-exadata-awscr/awscr-create-exadata-infrastructure.html),
+[Azure](https://docs.oracle.com/en-us/iaas/Content/database-at-azure/azucr-create-exadata-infrastructure.html),
+[Google Cloud](https://docs.oracle.com/en-us/iaas/Content/database-at-gcp/gcpcr-create-exadata-infrastructure.html).
+Availability depends on region, zone and account; this is a documentation catalogue,
+not an account-specific discovery result. Existing defaults remain unchanged.
+
+X10M is no longer offered for new selections because these multicloud guides do
+not list it. Saved shapes remain visible even when absent from the catalogue.
+For AWS and Azure, X9M uses provider-selected server types; the documented newer
+server pairs are X11M / X11M-HC and X11MV / X11MV-HC. Unconfirmed EF storage choices
+have been removed. Google Terraform server versions remain computed outputs.

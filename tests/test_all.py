@@ -2133,7 +2133,7 @@ class TestValidationFieldMap(unittest.TestCase):
     CARDS = {
         'aws.html': {'an': 'awsNetCardHTML', 'ai': 'awsInfraCardHTML', 'ap': 'awsPeeringCardHTML',
                      'ac': 'awsClusterCardHTML', 'av': 'awsAvmcCardHTML', 'ad': 'awsAdbCardHTML',
-                     'rs': 'awsRamShareCardHTML', 'kk': 'awsKmsKeyCardHTML'},
+                     'rs': 'awsRamShareCardHTML', 'kk': 'awsKmsKeyCardHTML', 'tv': 'awsTransitCardHTML'},
         'gcp.html': {'gn': 'gcpNetCardHTML', 'gi': 'gcpInfraCardHTML', 'gc': 'gcpClusterCardHTML',
                      'ga': 'gcpAdbCardHTML', 'gk': 'gcpKmsCardHTML',
                      'gv': 'gcpXsVaultCardHTML', 'gx': 'gcpXsClusterCardHTML'},
@@ -2202,7 +2202,10 @@ class TestValidationFieldMap(unittest.TestCase):
         start = src.find('function %s(' % card_fn)
         self.assertGreater(start, 0, '%s: %s not found' % (page, card_fn))
         body = src[start:src.find('\nfunction ', start + 10)]
-        return set(re.findall(r'\$\{p\}([A-Za-z0-9_]+)', body))
+        ids = set(re.findall(r'\$\{p\}([A-Za-z0-9_]+)', body))
+        # Transit cards build inputs with small helpers taking a literal suffix.
+        ids.update(re.findall(r"\b(?:text|select|toggle)\('([A-Za-z0-9_]+)'", body))
+        return ids
 
     def test_every_mapped_input_exists_on_the_card(self):
         for page, cards in self.CARDS.items():

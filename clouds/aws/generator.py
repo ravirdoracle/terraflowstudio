@@ -4,6 +4,7 @@ import json
 import datetime
 import regions
 import shapes
+from clouds.aws.transit import add_transit_files, transit_payload
 import os
 
 from core.helpers import make_renderer
@@ -864,6 +865,8 @@ def _cfn_str(v) -> str:
 
 
 def generate_cfn(data: dict) -> str:
+    if data.get('aws_transit_vpcs'):
+        raise ValueError('Transit VPC generation supports Terraform and OpenTofu. Select one before exporting.')
     raw_nets     = data.get('aws_networks', [])
     raw_infras   = data.get('aws_infras', [])
     raw_peerings = data.get('aws_peerings', [])
@@ -1037,6 +1040,7 @@ def generate_cfn(data: dict) -> str:
 # ── AWS Terraform generator ───────────────────────────────────────────────────
 
 def generate_aws_tf(data: dict) -> dict:
+    data = transit_payload(data)
     raw_nets     = data.get('aws_networks', [])
     raw_infras   = data.get('aws_infras', [])
     raw_peerings = data.get('aws_peerings', [])
@@ -1183,5 +1187,6 @@ def generate_aws_tf(data: dict) -> dict:
             files[f'modules/{mn_p}/outputs.tf']       = oci_pdb_outputs(mn_p)
             files[f'modules/{mn_p}/terraform.tfvars'] = oci_pdb_tfvars(mn_p, db, mn_c)
     files.update(generate_oci_dg_tf(data))
+    add_transit_files(files, data, all_networks, _network_id_expr(external_networks), render_tf)
     return files
 

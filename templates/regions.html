@@ -170,7 +170,7 @@ function noun(){ return cat().noun; }                 // 'region' | 'shape'
 // Fields rendered as a list of chips rather than a text box. Regions keep their
 // zones; shapes carry the server-model lists.
 function listFields(){
-  if(entriesKey()==='regions') return ['zones'];
+  if(entriesKey()==='regions') return (spec && spec.list_fields) || ['zones'];
   return (spec && spec.list_fields) || [];
 }
 function boolFields(){ return (spec && spec.bool_fields) || []; }
@@ -250,7 +250,7 @@ function render(){
 function noteHTML(){
   if(entriesKey()==='regions'){
     return spec.zones_are_region_scoped
-      ? 'Zones on this cloud are <b>numbered per region</b> &mdash; <code>1</code> in one region is unrelated to <code>1</code> in another, so the same number may repeat across rows.'
+      ? 'Azure zones are <b>logical input candidates, not a subscription availability guarantee</b>. Map Oracle physical_zones to logical numbers for your subscription; planned_zones are unavailable. Logical zones are <b>numbered per region</b> &mdash; <code>1</code> in one region is unrelated to <code>1</code> in another, so the same number may repeat across rows.'
       : 'Zone identifiers on this cloud are <b>globally unique</b>. Reusing one across two regions is rejected on save &mdash; it would make the zone&nbsp;&rarr;&nbsp;region lookup pick one at random.';
   }
   if(!listFields().length){

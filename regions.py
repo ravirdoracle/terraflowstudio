@@ -25,7 +25,7 @@ CORE_FIELDS = ('region', 'label', 'zones', 'status')
 OPTIONAL_FIELDS = {
     'aws':   ('oci_label', 'oci_region'),
     'gcp':   ('oci_label', 'oci_region'),
-    'azure': ('group',),
+    'azure': ('group', 'physical_zones', 'planned_zones', 'oci_label', 'oci_region'),
 }
 
 _cache = {}
@@ -56,6 +56,10 @@ def _validate(cloud, doc):
         if entry['status'] not in ('live', 'planned'):
             raise RegionConfigError(
                 f'{where}: status must be "live" or "planned", got "{entry["status"]}"')
+        for metadata in ('physical_zones', 'planned_zones'):
+            if metadata in entry and (not isinstance(entry[metadata], list) or
+                                      not all(isinstance(z, str) for z in entry[metadata])):
+                raise RegionConfigError(f'{where}: "{metadata}" must be a list of strings')
         if not isinstance(entry['zones'], list):
             raise RegionConfigError(f'{where}: "zones" must be a list')
         # AWS AZ IDs and GCP zones are globally unique, so a duplicate means a
@@ -97,6 +101,7 @@ def field_spec(cloud):
         'cloud': cloud,
         'core': list(CORE_FIELDS),
         'optional': list(OPTIONAL_FIELDS.get(cloud, ())),
+        'list_fields': ['zones', 'physical_zones', 'planned_zones'],
         # Azure numbers its zones per region, so '1' in eastus is unrelated to
         # '1' in uksouth and the editor must not warn about the repetition.
         'zones_are_region_scoped': bool(load(cloud).get('zones_are_region_scoped')),

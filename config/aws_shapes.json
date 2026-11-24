@@ -1,31 +1,22 @@
 {
   "_comment": [
-    "Oracle AI Database@AWS Exadata shape catalogue. Single source of truth for the",
-    "shape, database_server_type and storage_server_type dropdowns on the AWS page.",
-    "",
-    "Edit this file, or use /regions, to add a shape or a server type — no code",
-    "change needed. A bad edit is rejected on save, so the file on disk is never",
-    "left in a state that would empty the dropdowns.",
-    "",
-    "Fields per entry:",
-    "  shape                  aws_odb_cloud_exadata_infrastructure.shape. Unique.",
-    "  label                  Human name shown in the dropdown.",
-    "  status                 live | planned. Planned shapes are shown greyed out.",
-    "  database_server_types  Values offered for database_server_type.",
-    "  storage_server_types   Values offered for storage_server_type. HC = High",
-    "                         Capacity, EF = Extreme Flash.",
-    "  server_types_required  AWS documents both server types as mandatory for",
-    "                         Exadata.X11M. The card marks them required and",
-    "                         /api/validate rejects a blank one.",
-    "",
-    "AWS recommends the ListDbSystemShapes API for the authoritative list of server",
-    "models available in a given region."
+    "Oracle AI Database@AWS Exadata Dedicated shape catalogue.",
+    "Verified against source_url on 2026-11-23; available shapes vary by region, zone and account.",
+    "Documented models are Exadata.X9M, Exadata.X11M and Exadata.X11MV.",
+    "X10M is not documented for these multicloud offerings; it is not a planned launch.",
+    "Saved shapes outside this catalogue remain visible as not in catalogue.",
+    "Edit this file or use the shape catalogue editor at /regions.",
+    "X9M server-type selectors are disabled in the documented console flow; leave lists empty for provider defaults.",
+    "X11M uses X11M / X11M-HC; X11MV uses X11MV / X11MV-HC.",
+    "No EF storage variant is confirmed by the multicloud provisioning guide.",
+    "server_types_required retains the existing X11M requirement; no new provider requirement is inferred for X11MV."
   ],
   "default_shape": "Exadata.X11M",
+  "source_url": "https://docs.oracle.com/en-us/iaas/Content/database-at-aws-exadata-awscr/awscr-create-exadata-infrastructure.html",
+  "verified_on": "2026-11-23",
   "shapes": [
-    { "shape": "Exadata.X9M",   "label": "Exadata X9M",   "status": "live", "database_server_types": ["X9M"],   "storage_server_types": ["X9M-HC", "X9M-EF"],   "server_types_required": false },
-    { "shape": "Exadata.X10M",  "label": "Exadata X10M",  "status": "live", "database_server_types": ["X10M"],  "storage_server_types": ["X10M-HC", "X10M-EF"], "server_types_required": false },
-    { "shape": "Exadata.X11M",  "label": "Exadata X11M",  "status": "live", "database_server_types": ["X11M"],  "storage_server_types": ["X11M-HC", "X11M-EF"], "server_types_required": true },
-    { "shape": "Exadata.X11MV", "label": "Exadata X11MV", "status": "live", "database_server_types": ["X11MV"], "storage_server_types": ["X11MV-HC"],           "server_types_required": false }
+    { "shape": "Exadata.X9M",   "label": "Exadata X9M",   "status": "live", "database_server_types": [],        "storage_server_types": [],           "server_types_required": false },
+    { "shape": "Exadata.X11M",  "label": "Exadata X11M",  "status": "live", "database_server_types": ["X11M"],  "storage_server_types": ["X11M-HC"],  "server_types_required": true },
+    { "shape": "Exadata.X11MV", "label": "Exadata X11MV", "status": "live", "database_server_types": ["X11MV"], "storage_server_types": ["X11MV-HC"], "server_types_required": false }
   ]
 }

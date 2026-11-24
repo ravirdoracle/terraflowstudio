@@ -1,0 +1,15 @@
+output "vpc_id" {
+  value = local.vpc_id
+}
+output "subnet_id" {
+  value = local.subnet_id
+}
+output "route_table_id" {
+  value = local.route_table_id
+}
+output "attachment_id" {
+  value = local.attachment_id
+}
+output "peering_connection_id" {
+  value = var.config.peering_mode == "create" ? aws_odb_network_peering_connection.transit[0].id : data.aws_odb_network_peering_connection.existing[0].id
+}

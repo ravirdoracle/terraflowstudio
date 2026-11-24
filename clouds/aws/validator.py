@@ -11,6 +11,7 @@ import json
 import re
 
 import regions
+from clouds.aws.transit import validate_transits, transit_payload
 
 #: Endpoint policy -> the access flag that has to be on for it to do anything.
 _POLICY_PAIRS = (
@@ -107,6 +108,7 @@ def _require_server_types(cloud, inf, mn, _err):
 
 
 def _validate_aws(data, errors):
+    data = transit_payload(data)
     def _err(mn, f, m): errors.setdefault(mn, {})[f] = m
     tab = data.get('tab', 0)
 
@@ -126,6 +128,9 @@ def _validate_aws(data, errors):
             if not re.match(r'^\d+\.\d+\.\d+\.\d+/\d+$', net.get('backup_subnet_cidr', '')):
                 _err(mn, 'backup_subnet_cidr', 'Valid CIDR required')
             _check_network_service_access(net, mn, _err)
+
+    elif tab == 9:  # Transit VPC
+        validate_transits(data, _err)
 
     elif tab == 1:  # Exadata Infras
         for inf in data.get('aws_infras', [data.get('module_1', {})]):

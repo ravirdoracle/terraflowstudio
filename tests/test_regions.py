@@ -78,41 +78,27 @@ class TestGloballyUniqueZones(unittest.TestCase):
 
     def test_azure_zone_map_keeps_regions_separate(self):
         zmap = regions.zone_map('azure')
-        self.assertEqual(zmap['eastus'], ['1', '3'])
-        self.assertEqual(zmap['uksouth'], ['1', '2'])
+        self.assertEqual(zmap['eastus'], ['1', '2', '3'])
+        self.assertEqual(zmap['uksouth'], ['1', '2', '3'])
 
 
 class TestOciRegionMapping(unittest.TestCase):
-    """The catalogues replaced hardcoded dicts; behaviour must be unchanged."""
+    """OCI provider pairings follow the Oracle regional availability tables."""
 
-    OLD_AWS = {
-        'us-east-1': 'us-ashburn-1',        'us-east-2': 'us-chicago-1',
-        'us-west-1': 'us-sanjose-1',        'us-west-2': 'us-portland-1',
-        'eu-west-1': 'eu-frankfurt-1',      'eu-central-1': 'eu-frankfurt-1',
-        'ap-southeast-1': 'ap-singapore-1', 'ap-northeast-1': 'ap-tokyo-1',
-    }
-    OLD_GCP = {
-        'us-east4': 'us-ashburn-1',                  'us-central1': 'us-desmoines-1',
-        'us-west3': 'us-saltlake-2',                 'northamerica-northeast1': 'ca-montreal-1',
-        'northamerica-northeast2': 'ca-toronto-1',   'europe-west3': 'eu-frankfurt-1',
-        'europe-west2': 'uk-london-1',               'europe-west8': 'eu-milan-1',
-        'asia-south2': 'ap-delhi-1',                 'australia-southeast2': 'ap-melbourne-1',
-        'asia-south1': 'ap-mumbai-1',                'asia-northeast2': 'ap-osaka-1',
-        'australia-southeast1': 'ap-sydney-1',       'asia-northeast1': 'ap-tokyo-1',
-        'southamerica-east1': 'sa-saopaulo-1',
-    }
+    EXPECTED_AWS = {'ap-south-2': 'ap-hyderabad-1', 'ap-southeast-4': 'ap-melbourne-1', 'ap-south-1': 'ap-mumbai-1', 'ap-northeast-3': 'ap-osaka-1', 'ap-northeast-2': 'ap-seoul-1', 'ap-southeast-1': 'ap-singapore-1', 'ap-southeast-2': 'ap-sydney-1', 'ap-northeast-1': 'ap-tokyo-1', 'eu-central-1': 'eu-frankfurt-1', 'eu-west-1': 'eu-dublin-3', 'eu-west-2': 'uk-london-1', 'eu-south-1': 'eu-milan-1', 'eu-west-3': 'eu-paris-1', 'eu-south-2': 'eu-madrid-1', 'eu-north-1': 'eu-stockholm-1', 'eu-central-2': 'eu-zurich-1', 'sa-east-1': 'sa-vinhedo-1', 'ca-central-1': 'ca-montreal-1', 'us-east-1': 'us-ashburn-1', 'us-east-2': 'us-columbus-1', 'us-west-1': 'us-sanjose-1', 'us-west-2': 'us-boardman-1'}
+    EXPECTED_GCP = {'asia-south2': 'ap-delhi-1', 'australia-southeast2': 'ap-melbourne-1', 'asia-south1': 'ap-mumbai-1', 'asia-northeast2': 'ap-osaka-1', 'australia-southeast1': 'ap-sydney-1', 'asia-northeast1': 'ap-tokyo-1', 'europe-west3': 'eu-frankfurt-1', 'europe-west2': 'uk-london-1', 'europe-west8': 'eu-milan-1', 'europe-west12': 'eu-turin-1', 'northamerica-south1': 'mx-queretaro-1', 'southamerica-east1': 'sa-saopaulo-1', 'us-central1': 'us-desmoines-1', 'northamerica-northeast1': 'ca-montreal-1', 'us-east4': 'us-ashburn-1', 'us-west3': 'us-saltlake-2', 'northamerica-northeast2': 'ca-toronto-1'}
 
-    def test_aws_matches_previous_hardcoded_mapping(self):
+    def test_aws_matches_oracle_pairings(self):
         for r in regions.regions('aws'):
             code = r['region']
             self.assertEqual(aws_oci_region(code),
-                             self.OLD_AWS.get(code, 'us-ashburn-1'), code)
+                             self.EXPECTED_AWS[code], code)
 
-    def test_gcp_matches_previous_hardcoded_mapping(self):
+    def test_gcp_matches_oracle_pairings(self):
         for r in regions.regions('gcp'):
             code = r['region']
             self.assertEqual(gcp_oci_region(code),
-                             self.OLD_GCP.get(code, 'us-ashburn-1'), code)
+                             self.EXPECTED_GCP[code], code)
 
     def test_unknown_region_falls_back_to_default(self):
         self.assertEqual(aws_oci_region('no-such-region-1'), regions.default_oci_region('aws'))
@@ -302,7 +288,8 @@ class TestCatalogueWriter(RegionEditorBase):
         regions.save('aws', regions.load('aws'))
         after = self.read('aws')
         self.assertIn('_comment', after)
-        self.assertGreater(len(after['_comment']), 5)
+        self.assertTrue(after['_comment'])
+        self.assertEqual(after['verified_on'], '2026-11-23')
         self.assertEqual(after['default_oci_region'], 'us-ashburn-1')
 
         regions.save('azure', regions.load('azure'))
@@ -344,7 +331,8 @@ class TestRegionApi(RegionEditorBase):
         get = lambda c: self.client.get(f'/api/regions/{c}').get_json()['spec']
         self.assertEqual(get('aws')['optional'], ['oci_label', 'oci_region'])
         self.assertEqual(get('gcp')['optional'], ['oci_label', 'oci_region'])
-        self.assertEqual(get('azure')['optional'], ['group'])
+        self.assertEqual(get('azure')['optional'],
+                         ['group', 'physical_zones', 'planned_zones', 'oci_label', 'oci_region'])
         # Azure numbers zones per region, so the duplicate check is off there.
         self.assertTrue(get('azure')['zones_are_region_scoped'])
         self.assertFalse(get('aws')['zones_are_region_scoped'])
@@ -516,3 +504,51 @@ class TestAzMustBelongToRegion(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestOracleAvailabilityRefresh(unittest.TestCase):
+    def test_all_documented_regions_are_live(self):
+        for cloud, count in [('aws', 22), ('azure', 33), ('gcp', 17)]:
+            entries = regions.regions(cloud)
+            self.assertEqual(len(entries), count)
+            self.assertTrue(all(r['status'] == 'live' for r in entries))
+            self.assertEqual(regions.unmapped_oci_regions(cloud), [])
+
+    def test_aws_added_zones_and_live_regions(self):
+        zones = regions.zone_map('aws')
+        for region, additions in {
+            'us-east-1': ['use1-az1'], 'us-west-2': ['usw2-az2'],
+            'us-west-1': ['usw1-az1', 'usw1-az3'],
+            'eu-north-1': ['eun1-az1', 'eun1-az2'],
+            'ap-southeast-4': ['apse4-az3'], 'ap-northeast-3': ['apne3-az3'],
+            'ap-southeast-1': ['apse1-az2'], 'eu-south-1': ['eus1-az2'],
+            'eu-west-3': ['euw3-az1'], 'sa-east-1': ['sae1-az2'],
+        }.items():
+            for zone in additions:
+                self.assertIn(zone, zones[region])
+
+    def test_gcp_new_live_placements(self):
+        zones = regions.zone_map('gcp')
+        self.assertEqual(zones['europe-west12'], ['europe-west12-a-r1'])
+        self.assertEqual(zones['northamerica-south1'], ['northamerica-south1-b-r1'])
+        self.assertNotIn('europe-west6', zones)
+
+    def test_azure_physical_and_planned_zones_are_separate(self):
+        entries = {r['region']: r for r in regions.regions('azure')}
+        italy = entries['italynorth']
+        self.assertEqual(italy['physical_zones'], ['italynorth-az1', 'italynorth-az2'])
+        self.assertEqual(italy['planned_zones'], ['italynorth-az3'])
+        self.assertEqual(entries['canadaeast']['physical_zones'], ['canadaeast'])
+        self.assertEqual(entries['eastus']['physical_zones'], ['eastus-az1', 'eastus-az3'])
+        self.assertIn('physical_zones', regions.field_spec('azure')['list_fields'])
+        self.assertIn('planned_zones', regions.field_spec('azure')['list_fields'])
+        for r in entries.values():
+            self.assertFalse(set(r['physical_zones']) & set(r['planned_zones']))
+
+    def test_provenance_preserved_in_roundtrip(self):
+        for cloud in CLOUDS:
+            original = regions.load(cloud)
+            restored = json.loads(regions.dumps(cloud, original))
+            self.assertEqual(restored, original)
+            self.assertEqual(restored['verified_on'], '2026-11-23')
+            self.assertTrue(restored['source_url'].startswith('https://docs.oracle.com/'))

@@ -1,0 +1,36 @@
+# Oracle Database@AWS Transit VPC
+
+Topology: ODB network → ODB peering → transit VPC → existing Transit Gateway → application/on-premises networks.
+
+Run `{{ cli }} init -upgrade`, then `{{ cli }} plan` and review all changes before applying.
+The AWS provider must be at least 6.68.0. No TGW or application VPC is created by this module.
+
+## Ownership and routing
+
+- Use the ODB network owner account for the transit VPC. Its single TGW attachment subnet must use the ODB network's AZ ID; new subnets take that AZ ID automatically, and existing subnets/attachments are checked.
+- Reuse existing VPCs, ODB peerings and TGW attachments by ID where appropriate. Import already-existing routes before managing them with this configuration; see IMPORT.md and provider-specific composite import IDs.
+- Transit subnet route tables send the ODB client/backup CIDRs to the ODB network ARN. Optional application route-table IDs receive ODB routes through the TGW. For new peerings those application routes activate only in phase 2, after CIDR registration is enabled.
+- When `manage_tgw_routes` is enabled, the selected TGW route table gets ODB routes targeting the transit attachment. Only new attachments are associated automatically. For reused attachments, confirm their route-table association yourself.
+- For a shared TGW, disable `manage_tgw_routes` if the current account cannot manage its routing. Give the gateway owner the ODB CIDRs and transit attachment ID to configure the routes and association.
+- The TGW owner must accept cross-account attachments when automatic acceptance is disabled.
+- Application/on-premises TGW attachments, their route-table associations and the return routes to the client CIDRs must already exist. Ensure the routing table used by those attachments can reach the ODB CIDRs through this hub.
+
+## Register client CIDRs after the first apply
+
+AWS peered-CIDR registration requires the TGW attachment to exist. The provider treats these CIDRs as update-only, so `register_peer_cidrs` defaults to false.
+
+For a peering created here: apply the reviewed initial plan, wait for the attachment and peering to become available, then change `register_peer_cidrs = true` in `terraform.auto.tfvars` and review/apply again.
+
+For a peering managed elsewhere: keep `register_peer_cidrs = false`. Obtain its ID with `{{ cli }} output -json aws_transit_vpcs`, then explicitly update that peering's advertised client CIDRs through its owning configuration or the AWS CLI:
+
+```sh
+aws odb update-odb-peering-connection --odb-peering-connection-id '<ODB_PEERING_ID>' --peer-network-cidrs-to-be-added '<CLIENT_CIDR_1>' '<CLIENT_CIDR_2>' --region '<AWS_REGION>'
+```
+
+Use only your actual client CIDRs. Re-register the CIDRs after reattaching the TGW. Review both Terraform plans and routing ownership when reusing resources.
+
+## Connectivity checks
+
+Use non-overlapping physical VPC, ODB and client address spaces. Advertised client prefixes may deliberately summarize those networks, including a supernet or default route; choose their scope explicitly and review the resulting reachability. Configure Route 53 Resolver forwarding to the ODB DNS listener, application security groups and network ACLs separately; those are not created here. Verify database name resolution and the intended application/database ports before using the connection.
+
+References: [AWS ODB transit gateway configuration](https://docs.aws.amazon.com/odb/latest/UserGuide/configuring.html#configure-tgw), [AWS route resource](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/route), [ODB peering provider lifecycle](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/odb_network_peering_connection).

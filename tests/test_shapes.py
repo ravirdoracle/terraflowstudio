@@ -50,12 +50,18 @@ class TestCataloguesLoad(unittest.TestCase):
         with self.assertRaises(ShapeConfigError):
             shapes.load('nope')
 
-    # The three pages used to carry three hand-maintained <option> lists that had
-    # drifted: AWS and GCP offered X10M, Azure did not. One catalogue per cloud
-    # does not force them to agree, but it does make a difference visible.
-    def test_x10m_is_now_present_for_every_cloud(self):
+    def test_documented_multicloud_models(self):
         for cloud in shapes.CLOUDS:
-            self.assertIn('Exadata.X10M', shapes.names(cloud), cloud)
+            self.assertEqual(shapes.names(cloud),
+                             ['Exadata.X9M', 'Exadata.X11M', 'Exadata.X11MV'], cloud)
+            self.assertTrue(all(s['status'] == 'live' for s in shapes.shapes(cloud)))
+
+    def test_source_and_verification_survive_serialization(self):
+        for cloud in shapes.CLOUDS:
+            doc = shapes.load(cloud)
+            self.assertEqual(json.loads(shapes.dumps(cloud, doc)), doc)
+            self.assertEqual(doc['verified_on'], '2026-11-23')
+            self.assertTrue(doc['source_url'].startswith('https://docs.oracle.com/'))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -64,15 +70,15 @@ class TestCataloguesLoad(unittest.TestCase):
 
 class TestServerTypes(unittest.TestCase):
 
-    def test_aws_offers_server_models_for_every_shape(self):
-        for shape, models in shapes.db_server_types('aws').items():
-            self.assertTrue(models, shape)
-        for shape, models in shapes.storage_server_types('aws').items():
-            self.assertTrue(models, shape)
-
-    def test_azure_offers_server_models_for_every_shape(self):
-        for shape, models in shapes.db_server_types('azure').items():
-            self.assertTrue(models, shape)
+    def test_documented_server_models_and_provider_default_for_x9m(self):
+        for cloud in ('aws', 'azure'):
+            db = shapes.db_server_types(cloud)
+            storage = shapes.storage_server_types(cloud)
+            self.assertEqual(db['Exadata.X9M'], [])
+            self.assertEqual(storage['Exadata.X9M'], [])
+            for model in ('X11M', 'X11MV'):
+                self.assertEqual(db['Exadata.' + model], [model])
+                self.assertEqual(storage['Exadata.' + model], [model + '-HC'])
 
     def test_gcp_carries_no_server_models(self):
         """google_oracle_database_cloud_exadata_infrastructure has no such input —
@@ -94,9 +100,6 @@ class TestServerTypes(unittest.TestCase):
         for cloud in ('aws', 'azure'):
             self.assertNotIn('Exadata.X9M', shapes.requires_server_types(cloud), cloud)
 
-    def test_storage_models_cover_high_capacity_and_extreme_flash(self):
-        for shape, models in shapes.storage_server_types('aws').items():
-            self.assertTrue(any(m.endswith('-HC') for m in models), shape)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

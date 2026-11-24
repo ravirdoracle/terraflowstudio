@@ -107,6 +107,7 @@
   <div class="tab active" onclick="switchTab(0,false)"><span class="tab-num">1</span><span class="tab-label">odb_network</span></div>
   <div class="tab" onclick="switchTab(1,false)"><span class="tab-num">2</span><span class="tab-label">odb_cloud_exadata_infrastructure</span></div>
   <div class="tab" onclick="switchTab(2,false)"><span class="tab-num">3</span><span class="tab-label">odb_network_peering_connection</span></div>
+  <div class="tab" onclick="switchTab(9,false)"><span class="tab-num">T</span><span class="tab-label">transit_vpc</span></div>
   <div class="tab" onclick="switchTab(3,false)"><span class="tab-num">4</span><span class="tab-label">odb_cloud_vm_cluster</span></div>
   <div class="tab" onclick="switchTab(4,false)"><span class="tab-num">5</span><span class="tab-label">odb_cloud_autonomous_vm_cluster</span></div>
   <div class="tab" onclick="switchTab(5,false)"><span class="tab-num">6</span><span class="tab-label">odb_autonomous_database</span></div>
@@ -221,6 +222,14 @@
 </div>
 
 
+
+<div class="page" id="aws-page-9">
+  <div class="page-hero"><div class="page-resource-name">Transit <em>VPC</em></div><a class="page-doc-link" href="https://docs.aws.amazon.com/odb/latest/UserGuide/configuring.html#configure-tgw" target="_blank">AWS docs ↗</a></div>
+  <div class="notice">Connect application networks through ODB peering → Transit VPC → an existing Transit Gateway. Reuse an existing transit VPC or create a dedicated one.</div>
+  <div id="aws-transit-list" class="inst-list"></div>
+  <div class="inst-add-row"><button class="inst-add-btn" onclick="addAwsTransit()">＋ Add Transit VPC</button></div>
+  <button class="vbtn" style="margin-top:14px" onclick="vgen(9,false)">Validate &amp; Generate All</button>
+</div>
 
 </div><!-- /form-panel -->
 
@@ -1467,6 +1476,67 @@ function gcpInfraOptions(selected='') {
 const cloud = 'aws';
 let cur = 0;
 
+// Optional Transit VPC hubs; no card is seeded for existing configurations.
+let awsTransitVpcs = [];
+function defAwsTransit(i) {
+  return {module_name:i===0?'transit_vpc':`transit_vpc_${i+1}`,network_ref:awsNets[0]?.module_name||'',
+    region:'',vpc_mode:'existing',vpc_cidr:'',subnet_cidr:'',vpc_id:'',subnet_id:'',
+    transit_gateway_id:'',transit_gateway_route_table_id:'',attachment_mode:'create',attachment_id:'',
+    peering_mode:'create',peering_id:'',odb_cidrs:'',client_cidrs:'',application_route_table_ids:'',
+    manage_vpc_routes:true,manage_tgw_routes:true,register_peer_cidrs:false};
+}
+function addAwsTransit() { if (iacTool === 'cloudformation') { switchTool('terraform'); } awsTransitVpcs.push(defAwsTransit(awsTransitVpcs.length)); renderAwsTransitVpcs(); refresh(); }
+function readAwsTransit(i) {
+  const d=awsTransitVpcs[i],p=`tv${i}_`;
+  const fields=['network_ref','region','vpc_mode','vpc_cidr','subnet_cidr','vpc_id','subnet_id',
+    'transit_gateway_id','transit_gateway_route_table_id','attachment_mode','attachment_id','peering_mode',
+    'peering_id','odb_cidrs','client_cidrs','application_route_table_ids'];
+  d.module_name=fv(p+'mn')||d.module_name;
+  fields.forEach(k=>{if(document.getElementById(p+k))d[k]=fv(p+k);});
+  ['manage_vpc_routes','manage_tgw_routes','register_peer_cidrs'].forEach(k=>{
+    if(document.getElementById(p+k))d[k]=fcb(p+k);
+  });
+  if(d.vpc_mode==='create'){d.attachment_mode='create';d.peering_mode='create';}
+  if(d.peering_mode==='existing')d.register_peer_cidrs=false;
+}
+function awsTransitCardHTML(d,i) {
+  const p=`tv${i}_`,on=`readAwsTransit(${i});refresh()`,rerender=`readAwsTransit(${i});renderAwsTransitVpcs();refresh()`;
+  const text=(key,label,hint,placeholder='')=>`<div class="field"><div class="field-lbl">${label}</div>${hint?`<div class="field-hint">${hint}</div>`:''}<input type="text" id="${p}${key}" value="${esc(Array.isArray(d[key])?d[key].join(', '):(d[key]||''))}" placeholder="${placeholder}" oninput="${on}"></div>`;
+  const select=(key,label,choices)=>`<div class="field"><div class="field-lbl">${label}</div><select id="${p}${key}" onchange="${rerender}">${choices.map(([value,title])=>`<option value="${value}"${d[key]===value?' selected':''}>${title}</option>`).join('')}</select></div>`;
+  const toggle=(key,label,hint)=>`<div class="field"><label><input type="checkbox" id="${p}${key}" ${d[key]?'checked':''} onchange="${rerender}"> ${label}</label><div class="field-hint">${hint}</div></div>`;
+  const network=awsNets.find(n=>n.module_name===d.network_ref);
+  const cidrs=Array.isArray(d.odb_cidrs)?d.odb_cidrs.join(', '):d.odb_cidrs;
+  const odbValue=cidrs||(!network?.is_existing?[network?.client_subnet_cidr,network?.backup_subnet_cidr].filter(Boolean).join(', '):'');
+  return `<div class="inst-card open" id="tv-card-${i}">
+    <div class="inst-card-head" onclick="toggleCard('tv-card-${i}')"><span class="inst-num">${i+1}</span><span class="inst-modname">${esc(d.module_name)}</span><span class="inst-chevron">▼</span><button class="inst-rm" onclick="event.stopPropagation();removeInst(awsTransitVpcs,${i},renderAwsTransitVpcs)">Remove</button></div>
+    <div class="inst-body"><div class="module-path-row"><span class="mp-dir">Transit hub name</span><input class="module-name-field" type="text" id="${p}mn" value="${esc(d.module_name)}" oninput="${on}"></div>
+    <div class="section"><div class="section-head"><div class="section-title">ODB connection</div></div>
+    <div class="field"><div class="field-lbl">ODB Network *</div><select class="ref-select" id="${p}network_ref" onchange="readAwsTransit(${i});awsTransitVpcs[${i}].odb_cidrs='';renderAwsTransitVpcs();refresh()">${awsNets.map(n=>`<option value="${esc(n.module_name)}"${n.module_name===d.network_ref?' selected':''}>${esc(n.module_name)}</option>`).join('')||'<option value="">Add an ODB network first</option>'}</select></div>
+    ${text('region','AWS region','Leave blank to inherit the selected ODB network region.','us-east-1')}
+    <div class="field"><div class="field-lbl">ODB client and backup CIDRs *</div><div class="field-hint">Must match the selected ODB network. Enter both for an externally provisioned network.</div><input type="text" id="${p}odb_cidrs" value="${esc(odbValue)}" placeholder="Comma-separated IPv4 CIDRs" oninput="${on}"></div>
+    </div><div class="section"><div class="section-head"><div class="section-title">Transit VPC</div></div>
+    ${select('vpc_mode','Transit VPC source',[['existing','Use existing Transit VPC / subnet'],['create','Create new Transit VPC / subnet']])}
+    ${d.vpc_mode==='create'?`<div class="notice">One private attachment subnet is created automatically in the ODB network's Availability Zone.</div>${text('vpc_cidr','Transit VPC CIDR *','Must not overlap ODB or application networks.','10.90.0.0/16')}${text('subnet_cidr','TGW attachment subnet CIDR *','A /16–/28 subnet within the Transit VPC.','10.90.0.0/28')}`:`${text('vpc_id','Existing Transit VPC ID *','Must belong to the ODB network owner account.','vpc-…')}${text('subnet_id','Existing TGW attachment subnet ID *','Use one subnet in the same AZ ID as the ODB network.','subnet-…')}`}
+    </div><div class="section"><div class="section-head"><div class="section-title">Transit Gateway and routing</div></div>
+    ${text('transit_gateway_id','Existing Transit Gateway ID *','The gateway may be shared from another account.','tgw-…')}
+    ${toggle('manage_tgw_routes','Manage TGW routes and new attachment association','Disable when the TGW owner manages routing in another account.')}
+    ${d.manage_tgw_routes?text('transit_gateway_route_table_id','TGW route table ID *','ODB CIDRs route to this transit attachment. Existing attachment associations are preserved; confirm their routing table separately.','tgw-rtb-…'):''}
+    ${toggle('manage_vpc_routes','Manage Transit VPC routes to the ODB network','Disable if routes are managed elsewhere; import existing ODB routes before enabling.')}
+    ${text('client_cidrs','Application / on-premises CIDRs *','Comma-separated networks reachable through the TGW. These must be advertised after the TGW attachment is available.')}
+    ${text('application_route_table_ids','Application VPC route table IDs (optional)','Only specified tables receive ODB routes through the TGW; new peerings activate them in phase 2. Leave blank for externally managed routing.','rtb-…, rtb-…')}
+    </div><div class="section"><div class="section-head"><div class="section-title">Reuse existing connections</div></div><div class="field-hint">Switching an already-applied connection from create to existing requires a reviewed Terraform state migration.</div>
+    ${select('attachment_mode','TGW attachment',d.vpc_mode==='create'?[['create','Create new attachment']]:[['create','Create new attachment'],['existing','Use existing attachment']])}
+    ${d.attachment_mode==='existing'?text('attachment_id','Existing attachment ID *','','tgw-attach-…'):''}
+    ${select('peering_mode','ODB peering',d.vpc_mode==='create'?[['create','Create new ODB peering']]:[['create','Create new ODB peering'],['existing','Use existing ODB peering']])}
+    ${d.peering_mode==='existing'?text('peering_id','Existing ODB peering ID *','This connection remains managed by its current owner.','odbpcx-…'):toggle('register_peer_cidrs','Phase 2: register application CIDRs','Leave off for the first apply. Enable only after the attachment and peering exist, then review/apply again.')}
+    <div class="notice">Application TGW attachments, return routes, DNS forwarding and security rules must be configured separately. See TRANSIT_VPC.md in the generated files. Terraform / OpenTofu only; AWS provider 6.68 or newer.</div>
+    </div></div></div>`;
+}
+function renderAwsTransitVpcs() {
+  _safeRender('aws-transit-list',awsTransitVpcs.map((d,i)=>awsTransitCardHTML(d,i)).join(''));
+  updateTree();injectTooltips();
+}
+
 function getAllModuleNames() {
   const names = [];
   awsNets.forEach(n => names.push(n.module_name));
@@ -1476,6 +1546,7 @@ function getAllModuleNames() {
   awsAdbs.forEach(n => names.push(n.module_name));
   awsRamShares.forEach(n => names.push(n.module_name));
   awsKmsKeys.forEach(n => names.push(n.module_name));
+  awsTransitVpcs.forEach(n => names.push(n.module_name));
   return names;
 }
 const mn  = i => getAllModuleNames()[i] || ('module_'+i);
@@ -1491,6 +1562,7 @@ function switchTab(i) {
   document.getElementById('aws-page-'+i).classList.add('active');
   if (i === 5) renderAwsAdbs();   // its "will also create" warning reads the other tabs
   if (i === 7) renderAwsRamShares();
+  if (i === 9) renderAwsTransitVpcs();
   if (i === 8) renderAwsKmsKeys();     // cluster checkboxes read the cluster tab
   activeFile = 'main.tf';
   refreshOutput();
@@ -1511,11 +1583,13 @@ function buildPayload() {
     aws_ram_shares:    awsRamShares,
     aws_kms_keys:      awsKmsKeys,
     aws_kms_tde:       awsKmsTde,
+    aws_transit_vpcs:  awsTransitVpcs,
   };
 }
 
 function applyConfig(doc) {
-  const AWS_ARRAY_KEYS = ['aws_networks','aws_infras','aws_peerings','aws_clusters','aws_avmclusters','aws_autonomous_dbs','aws_dg_multi_az','aws_dg_cross_region'];
+  awsTransitVpcs = (doc.aws_transit_vpcs || []).map((d,i)=>({...defAwsTransit(i),...d}));
+  const AWS_ARRAY_KEYS = ['aws_transit_vpcs','aws_networks','aws_infras','aws_peerings','aws_clusters','aws_avmclusters','aws_autonomous_dbs','aws_dg_multi_az','aws_dg_cross_region'];
   // Absent from configs saved before ADB support, which simply had none.
   awsAdbs = (doc.aws_autonomous_dbs || []).map((d,i) => ({...defAwsAdb(i), ...d}));
   awsAdbIntegration = !!doc.aws_adb_secrets_integration;
@@ -1552,6 +1626,7 @@ function renderAll() {
   renderAwsNets(); renderAwsInfras(); renderAwsPeerings(); renderAwsClusters(); renderAwsAvmcs(); renderAwsAdbs();
   renderAwsRamShares();
   renderAwsKmsKeys();
+  renderAwsTransitVpcs();
   updateTree();
 }
 
@@ -1698,6 +1773,7 @@ function addCidrToPeer(i) {
 // matches nothing, so errors show in the card banner but no field turns red.
 // Keys are the card id prefix; see the read* functions for the full mapping.
 const VALIDATION_FIELD_INPUT = {
+  tv: {module_name:'mn', network_ref:'network_ref', region:'region', vpc_mode:'vpc_mode', vpc_cidr:'vpc_cidr', subnet_cidr:'subnet_cidr', vpc_id:'vpc_id', subnet_id:'subnet_id', transit_gateway_id:'transit_gateway_id', transit_gateway_route_table_id:'transit_gateway_route_table_id', attachment_mode:'attachment_mode', attachment_id:'attachment_id', peering_mode:'peering_mode', peering_id:'peering_id', odb_cidrs:'odb_cidrs', client_cidrs:'client_cidrs', application_route_table_ids:'application_route_table_ids', manage_vpc_routes:'manage_vpc_routes', manage_tgw_routes:'manage_tgw_routes', register_peer_cidrs:'register_peer_cidrs'},
   an: {display_name:'dn', availability_zone_id:'az', client_subnet_cidr:'cc',
        backup_subnet_cidr:'bc', existing_id:'exid'},
   ai: {display_name:'dn', shape:'shape', availability_zone_id:'az',
@@ -1794,6 +1870,7 @@ function copyFile(){const text=document.getElementById('code-out').innerText;nav
 
 // ── Tool switcher ─────────────────────────────────────────────────────────────
 function switchTool(t) {
+  if (t === 'cloudformation' && awsTransitVpcs.length) { showToast('Transit VPC supports Terraform and OpenTofu. Remove the Transit VPC cards before using CloudFormation.', true); return; }
   iacTool = t;
   document.getElementById('btn-tf').className   = 'tsw-btn' + (t==='terraform'       ? ' sel-tf'   : '');
   document.getElementById('btn-tofu').className = 'tsw-btn' + (t==='opentofu'        ? ' sel-tofu' : '');
@@ -2446,6 +2523,7 @@ async function pushToGithub() {
 async function dlZip(){
   const p=buildPayload();
   const r=await fetch('/api/download',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(p)});
+  if (!r.ok) { let message='Generation failed. Validate the required fields before downloading.'; try { message=(await r.json()).error||message; } catch(e) {} showToast(message,true); return; }
   const b=await r.blob();
   const a=document.createElement('a');
   a.href=URL.createObjectURL(b);

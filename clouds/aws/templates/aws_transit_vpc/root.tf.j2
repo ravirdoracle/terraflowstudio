@@ -1,0 +1,22 @@
+# ODB peering -> transit VPC -> existing Transit Gateway.
+module "aws_transit_vpc" {
+  source         = "./modules/aws-transit-vpc"
+  for_each       = var.aws_transit_vpcs
+  config         = each.value
+  name           = each.key
+  odb_network_id = {{ network_id_expr }}
+  region         = each.value.region != "" ? each.value.region : var.aws_region
+  tags           = var.tags
+}
+
+output "aws_transit_vpcs" {
+  value = {
+    for key, hub in module.aws_transit_vpc : key => {
+      vpc_id                = hub.vpc_id
+      subnet_id             = hub.subnet_id
+      attachment_id         = hub.attachment_id
+      peering_connection_id = hub.peering_connection_id
+      route_table_id        = hub.route_table_id
+    }
+  }
+}

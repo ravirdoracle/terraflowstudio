@@ -1,26 +1,20 @@
 {
   "_comment": [
-    "Oracle AI Database@GCP Exadata shape catalogue. Single source of truth for the",
-    "shape dropdown on the GCP page and the generator's default shape.",
-    "",
-    "Edit this file, or use /regions, to add a shape — no code change needed. A bad",
-    "edit is rejected on save, so the file on disk is never left in a state that",
-    "would empty the dropdown.",
-    "",
-    "Fields per entry:",
-    "  shape   properties.shape on google_oracle_database_cloud_exadata_infrastructure.",
-    "  label   Human name shown in the dropdown.",
-    "  status  live | planned. Planned shapes are shown greyed out.",
-    "",
-    "No database_server_types / storage_server_types here: the GCP resource has no",
-    "such input. It exposes db_server_version and storage_server_version, but both",
-    "are computed outputs, not values you choose. That is why the editor shows no",
-    "server-type columns for GCP."
+    "Oracle AI Database@GCP Exadata Dedicated shape catalogue.",
+    "Verified against source_url on 2026-11-23; available shapes vary by region, zone and account.",
+    "Documented models are Exadata.X9M, Exadata.X11M and Exadata.X11MV.",
+    "X10M is not documented for these multicloud offerings; it is not a planned launch.",
+    "Saved shapes outside this catalogue remain visible as not in catalogue.",
+    "Edit this file or use the shape catalogue editor at /regions.",
+    "The current Google Terraform resource exposes server versions as computed outputs, not selectable server-type inputs.",
+    "Keep server-type lists absent until the generated resource supports these inputs."
   ],
   "default_shape": "Exadata.X9M",
+  "source_url": "https://docs.oracle.com/en-us/iaas/Content/database-at-gcp/gcpcr-create-exadata-infrastructure.html",
+  "verified_on": "2026-11-23",
   "shapes": [
-    { "shape": "Exadata.X9M",  "label": "Exadata X9M",  "status": "live" },
-    { "shape": "Exadata.X10M", "label": "Exadata X10M", "status": "live" },
-    { "shape": "Exadata.X11M", "label": "Exadata X11M", "status": "live" }
+    { "shape": "Exadata.X9M",   "label": "Exadata X9M",   "status": "live" },
+    { "shape": "Exadata.X11M",  "label": "Exadata X11M",  "status": "live" },
+    { "shape": "Exadata.X11MV", "label": "Exadata X11MV", "status": "live" }
   ]
 }

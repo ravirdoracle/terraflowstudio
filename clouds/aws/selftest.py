@@ -5,6 +5,7 @@ what makes the inputs valid, which module directories the generator produces, an
 what the root module should contain. app.py drives the run and knows none of it.
 """
 import re
+from clouds.aws.transit import transit_payload
 
 from clouds.aws.generator import (
     _aws_net_defaults, _aws_infra_defaults, _aws_peer_defaults, _aws_cluster_defaults,
@@ -22,7 +23,7 @@ PAYLOAD_KEYS = {
     'nets': 'aws_networks', 'infras': 'aws_infras',
     'peerings': 'aws_peerings', 'clusters': 'aws_clusters',
     'avmcs': 'aws_avmclusters', 'adbs': 'aws_autonomous_dbs', 'ram_shares': 'aws_ram_shares',
-    'kms_keys': 'aws_kms_keys',
+    'kms_keys': 'aws_kms_keys', 'transits': 'aws_transit_vpcs',
 }
 
 #: Shared for_each module directories the root emits, one set regardless of how
@@ -32,6 +33,7 @@ MODULE_DIRS = ('aws-odb-network', 'aws-exadata-infra', 'aws-peering', 'aws-vm-cl
 
 def derive(payload):
     """Raw and defaulted resource lists from the posted payload."""
+    payload = transit_payload(payload)
     raw_nets     = payload.get('aws_networks') or []
     raw_infras   = payload.get('aws_infras') or []
     raw_peerings = payload.get('aws_peerings') or []
@@ -65,6 +67,7 @@ def derive(payload):
         'adb_integration': bool(payload.get('aws_adb_secrets_integration')),
         'ram_shares': list(payload.get('aws_ram_shares') or []),
         'kms_keys': list(payload.get('aws_kms_keys') or []),
+        'transits': list(payload.get('aws_transit_vpcs') or []),
     }
 
 
@@ -116,6 +119,8 @@ def module_keys(d):
         mods.append(_MOD7)
     if d.get('kms_keys'):
         mods += [_MOD8, _MOD8_ACCESS, _MOD8_OCI]
+    if d.get('transits'):
+        mods.append('aws-transit-vpc')
     return [f'modules/{mod}/{f}'
             for mod in mods
             for f in ('main.tf', 'variables.tf', 'outputs.tf')]

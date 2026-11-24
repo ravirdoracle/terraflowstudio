@@ -835,12 +835,15 @@ def api_files():
 def api_download():
     data = request.get_json(force=True)
     cloud = data.get('cloud', 'aws')
-    if data.get('iac_tool') == 'cloudformation':
-        content = generate_cfn(data)
-        buf = io.BytesIO(content.encode('utf-8'))
-        return send_file(buf, mimetype='text/yaml', as_attachment=True, download_name='odb-stack.yaml')
-    zip_name = cloud_registry.get(cloud).zip_name
-    files = _fmt_files(generate_all(data), data.get('iac_tool', 'terraform'))
+    try:
+        if data.get('iac_tool') == 'cloudformation':
+            content = generate_cfn(data)
+            buf = io.BytesIO(content.encode('utf-8'))
+            return send_file(buf, mimetype='text/yaml', as_attachment=True, download_name='odb-stack.yaml')
+        zip_name = cloud_registry.get(cloud).zip_name
+        files = _fmt_files(generate_all(data), data.get('iac_tool', 'terraform'))
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         for path, content in files.items():

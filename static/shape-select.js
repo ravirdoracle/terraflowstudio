@@ -34,7 +34,8 @@ function shapeOptionsHTML(catalogue, selected) {
 }
 
 function shapeSelectHTML(catalogue, id, selected, onchange) {
-  return `<select id="${id}" onchange="${onchange}">${shapeOptionsHTML(catalogue, selected)}</select>`;
+  return `<select id="${id}" onchange="${onchange}">${shapeOptionsHTML(catalogue, selected)}</select>` +
+    `<div class="field-hint">Shape availability depends on your region, zone and account. Confirm availability in the cloud console before deploying.</div>`;
 }
 
 /** Server models offered for a shape. kind is 'database' or 'storage'. */

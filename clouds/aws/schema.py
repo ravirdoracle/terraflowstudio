@@ -143,3 +143,49 @@ AWS_RESOURCE_OUTPUTS = {
     ],
     'aws_ram_resource_share': ['id', 'arn', 'name', 'status', 'owning_account_id'],
 }
+
+# Standard AWS networking resources used by the opt-in transit VPC module.
+AWS_SCHEMAS.update({
+    'aws_vpc': {
+        'required': ['cidr_block'],
+        'optional': ['enable_dns_support', 'enable_dns_hostnames', 'tags', 'region', 'count'],
+    },
+    'aws_subnet': {
+        'required': ['vpc_id', 'cidr_block'],
+        'optional': ['availability_zone_id', 'map_public_ip_on_launch', 'tags', 'region', 'count'],
+    },
+    'aws_route_table': {
+        'required': ['vpc_id'],
+        'optional': ['tags', 'region', 'count'],
+    },
+    'aws_route_table_association': {
+        'required': ['subnet_id', 'route_table_id'],
+        'optional': ['region', 'count'],
+    },
+    'aws_ec2_transit_gateway_vpc_attachment': {
+        'required': ['transit_gateway_id', 'vpc_id', 'subnet_ids'],
+        'optional': ['transit_gateway_default_route_table_association', 'transit_gateway_default_route_table_propagation', 'tags', 'region', 'count'],
+    },
+    'aws_ec2_transit_gateway_route_table_association': {
+        'required': ['transit_gateway_attachment_id', 'transit_gateway_route_table_id'],
+        'optional': ['region', 'count'],
+    },
+    'aws_ec2_transit_gateway_route': {
+        'required': ['destination_cidr_block', 'transit_gateway_route_table_id', 'transit_gateway_attachment_id'],
+        'optional': ['region', 'for_each'],
+    },
+    'aws_route': {
+        'required': ['route_table_id', 'destination_cidr_block'],
+        'optional': ['odb_network_arn', 'transit_gateway_id', 'region', 'for_each'],
+    },
+})
+AWS_RESOURCE_OUTPUTS.update({
+    'aws_vpc': ['id'],
+    'aws_subnet': ['id'],
+    'aws_route_table': ['id'],
+    'aws_route_table_association': ['id'],
+    'aws_ec2_transit_gateway_vpc_attachment': ['id'],
+    'aws_ec2_transit_gateway_route_table_association': ['id'],
+    'aws_ec2_transit_gateway_route': ['id'],
+    'aws_route': ['id'],
+})

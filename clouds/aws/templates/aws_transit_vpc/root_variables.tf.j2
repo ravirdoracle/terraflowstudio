@@ -1,0 +1,7 @@
+variable "aws_transit_vpcs" {
+  description = "Opt-in transit VPC hubs for Oracle Database@AWS. See TRANSIT_VPC.md."
+  type = map(object({
+{{ fields }}
+  }))
+  default = {}
+}
